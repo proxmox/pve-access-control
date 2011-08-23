@@ -1,0 +1,14 @@
+libpve-access-control (1.0-1) unstable; urgency=low
+
+  * allow '-' in permission paths
+  
+  * bump version to 1.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 27 Jun 2011 13:51:48 +0200
+
+libpve-access-control (0.1) unstable; urgency=low
+
+  * first dummy package - no functionality
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 09 Jul 2009 16:03:00 +0200
+

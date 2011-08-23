@@ -1,0 +1,102 @@
+#!/usr/bin/perl -w 
+
+use strict;
+use Getopt::Long;
+use PVE::Tools qw(run_command);
+use PVE::Cluster;
+use PVE::SafeSyslog;
+use PVE::AccessControl;
+use File::Path qw(make_path remove_tree);
+use Term::ReadLine;
+use PVE::INotify;
+use PVE::RPCEnvironment;
+use PVE::API2::User;
+use PVE::API2::Group;
+use PVE::API2::Role;
+use PVE::API2::ACL;
+use PVE::API2::AccessControl;
+use PVE::JSONSchema qw(get_standard_option);
+use PVE::CLIHandler;
+
+use base qw(PVE::CLIHandler);
+
+use Data::Dumper; # fixme: remove
+
+$ENV{'PATH'} = '/sbin:/bin:/usr/sbin:/usr/bin';
+
+initlog('pveum');
+
+#fixme: logging?
+
+die "please run as root\n" if $> != 0;
+
+PVE::INotify::inotify_init();
+
+my $rpcenv = PVE::RPCEnvironment->init('cli');
+
+$rpcenv->init_request();
+$rpcenv->set_language($ENV{LANG});
+$rpcenv->set_user('root@pam'); 
+
+# autmatically generate the private key if it does not already exists
+PVE::Cluster::gen_auth_key();
+
+my $read_password = sub {
+
+    # return $ENV{PVE_PW_TICKET} if defined($ENV{PVE_PW_TICKET});
+
+    my $term = new Term::ReadLine ('pveum');
+    my $attribs = $term->Attribs;
+    $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
+    my $input = $term->readline('Enter new password: ');
+    my $conf = $term->readline('Retype new password: ');
+    die "Passwords do not match.\n" if ($input ne $conf);
+    return $input;
+};
+
+my $cmddef = {
+    ticket => [ 'PVE::API2::AccessControl', 'create_ticket', ['username'], undef,
+		sub {
+		    my ($res) = @_;
+		    print "$res->{ticket}\n";
+		}],
+    useradd => [ 'PVE::API2::User', 'create_user', ['userid'] ],
+    usermod => [ 'PVE::API2::User', 'update_user', ['userid'] ],
+    userdel => [ 'PVE::API2::User', 'delete_user', ['userid'] ],
+
+    groupadd => [ 'PVE::API2::Group', 'create_group', ['groupid'] ],
+    groupmod => [ 'PVE::API2::Group', 'update_group', ['groupid'] ],
+    groupdel => [ 'PVE::API2::Group', 'delete_group', ['groupid'] ],
+
+    roleadd => [ 'PVE::API2::Role', 'create_role', ['roleid'] ],
+    rolemod => [ 'PVE::API2::Role', 'update_role', ['roleid'] ],
+    roledel => [ 'PVE::API2::Role', 'delete_role', ['roleid'] ],
+
+    aclmod => [ 'PVE::API2::ACL', 'update_acl', ['path', 'roles'], { delete => 0 }],
+    acldel => [ 'PVE::API2::ACL', 'update_acl', ['path', 'roles'], { delete => 1 }],
+};
+
+my $cmd = shift;
+
+if ($cmd && $cmd eq 'verifyapi') {
+    PVE::RESTHandler::validate_method_schemas();
+    exit 0;
+}
+
+PVE::CLIHandler::handle_cmd($cmddef, "pveum", $cmd, \@ARGV, $read_password);
+
+exit 0;
+
+__END__
+
+=head1 NAME
+
+pveum - PVE User Manager
+
+=head1 SYNOPSIS
+
+    pveum <COMMAND> [OPTIONS]
+
+=head1 DESCRIPTION
+
+no description available

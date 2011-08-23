@@ -1,0 +1,273 @@
+User Management and Access Control
+==================================
+
+Proxmox VE implements an easy but flexible way to manage users. A
+powerful Access Control algorithm is used to grant permissions to
+individual users or group of users.
+
+Best Practices:
+
+Use groups in ACLs (not individual users).
+
+User Authentication
+===================
+
+Proxmox VE can use different authentication servers. Those
+servers are listed in '/etc/pve/priv/domain.cfg', indexed by a unique
+ID (called 'authentication domain' or 'realm').
+
+User names need to be unique. We create unique names by adding the
+'realm' to the user ID: <userid>@<realm>
+
+File format 'domain.cfg'
+----example domains.cfg ------------------
+
+# an active directory server
+AD: mycompany
+	server1 10.10.10.1
+	server2 10.10.10.2
+	...
+
+# an LDAP server
+LDAP: example.com
+	server1 10.10.10.2
+      	....
+
+------------------------------------------
+
+There are 2 special authentication domains name 'pve' and 'pam':
+
+ * pve: stores paswords to "/etc/pve/priv/shadow.cfg" (SHA256 crypt); 
+
+ * pam: use unix 'pam'
+
+
+Proposed user database fields:
+==============================
+
+users:
+
+	login_name: email address (user@domain)
+	enable: 1 = TRUE, 0 = FALSE
+	expire: <integer> (account expiration date)
+	domid: reference to authentication domain
+	firstname: user first name
+	lastname: user last name
+	email: user's email address
+	comment: arbitrary comment
+
+	special user root: The root user has full administrative privileges
+
+group:
+
+	group_name: the name of the group
+	user_list: list of login names
+	comment: a more verbose description
+
+privileges: 
+
+	defines rights required to execute actions or read
+	information.
+
+	VM.Allocate: create/remove new VM to server inventory
+	VM.Migrate: migrate VM to alternate server on cluster
+   	VM.PowerMgmt: power management (start, stop, reset, shutdown, ...)
+	VM.Console: console access to VM
+	VM.Audit: view VM config
+	VM.Modify: modify VM config
+
+	Datastore.Allocate: create/remove/modify a data store.
+	Datastore.AllocateSpace: allocate space on a datastore
+	Datastore.Audit: view/browse a datastore
+
+	Permissions.Modify: modify access permissions
+
+	Sys.PowerMgmt: Node power management (start, stop, reset, shutdown, ...)
+	Sys.Console: console access to Node
+	Sys.Syslog: view Syslog
+	Sys.Audit: view node status/config
+
+
+	We may need to refine those in future - the following privs
+	are just examples:
+
+	VM.Create: create new VM to server inventory
+	VM.Remove: remove VM from inventory
+	VM.MemoryModify: modify memory associated with VM
+	VM.AddNewDisk: add new disk to VM
+	VM.AddExistingDisk: add an existing disk to VM
+	VM.DiskModify: modify disk space for associated VM
+	VM.UseRawDevice: associate a raw device with VM
+	VM.PowerOn: power on VM
+	VM.PowerOff: power off VM
+	VM.ConfigureCD: assign a device/image file to VM
+	VM.CpuModify: modify number of CPUs associated with VM
+	VM.CpuCyclesModify: modify CPU cycles for VM
+	VM.NetworkAdd: add network device to VM
+	VM.NetworkConfigure: configure network device associated with VM
+	VM.NetworkRemove: remove network device from VM
+
+	Network.AssignNetwork: assign system networks
+
+role:
+
+	defines a sets of priviledges
+
+	predefined roles:
+
+	administrator: full administrative privileges
+	read_only: read only
+	no_access: no privileges
+
+	We store the following attribute for roles:
+
+	role_name: the name of the group
+	description: a more verbose description
+	privileges: list of privileges
+
+permission:
+
+	Assign roles to users or groups.
+
+
+ACL and Objects:
+================
+ 
+An access control list (ACL) is a list of permissions attached to an object. The list specifies who or what is allowed to access the object and what operations are allowed to be performed on the object.
+
+Object: A Virtual machine, Network (bridge, venet), Hosts, Host Memory, Storage, ...
+
+We can identify our objects by an unique (file system like) path, which also defines a tree like hierarchy relation. ACL can be inherited. Permissions are inherited if the propagate flag is set on the parent. Child permissions always overwrite inherited permissions. User permission takes precedence over all group permissions. If multiple group permission apply the resulting role is the union of all those group priviledges.
+
+There is at most one object permission per user or group
+
+We store the following attributes for ACLs:
+
+	propagate: propagate permissions down in the hierarchy
+	path: path to uniquely identify the object
+	user_or_group: ID of user or group (group ID start with @)
+	role: list of role IDs.
+
+User Database:
+
+To keep it simple, we suggest to use a single text file, which is replicated to all cluster nodes.
+
+Also, we can store ACLs inside this file.
+
+Here is a short example how such file could look like:
+
+-----User/Group/Role Database example--------
+
+user:joe@example.com:$1$nd91DtDy$mJtzWJAN2AAABKij0JgMy1/:Joe Average:Just a comment:
+user:max@example.com:$1$nd91DtDy$LANSNJAN2AAABKidhfgMy3/:Max Mustermann:Another comment:
+user:edward@example.com:$1$nd91DtDy$LANSNAAAAAAABKidhfgMy3/:Edward Example:Example VM Manager:
+
+group:admin:Internal Administrator Group:root:
+group:audit:Read only accounts used for audit::
+group:customers:Our Customers:joe@example.com,max@example.com:
+
+role:vm_user:Virtual Machine User:VM.ConfigureCD,VM.Console:
+role:vm_manager:Virtual Machine Manager:VM.ConfigureCD,VM.Console,VM.AddNewDisk,VM.PowerOn,VM.PowerOff:
+role:vm_operator:Virtual Machine Operator:VM.Create,VM.ConfigureCD,VM.Console,VM.AddNewDisk,VM.PowerOn,VM.PowerOff:
+role:ds_consumer:DataStore Consumer:Datastore.AllocateSpace:
+role:nw_consumer:Network Consumer:Network.AssignNetwork:
+
+# group admin can do anything
+acl:0:/:@admin:Administrator:
+# group audit can view anything
+acl:1:/:@audit:read_only:
+
+# user max can manage all qemu/kvm machines
+acl:1:/vm/qemu:max@example.com:vm_manager:
+
+# user joe can use openvz vm 230
+acl:1:/vm/openvz/230:joe@example.com:vm_user:
+
+# user Edward can create openvz VMs using vmbr0 and store0
+acl:1:/vm/openvz:edward@example.com:vm_operator:
+acl:1:/network/vmbr0:edward@example.com:ds_consumer:
+acl:1:/storage/store0:edward@example.com:nw_consumer:
+
+---------------------------------------------
+
+Basic model RBAC -> http://en.wikipedia.org/wiki/Role-based_access_control
+
+# Subject: A person or automated agent 
+subject:joe@example.com:
+subject:max@example.com:
+
+# Role: Job function or title which defines an authority level 
+role:vm_user:Virtual Machine User:
+role:admin:Administrator:
+
+# Subject Assignment: Subject -> Role(s) 
+SA:vm_user:joe@example.com,max@example.com:
+SA:admin:joe@example.com:
+
+# Permissions: An approval of a mode of access to a resource 
+# Permission Assignment: Role -> Permissions (set of allowed operation)
+perm:vm_user:VM.ConfigureCD,VM.Console:
+perm:admin:VM.ConfigureCD,VM.Console,VM.Create:
+
+---------------------------------------------
+
+We can merge 'perm' into the 'role' table, because it is 
+a 1 -> 1 mapping
+
+subject:joe@example.com:
+subject:max@example.com:
+
+role:vm_user:Virtual Machine User:VM.ConfigureCD,VM.Console:
+role:admin:Administrator:VM.ConfigureCD,VM.Console,VM.Create:
+
+SA:vm_user:joe@example.com,max@example.com:
+SA:admin:joe@example.com:
+
+-----------------------------------------------
+
+We can have different subject assignment for different objects.
+
+subject:joe@example.com:
+subject:max@example.com:
+
+role:vm_user:Virtual Machine User:VM.ConfigureCD,VM.Console:
+role:admin:Administrator:VM.ConfigureCD,VM.Console,VM.Create:
+
+# joe is 'admin' for openvz VMs, but 'vm_user' for qemu VMs
+SA:/vm/openvz:admin:joe@example.com:
+SA:/vm/qemu:vm_user:joe@example.com,max@example.com:
+
+-----------------------------------------------
+
+Let us use more convenient names. 
+Use 'user' instead of 'subject'.
+Use 'acl' instead of 'SA'.
+
+user:joe@example.com:
+user:max@example.com:
+
+role:vm_user:Virtual Machine User:VM.ConfigureCD,VM.Console:
+role:admin:Administrator:VM.ConfigureCD,VM.Console,VM.Create:
+
+# joe is 'admin' for openvz VMs, but 'vm_user' for qemu VMs
+acl:/vm/openvz:admin:joe@example.com:
+acl:/vm/qemu:vm_user:joe@example.com,max@example.com:
+
+-----------------------------------------------
+
+Finally introduce groups to group users. ACL can then
+use 'users' or 'groups'.
+
+user:joe@example.com:
+user:max@example.com:
+
+group:customers:Our Customers:joe@example.com,max@example.com:
+
+role:vm_user:Virtual Machine User:VM.ConfigureCD,VM.Console:
+role:admin:Administrator:VM.ConfigureCD,VM.Console,VM.Create:
+
+acl:/vm/openvz:admin:joe@example.com:
+acl:/vm/qemu:vm_user:@customers:
+
+
+-----------------------------------------------
