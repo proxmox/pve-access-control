@@ -34,19 +34,19 @@ install:
 
 .PHONY: deb ${DEB}
 deb ${DEB}:
-	rm -rf debian
-	mkdir debian
-	make DESTDIR=${CURDIR}/debian install
-	install -d -m 0755 debian/DEBIAN
-	sed -e s/@@VERSION@@/${VERSION}/ -e s/@@PKGRELEASE@@/${PKGREL}/ -e s/@@ARCH@@/${ARCH}/ <control.in >debian/DEBIAN/control
-	install -D -m 0644 copyright debian/${DOCDIR}/${PACKAGE}/copyright
-	install -m 0644 changelog.Debian debian/${DOCDIR}/${PACKAGE}/
-	gzip -9 debian/${DOCDIR}/${PACKAGE}/changelog.Debian
-	install -m 0644 ChangeLog debian/${DOCDIR}/${PACKAGE}/changelog
-	gzip -9 debian/${DOCDIR}/${PACKAGE}/changelog
-	dpkg-deb --build debian	
-	mv debian.deb ${DEB}
-	#rm -rf debian
+	rm -rf build
+	mkdir build
+	make DESTDIR=`pwd`/build install
+	install -d -m 0755 build/DEBIAN
+	sed -e s/@@VERSION@@/${VERSION}/ -e s/@@PKGRELEASE@@/${PKGREL}/ -e s/@@ARCH@@/${ARCH}/ <control.in >build/DEBIAN/control
+	install -D -m 0644 copyright build/${DOCDIR}/${PACKAGE}/copyright
+	install -m 0644 changelog.Debian build/${DOCDIR}/${PACKAGE}/
+	gzip -9 build/${DOCDIR}/${PACKAGE}/changelog.Debian
+	install -m 0644 ChangeLog build/${DOCDIR}/${PACKAGE}/changelog
+	gzip -9 build/${DOCDIR}/${PACKAGE}/changelog
+	dpkg-deb --build build	
+	mv build.deb ${DEB}
+	#rm -rf build
 	lintian ${DEB}
 
 .PHONY: upload
@@ -61,7 +61,7 @@ upload: ${DEB}
 
 .PHONY: clean
 clean: 	
-	rm -rf debian *~ *.deb ${PACKAGE}-*.tar.gz
+	rm -rf build *~ *.deb ${PACKAGE}-*.tar.gz
 	find . -name '*~' -exec rm {} ';'
 
 .PHONY: distclean
