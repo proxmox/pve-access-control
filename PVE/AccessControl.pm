@@ -1045,7 +1045,7 @@ sub write_user_config {
 	my $lastname = $d->{lastname} ? PVE::Tools::encode_text($d->{lastname}) : '';
 	my $email = $d->{email} || '';
 	my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';
-	my $expire = int($d->{expire}) || 0;
+	my $expire = int($d->{expire} || 0);
 	my $enable = $d->{enable} ? 1 : 0;
 	$data .= "user:$user:$enable:$expire:$firstname:$lastname:$email:$comment:\n";
     }
