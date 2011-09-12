@@ -530,7 +530,7 @@ sub fork_worker {
 	    kill('KILL', $$); 
 	}
 
-	# sync with parent (signal that we are read)
+	# sync with parent (signal that we are ready)
 	if ($sync) {
 	    print "$upid\n";
 	} else {
@@ -632,6 +632,7 @@ sub fork_worker {
 		    }
 		    if ($outfh) {
 			print $outfh $line;
+			$outfh->flush();
 		    }
 		}
 	    }
@@ -653,10 +654,10 @@ sub fork_worker {
 	    if ($outfh) {
 		print $outfh "TASK ERROR: $err\n";
 	    }
-	    kill (15, $cpid);
+	    kill (-15, $cpid);
 
 	} else {
-	    kill (9, $cpid); # make sure it gets killed
+	    kill (-9, $cpid); # make sure it gets killed
 	}
 
 	close($outfh);
