@@ -334,8 +334,7 @@ sub active_workers  {
 	my $check_task = sub {
 	    my ($task) = @_;
 
-	    my $pstart = PVE::ProcFSTools::read_proc_starttime($task->{pid});
-	    if ($pstart && ($pstart == $task->{pstart})) {
+	    if (PVE::ProcFSTools::check_process_running($task->{pid}, $task->{pstart})) {
 		push @$tlist, $task;
 	    } else {
 		delete $task->{pid};
@@ -425,6 +424,42 @@ sub active_workers  {
     die $@ if $@;
 
     return $res;
+}
+
+my $kill_process_group = sub {
+    my ($pid, $pstart) = @_;
+
+    # send kill to process group (negative pid)
+    my $kpid = -$pid;
+
+    # always send signal to all pgrp members
+    kill(15, $kpid); # send TERM signal
+
+    # give max 5 seconds to shut down
+    for (my $i = 0; $i < 5; $i++) {
+	return if !PVE::ProcFSTools::check_process_running($pid, $pstart);
+	sleep (1);
+    }
+       
+    # to be sure
+    kill(9, $kpid); 
+};
+
+sub check_worker {
+    my ($upid, $killit) = @_;
+
+    my $task = PVE::Tools::upid_decode($upid);
+
+    my $running = PVE::ProcFSTools::check_process_running($task->{pid}, $task->{pstart});
+
+    return 0 if !$running;
+
+    if ($killit) {
+	&$kill_process_group($task->{pid});
+	return 0;
+    }
+
+    return 1;
 }
 
 # start long running workers
@@ -527,7 +562,7 @@ sub fork_worker {
 	    POSIX::write($psync[1], $msg, length ($msg));
 	    POSIX::close($psync[1]);
 	    POSIX::_exit(1); 
-	    kill('KILL', $$); 
+	    kill(-9, $$); 
 	}
 
 	# sync with parent (signal that we are ready)
@@ -553,9 +588,9 @@ sub fork_worker {
 	    POSIX::_exit(-1); 
 	} else {
 	    print STDERR "TASK OK\n";
-	    POSIX::_exit (0);
+	    POSIX::_exit(0);
 	} 
-	kill('KILL', $$); 
+	kill(-9, $$); 
     }
 
     # parent
@@ -598,7 +633,7 @@ sub fork_worker {
        
     } else {
 	POSIX::close($csync[1]);
-	kill (9, $cpid); # make sure it gets killed
+	kill(-9, $cpid); # make sure it gets killed
 	die $err;
     }
 
@@ -654,15 +689,13 @@ sub fork_worker {
 	    if ($outfh) {
 		print $outfh "TASK ERROR: $err\n";
 	    }
-	    kill (-15, $cpid);
-
-	} else {
-	    kill (-9, $cpid); # make sure it gets killed
 	}
+
+	&$kill_process_group($cpid, $pstart); # make sure it gets killed
 
 	close($outfh);
 
-	waitpid ($cpid, 0);
+	waitpid($cpid, 0);
 	$res = $?;
 	&$log_task_result($upid, $user, $res);
     }
