@@ -1,3 +1,9 @@
+libpve-access-control (1.0-2) unstable; urgency=low
+
+  * fix bug in fork_worker
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 11 Oct 2011 08:37:05 +0200
+
 libpve-access-control (1.0-1) unstable; urgency=low
 
   * allow '-' in permission paths

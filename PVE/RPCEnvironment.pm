@@ -316,8 +316,10 @@ sub get_user {
 # read/update list of active workers 
 # we move all finished tasks to the archive index,
 # but keep aktive and most recent task in the active file.
+# $nocheck ... consider $new_upid still running (avoid that
+# we try to read the reult to early.
 sub active_workers  {
-    my ($new_upid) = @_;
+    my ($new_upid, $nocheck) = @_;
 
     my $lkfn = "/var/log/pve/tasks/.active.lock";
 
@@ -354,7 +356,7 @@ sub active_workers  {
 	    $task = PVE::Tools::upid_decode($new_upid);
 	    $task->{upid} = $new_upid;
 	    $thash->{$new_upid} = $task;
-	    &$check_task($task);
+	    &$check_task($task) if !$nocheck;
 	}
 
 
@@ -639,7 +641,7 @@ sub fork_worker {
 
     PVE::Cluster::log_msg('info', $user, "starting task $upid");
 
-    my $tlist = active_workers($upid);
+    my $tlist = active_workers($upid, $sync);
     PVE::Cluster::broadcast_tasklist($tlist);
    
     my $res = 0;
