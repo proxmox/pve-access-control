@@ -334,9 +334,9 @@ sub active_workers  {
 	my $thash = {}; # only list task once
 
 	my $check_task = sub {
-	    my ($task) = @_;
+	    my ($task, $running) = @_;
 
-	    if (PVE::ProcFSTools::check_process_running($task->{pid}, $task->{pstart})) {
+	    if ($running || PVE::ProcFSTools::check_process_running($task->{pid}, $task->{pstart})) {
 		push @$tlist, $task;
 	    } else {
 		delete $task->{pid};
@@ -356,7 +356,7 @@ sub active_workers  {
 	    $task = PVE::Tools::upid_decode($new_upid);
 	    $task->{upid} = $new_upid;
 	    $thash->{$new_upid} = $task;
-	    &$check_task($task) if !$nocheck;
+	    &$check_task($task, $nocheck);
 	}
 
 
