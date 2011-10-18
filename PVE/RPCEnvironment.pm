@@ -652,10 +652,12 @@ sub fork_worker {
 	my $int_count = 0;
 	eval {
 	    local $SIG{INT} = local $SIG{QUIT} = local $SIG{TERM} = sub { 
+		# always send signal to all pgrp members
+		my $kpid = -$cpid;
 		if ($int_count < 3) {
-		    kill(15, $cpid); # send TERM signal
+		    kill(15, $kpid); # send TERM signal
 		} else {
-		    kill(9, $cpid); # send KILL signal
+		    kill(9, $kpid); # send KILL signal
 		}
 		$int_count++;
 	    };
