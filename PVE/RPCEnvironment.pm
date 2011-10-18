@@ -2,7 +2,7 @@ package PVE::RPCEnvironment;
 
 use strict;
 use warnings;
-use POSIX ":sys_wait_h";
+use POSIX qw(:sys_wait_h EINTR);
 use IO::File;
 use Fcntl qw(:flock);
 use PVE::SafeSyslog;
@@ -649,13 +649,25 @@ sub fork_worker {
     if ($sync) {
 	my $count;
 	my $outbuf = '';
+	my $int_count = 0;
 	eval {
-	    local $SIG{INT} = 
-		local $SIG{QUIT} = 
-		local $SIG{TERM} = sub { die "got interrupt\n"; };
+	    local $SIG{INT} = local $SIG{QUIT} = local $SIG{TERM} = sub { 
+		if ($int_count < 3) {
+		    kill(15, $cpid); # send TERM signal
+		} else {
+		    kill(9, $cpid); # send KILL signal
+		}
+		$int_count++;
+	    };
 	    local $SIG{PIPE} = sub { die "broken pipe\n"; };
 	
-	    while (($count = POSIX::read($psync[0], $readbuf, 4096)) && ($count > 0)) {
+	    while (1) {
+		if (!defined($count = POSIX::read($psync[0], $readbuf, 4096))) {
+		    next if $! == EINTR;
+		    last;
+		}
+		last if $count == 0; # eof
+
 		$outbuf .= $readbuf;
 		while ($outbuf =~ s/^(([^\010\r\n]*)(\r|\n|(\010)+|\r\n))//s) {
 		    my $line = $1;
