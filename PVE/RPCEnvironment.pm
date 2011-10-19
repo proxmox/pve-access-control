@@ -531,13 +531,17 @@ sub fork_worker {
 	    # same algorythm as used inside SA
 	    # STDIN = /dev/null
 	    my $fd = fileno (STDIN);
-	    close STDIN;
-	    POSIX::close(0) if $fd != 0;
 
-	    die "unable to redirect STDIN - $!" 
-		if !open(STDIN, "</dev/null");
+	    if (!$sync) {
+		close STDIN;
+		POSIX::close(0) if $fd != 0;
 
-	    $outfh = PVE::Tools::upid_open($upid) if !$sync;
+		die "unable to redirect STDIN - $!" 
+		    if !open(STDIN, "</dev/null");
+
+		$outfh = PVE::Tools::upid_open($upid);
+	    }
+
 
 	    # redirect STDOUT
 	    $fd = fileno(STDOUT);
