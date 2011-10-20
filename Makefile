@@ -9,7 +9,8 @@ PREFIX=/usr
 BINDIR=${PREFIX}/bin
 SBINDIR=${PREFIX}/sbin
 MANDIR=${PREFIX}/share/man
-DOCDIR=${PREFIX}/share/doc
+DOCDIR=${PREFIX}/share/doc/${PACKAGE}
+PODDIR=${DOCDIR}/pod
 MAN1DIR=${MANDIR}/man1/
 export PERLDIR=${PREFIX}/share/perl5
 
@@ -22,15 +23,24 @@ all: ${DEB}
 dinstall: deb
 	dpkg -i ${DEB}
 
+%.1.gz: %.1.pod
+	rm -f $@
+	cat $<|pod2man -n $* -s 1 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@
+
+pveum.1.pod: pveum
+	perl -I. ./pveum printmanpod >$@
+
 .PHONY: install
-install:
+install: pveum.1.pod pveum.1.gz
 	install -d ${DESTDIR}${BINDIR}
 	install -d ${DESTDIR}${SBINDIR}
 	install -m 0755 pveum ${DESTDIR}${SBINDIR}
 	make -C PVE install
 	perl -I. ./pveum verifyapi 
 	install -d ${DESTDIR}/usr/share/man/man1
-	pod2man -n pveum -s 1 -r "proxmox 2.0" -c "Proxmox Documentation" <pveum | gzip -9 > ${DESTDIR}/usr/share/man/man1/pveum.1.gz
+	install -d ${DESTDIR}${PODDIR}
+	install -m 0644 pveum.1.gz ${DESTDIR}/usr/share/man/man1/
+	install -m 0644 pveum.1.pod ${DESTDIR}/${PODDIR}
 
 .PHONY: deb ${DEB}
 deb ${DEB}:
@@ -39,9 +49,9 @@ deb ${DEB}:
 	make DESTDIR=`pwd`/build install
 	install -d -m 0755 build/DEBIAN
 	sed -e s/@@VERSION@@/${VERSION}/ -e s/@@PKGRELEASE@@/${PKGREL}/ -e s/@@ARCH@@/${ARCH}/ <control.in >build/DEBIAN/control
-	install -D -m 0644 copyright build/${DOCDIR}/${PACKAGE}/copyright
-	install -m 0644 changelog.Debian build/${DOCDIR}/${PACKAGE}/
-	gzip -9 build/${DOCDIR}/${PACKAGE}/changelog.Debian
+	install -D -m 0644 copyright build/${DOCDIR}/copyright
+	install -m 0644 changelog.Debian build/${DOCDIR}/
+	gzip -9 build/${DOCDIR}/changelog.Debian
 	dpkg-deb --build build	
 	mv build.deb ${DEB}
 	#rm -rf build

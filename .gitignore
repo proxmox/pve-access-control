@@ -1,2 +1,4 @@
 build
 *.deb
+*.1.pod
+*.1.gz

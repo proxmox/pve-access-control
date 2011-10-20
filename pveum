@@ -78,12 +78,7 @@ my $cmddef = {
 
 my $cmd = shift;
 
-if ($cmd && $cmd eq 'verifyapi') {
-    PVE::RESTHandler::validate_method_schemas();
-    exit 0;
-}
-
-PVE::CLIHandler::handle_cmd($cmddef, "pveum", $cmd, \@ARGV, $read_password);
+PVE::CLIHandler::handle_cmd($cmddef, "pveum", $cmd, \@ARGV, $read_password, $0);
 
 exit 0;
 
@@ -95,8 +90,10 @@ pveum - PVE User Manager
 
 =head1 SYNOPSIS
 
-    pveum <COMMAND> [OPTIONS]
+=include synopsis
 
 =head1 DESCRIPTION
 
-no description available
+No description available.
+
+=include pve_copyright
