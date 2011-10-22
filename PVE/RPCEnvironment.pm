@@ -3,7 +3,9 @@ package PVE::RPCEnvironment;
 use strict;
 use warnings;
 use POSIX qw(:sys_wait_h EINTR);
+use IO::Handle;
 use IO::File;
+use IO::Select;
 use Fcntl qw(:flock);
 use PVE::SafeSyslog;
 use PVE::Tools;
@@ -666,29 +668,40 @@ sub fork_worker {
 		$int_count++;
 	    };
 	    local $SIG{PIPE} = sub { die "broken pipe\n"; };
-	
-	    while (1) {
-		if (!defined($count = POSIX::read($psync[0], $readbuf, 4096))) {
-		    next if $! == EINTR;
-		    last;
-		}
-		last if $count == 0; # eof
 
-		$outbuf .= $readbuf;
-		while ($outbuf =~ s/^(([^\010\r\n]*)(\r|\n|(\010)+|\r\n))//s) {
-		    my $line = $1;
-		    my $data = $2;
-		    if ($data =~ m/^TASK OK$/) {
-			# skip
-		    } elsif ($data =~ m/^TASK ERROR: (.+)$/) {
-			print STDERR "$1\n";
-		    } else {
-			print $line;
+	    my $select = new IO::Select;    
+	    my $fh = IO::Handle->new_from_fd($psync[0], 'r');
+	    $select->add($fh);
+
+	    while ($select->count) {
+		my @handles = $select->can_read(1);
+		if (scalar(@handles)) {
+		    my $count = sysread ($handles[0], $readbuf, 4096);
+		    if (!defined ($count)) {
+			my $err = $!;
+			die "sync pipe read error: $err\n";
 		    }
-		    if ($outfh) {
-			print $outfh $line;
-			$outfh->flush();
+		    last if $count == 0; # eof
+
+		    $outbuf .= $readbuf;
+		    while ($outbuf =~ s/^(([^\010\r\n]*)(\r|\n|(\010)+|\r\n))//s) {
+			my $line = $1;
+			my $data = $2;
+			if ($data =~ m/^TASK OK$/) {
+			    # skip
+			} elsif ($data =~ m/^TASK ERROR: (.+)$/) {
+			    print STDERR "$1\n";
+			} else {
+			    print $line;
+			}
+			if ($outfh) {
+			    print $outfh $line;
+			    $outfh->flush();
+			}
 		    }
+		} else {
+		    # some commands daemonize without closing stdout
+		    last if !PVE::ProcFSTools::check_process_running($cpid);
 		}
 	    }
 	};
