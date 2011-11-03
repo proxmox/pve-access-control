@@ -13,6 +13,7 @@ use PVE::INotify;
 use PVE::Cluster;
 use PVE::ProcFSTools;
 use PVE::AccessControl;
+use CGI;
 
 # we use this singleton class to pass RPC related environment values
 
@@ -224,6 +225,51 @@ sub get {
     return $pve_env;
 }
 
+sub parse_params {
+    my ($self, $enable_upload) = @_;
+
+    if ($self->{request_rec}) {
+	my $cgi;
+	if ($enable_upload) {
+	    $cgi = CGI->new($self->{request_rec});
+	} else {
+	    # disable upload using empty upload_hook
+	    $cgi = CGI->new($self->{request_rec}, sub {}, undef, 0);
+	}
+	$self->{cgi} = $cgi;
+	my $params = $cgi->Vars();
+	return $params;
+    } elsif ($self->{params}) {
+	return $self->{params};
+    } else {
+	die "no parameters registered";
+    }
+}
+
+sub get_upload_info {
+    my ($self, $param) = @_;
+
+    my $cgi = $self->{cgi};
+    die "CGI not initialized" if !$cgi;
+
+    my $pd = $cgi->param($param);
+    die "unable to get cgi parameter info\n" if !$pd;
+    my $info = $cgi->uploadInfo($pd);
+    die "unable to get cgi upload info\n" if !$info;
+
+    my $res = { %$info };
+
+    my $tmpfilename = $cgi->tmpFileName($pd);
+    die "unable to get cgi upload file name\n" if !$tmpfilename;
+    $res->{tmpfilename} = $tmpfilename;
+
+    #my $hndl = $cgi->upload($param);
+    #die "unable to get cgi upload handle\n" if !$hndl;
+    #$res->{handle} = $hndl->handle;
+
+    return $res;
+}
+
 # init_request - must be called before each RPC request
 sub init_request {
     my ($self, %params) = @_;
@@ -234,6 +280,11 @@ sub init_request {
     foreach my $p (keys %params) {
 	if ($p eq 'userconfig') {
 	    $userconfig = $params{$p};
+	} elsif ($p eq 'request_rec') {
+	    # pass Apache2::RequestRec
+	    $self->{request_rec} = $params{$p};
+	} elsif ($p eq 'params') {
+	    $self->{params} = $params{$p};
 	} else {
 	    die "unknown parameter '$p'";
 	}
