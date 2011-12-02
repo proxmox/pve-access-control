@@ -1,3 +1,10 @@
+libpve-access-control (1.0-3) unstable; urgency=low
+
+  * add support for delayed parameter parsing - We need that to disable
+    file upload for normal API request (avoid DOS attacs)
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 02 Dec 2011 09:56:10 +0100
+
 libpve-access-control (1.0-2) unstable; urgency=low
 
   * fix bug in fork_worker
