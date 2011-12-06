@@ -69,7 +69,7 @@ upload: ${DEB}
 
 .PHONY: clean
 clean: 	
-	rm -rf build *~ *.deb ${PACKAGE}-*.tar.gz
+	rm -rf build *~ *.deb ${PACKAGE}-*.tar.gz pveum.1.pod pveum.1.gz
 	find . -name '*~' -exec rm {} ';'
 
 .PHONY: distclean
