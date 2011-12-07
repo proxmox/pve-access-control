@@ -25,10 +25,12 @@ dinstall: deb
 
 %.1.gz: %.1.pod
 	rm -f $@
-	cat $<|pod2man -n $* -s 1 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@
+	cat $<|pod2man -n $* -s 1 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@.tmp
+	mv $@.tmp $@
 
 pveum.1.pod: pveum
-	perl -I. ./pveum printmanpod >$@
+	perl -I. ./pveum printmanpod >$@.tmp
+	mv $@.tmp $@
 
 .PHONY: install
 install: pveum.1.pod pveum.1.gz
