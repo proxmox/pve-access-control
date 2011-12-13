@@ -180,7 +180,7 @@ sub init {
 
     die "already initialized" if $pve_env;
 
-    die "unknown environment type" if !$type || $type !~ m/^(cli|pub|priv)$/;
+    die "unknown environment type" if !$type || $type !~ m/^(cli|pub|priv|ha)$/;
 
     $SIG{CHLD} = $worker_reaper;
 
@@ -188,6 +188,7 @@ sub init {
     # cli  ... command started fron command line
     # pub  ... access from public server (apache)
     # priv ... access from private server (pvedaemon)
+    # ha   ... access from HA resource manager agent (rgmanager)
     
     my $self = {
 	user_cfg => {},
@@ -637,6 +638,9 @@ sub fork_worker {
 	POSIX::read($csync[0], $readbuf, 4096);
 	die "parent setup error\n" if $readbuf ne 'OK';
 
+	if ($self->{type} eq 'ha') {
+	    print "task started by HA resource agent\n";
+	}
 	eval { &$function($upid); };
 	my $err = $@;
 	if ($err) {
