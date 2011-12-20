@@ -277,6 +277,9 @@ sub init_request {
 
     PVE::Cluster::cfs_update();
 
+    $self->{result_count} = undef;
+    $self->{result_changes} = undef;
+
     my $userconfig; # we use this for regression tests
     foreach my $p (keys %params) {
 	if ($p eq 'userconfig') {
@@ -335,6 +338,18 @@ sub get_result_count {
     my ($self) = @_;
 
     return $self->{result_count};
+}
+
+sub set_result_changes {
+    my ($self, $diff) = @_;
+
+    $self->{result_changes} = $diff;
+}
+
+sub get_result_changes {
+    my ($self) = @_;
+
+    return $self->{result_changes};
 }
 
 sub set_language {
