@@ -277,8 +277,7 @@ sub init_request {
 
     PVE::Cluster::cfs_update();
 
-    $self->{result_count} = undef;
-    $self->{result_changes} = undef;
+    $self->{result_attributes} = {};
 
     my $userconfig; # we use this for regression tests
     foreach my $p (keys %params) {
@@ -328,28 +327,16 @@ sub get_client_ip {
     return $self->{client_ip};
 }
 
-sub set_result_count {
-    my ($self, $count) = @_;
+sub set_result_attrib {
+    my ($self, $key, $value) = @_;
 
-    $self->{result_count} = $count;
+    $self->{result_attributes}->{$key} = $value;
 }
 
-sub get_result_count {
-    my ($self) = @_;
+sub get_result_attrib {
+    my ($self, $key) = @_;
 
-    return $self->{result_count};
-}
-
-sub set_result_changes {
-    my ($self, $diff) = @_;
-
-    $self->{result_changes} = $diff;
-}
-
-sub get_result_changes {
-    my ($self) = @_;
-
-    return $self->{result_changes};
+    return $self->{result_attributes}->{$key};
 }
 
 sub set_language {
