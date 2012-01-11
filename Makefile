@@ -2,7 +2,7 @@ RELEASE=2.0
 
 VERSION=1.0
 PACKAGE=libpve-access-control
-PKGREL=5
+PKGREL=6
 
 DESTDIR=
 PREFIX=/usr

@@ -38,7 +38,13 @@ __PACKAGE__->register_method ({
     description => "User index.",
     parameters => {
 	additionalProperties => 0,
-	properties => {},
+	properties => {
+	    enabled => {
+		type => 'boolean',
+		description => "Optional filter for enable property.",
+		optional => 1,
+	    }
+	},
     },
     returns => {
 	type => 'array',
@@ -59,8 +65,14 @@ __PACKAGE__->register_method ({
  
 	foreach my $user (keys %{$usercfg->{users}}) {
 	    next if $user eq 'root';
-
+	    
 	    my $entry = &$extract_user_data($usercfg->{users}->{$user});
+
+	    if (defined($param->{enabled})) {
+		next if $entry->{enable} && !$param->{enabled};
+		next if !$entry->{enable} && $param->{enabled};
+	    }
+
 	    $entry->{userid} = $user;
 	    push @$res, $entry;
 	}
