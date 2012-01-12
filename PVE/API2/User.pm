@@ -247,7 +247,7 @@ __PACKAGE__->register_method ({
 		$usercfg->{users}->{$username}->{expire} = $param->{expire} if defined($param->{expire});
 
 		PVE::AccessControl::delete_user_group($username, $usercfg) 
-		    if (!$param->{append} && $param->{groups});
+		    if (!$param->{append} && defined($param->{groups}));
 
 		if ($param->{groups}) {
 		    foreach my $group (split_list($param->{groups})) {
