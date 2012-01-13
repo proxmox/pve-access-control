@@ -552,7 +552,7 @@ my $valid_attributes = {
 	server1 => '[\w\d]+(.[\w\d]+)*',
 	server2 => '[\w\d]+(.[\w\d]+)*',
 	domain => '\S+',
-	port => '\d*',
+	port => '\d+',
 	secure => '',
 	comment => '.*',
     },
@@ -562,7 +562,7 @@ my $valid_attributes = {
 	base_dn => '\w+=[\w\s]+(,\s*\w+=[\w\s]+)*',
 	user_attr => '\S{2,}',
 	secure => '',
-	port => '\d*',
+	port => '\d+',
 	comment => '.*',
     }
 };

@@ -94,9 +94,9 @@ __PACKAGE__->register_method ({
 		optional => 1,
 	    },
 	    port => {
-		description => "Server port",
+		description => "Server port. Use '0' if you want to use default settings'",
 		type => 'integer',
-		minimum => 1,
+		minimum => 0,
 		maximum => 65535,
 		optional => 1,
 	    },
@@ -137,7 +137,7 @@ __PACKAGE__->register_method ({
 		if (defined($param->{secure})) {
 		    $cfg->{$realm}->{secure} = $param->{secure} ? 1 : 0;
 		}
-	
+
 		if ($param->{default}) {
 		    foreach my $r (keys %$cfg) {
 			delete $cfg->{$r}->{default};
@@ -147,6 +147,11 @@ __PACKAGE__->register_method ({
 		foreach my $p (keys %$param) {
 		    next if $p eq 'realm';
 		    $cfg->{$realm}->{$p} = $param->{$p};
+		}
+
+		# port 0 ==> use default
+		if (defined($param->{port}) && !$param->{port}) { 
+		    delete $cfg->{$realm}->{port};
 		}
 
 		cfs_write_file($domainconfigfile, $cfg);
@@ -190,9 +195,9 @@ __PACKAGE__->register_method ({
 		optional => 1,
 	    },
 	    port => {
-		description => "Server port",
+		description => "Server port. Use '0' if you want to use default settings'",
 		type => 'integer',
-		minimum => 1,
+		minimum => 0,
 		maximum => 65535,
 		optional => 1,
 	    },
@@ -243,6 +248,11 @@ __PACKAGE__->register_method ({
 
 		foreach my $p (keys %$param) {
 		    $cfg->{$realm}->{$p} = $param->{$p};
+		}
+
+		# port 0 ==> use default
+		if (defined($param->{port}) && !$param->{port}) { 
+		    delete $cfg->{$realm}->{port};
 		}
 
 		cfs_write_file($domainconfigfile, $cfg);
