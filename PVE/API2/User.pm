@@ -36,6 +36,7 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'GET',
     description => "User index.",
+    permissions => { user => 'all' },
     parameters => {
 	additionalProperties => 0,
 	properties => {
@@ -59,13 +60,17 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
     
+	my $rpcenv = PVE::RPCEnvironment::get();
+	my $authuser = $rpcenv->get_user();
+
 	my $res = [];
 
 	my $usercfg = cfs_read_file("user.cfg");
  
 	foreach my $user (keys %{$usercfg->{users}}) {
-	    next if $user eq 'root';
-	    
+	    # root sees all entries, a user only sees its own entry
+	    next if $authuser ne 'root@pam' && $user ne $authuser;
+
 	    my $entry = &$extract_user_data($usercfg->{users}->{$user});
 
 	    if (defined($param->{enabled})) {
