@@ -899,7 +899,7 @@ sub write_domains {
 		    $wrote_default = 1;
 	    } elsif (defined($formats->{$k})) {
 		if (!$formats->{$k}) {
-		    $data .= "\t$k\n";
+		    $data .= "\t$k\n" if $v;
 		} elsif ($v =~ m/^$formats->{$k}$/) {
 		    $v = PVE::Tools::encode_text($v) if $k eq 'comment';
 		    $data .= "\t$k $v\n";
@@ -994,6 +994,8 @@ sub parse_domains {
 		warn "ignoring domain '$realm' - missing user attribute\n";
 	    } elsif (($entry->{type} eq "ldap") && !$entry->{base_dn}) {
 		warn "ignoring domain '$realm' - missing base_dn attribute\n";
+	    } elsif (($entry->{type} eq "ad") && !$entry->{domain}) {
+		warn "ignoring domain '$realm' - missing domain attribute\n";
 	    } else {
 		$cfg->{$realm} = $entry;
 	    }

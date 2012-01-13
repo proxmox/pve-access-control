@@ -146,12 +146,15 @@ __PACKAGE__->register_method ({
 
 		foreach my $p (keys %$param) {
 		    next if $p eq 'realm';
-		    $cfg->{$realm}->{$p} = $param->{$p};
+		    $cfg->{$realm}->{$p} = $param->{$p} if $param->{$p};
 		}
 
 		# port 0 ==> use default
-		if (defined($param->{port}) && !$param->{port}) { 
-		    delete $cfg->{$realm}->{port};
+		# server2 == '' ===> delete server2
+		for my $p (qw(port server2)) { 
+		    if (defined($param->{$p}) && !$param->{$p}) { 
+			delete $cfg->{$realm}->{$p};
+		    }
 		}
 
 		cfs_write_file($domainconfigfile, $cfg);
@@ -247,12 +250,11 @@ __PACKAGE__->register_method ({
 		}
 
 		foreach my $p (keys %$param) {
-		    $cfg->{$realm}->{$p} = $param->{$p};
-		}
-
-		# port 0 ==> use default
-		if (defined($param->{port}) && !$param->{port}) { 
-		    delete $cfg->{$realm}->{port};
+		    if ($param->{$p}) {
+			$cfg->{$realm}->{$p} = $param->{$p};
+		    } else {
+			delete $cfg->{$realm}->{$p};
+		    }
 		}
 
 		cfs_write_file($domainconfigfile, $cfg);
