@@ -100,6 +100,11 @@ __PACKAGE__->register_method ({
 		maximum => 65535,
 		optional => 1,
 	    },
+	    domain => {
+		description => "AD domain name",
+		type => 'string',
+		optional => 1,
+	    },
 	    base_dn => {
 		description => "LDAP base domain name",
 		type => 'string',
@@ -189,6 +194,11 @@ __PACKAGE__->register_method ({
 		type => 'integer',
 		minimum => 1,
 		maximum => 65535,
+		optional => 1,
+	    },
+	    domain => {
+		description => "AD domain name",
+		type => 'string',
 		optional => 1,
 	    },
 	    base_dn => {
