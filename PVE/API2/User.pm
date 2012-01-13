@@ -90,7 +90,7 @@ __PACKAGE__->register_method ({
    	additionalProperties => 0,
 	properties => {
 	    userid => get_standard_option('userid'),
-	    password => { type => 'string', optional => 1 },
+	    password => { type => 'string', optional => 1, minLength => 5, maxLength => 64 },
 	    groups => { type => 'string', optional => 1, format => 'pve-groupid-list'},
 	    firstname => { type => 'string', optional => 1 },
 	    lastname => { type => 'string', optional => 1 },
@@ -125,7 +125,7 @@ __PACKAGE__->register_method ({
 		    if $usercfg->{users}->{$username};
 			 
 		PVE::AccessControl::domain_set_password($realm, $ruid, $param->{password})
-		    if $param->{password};
+		    if defined($param->{password});
 
 		my $enable = defined($param->{enable}) ? $param->{enable} : 1;
 		$usercfg->{users}->{$username} = { enable => $enable };
@@ -200,7 +200,7 @@ __PACKAGE__->register_method ({
    	additionalProperties => 0,
 	properties => {
 	    userid => get_standard_option('userid'),
-	    password => { type => 'string', optional => 1 },
+	    password => { type => 'string', optional => 1, minLength => 5, maxLength => 64 },
 	    groups => { type => 'string', optional => 1,  format => 'pve-groupid-list'  },
 	    append => { 
 		type => 'boolean', 
@@ -240,7 +240,7 @@ __PACKAGE__->register_method ({
 		    if !$usercfg->{users}->{$username};
 
 		PVE::AccessControl::domain_set_password($realm, $ruid, $param->{password})
-		    if $param->{password};
+		    if defined($param->{password});
 
 		$usercfg->{users}->{$username}->{enable} = $param->{enable} if defined($param->{enable});
 
