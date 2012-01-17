@@ -1,3 +1,9 @@
+libpve-access-control (1.0-7) unstable; urgency=low
+
+  * fix bug #85: allow root@pam to generate tickets for other users
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 17 Jan 2012 06:40:18 +0100
+
 libpve-access-control (1.0-6) unstable; urgency=low
 
   * API change: allow to filter enabled/disabled users.

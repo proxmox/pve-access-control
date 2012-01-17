@@ -150,8 +150,9 @@ __PACKAGE__->register_method ({
 
 	    my $tmp;
 	    if (($tmp = PVE::AccessControl::verify_ticket($param->{password}, 1)) &&
-		($tmp eq $username)) {
+		($tmp eq 'root@pam' || $tmp eq $username)) {
 		# got valid ticket
+		# Note: root@pam can create tickets for other users
 	    } else {
 		$username = PVE::AccessControl::authenticate_user($username, $param->{password});
 	    }
