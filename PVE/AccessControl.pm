@@ -351,7 +351,7 @@ sub authenticate_user {
 
     if (!user_enabled($usercfg, $username)) {
 	sleep(2);
-	die "no such user ('$username')\n"
+	die "no such user ('$username')\n";
     }
 
     my $ctime = time();
