@@ -153,6 +153,10 @@ __PACKAGE__->register_method ({
 		($tmp eq 'root@pam' || $tmp eq $username)) {
 		# got valid ticket
 		# Note: root@pam can create tickets for other users
+		
+		# test if user exists and is enabled
+		my $usercfg = cfs_read_file('user.cfg');
+		die "no such user ('$username')\n" if !user_enabled($usercfg, $username);
 	    } else {
 		$username = PVE::AccessControl::authenticate_user($username, $param->{password});
 	    }
