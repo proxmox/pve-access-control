@@ -1040,8 +1040,6 @@ sub write_user_config {
     my $data = '';
 
     foreach my $user (keys %{$cfg->{users}}) {
-	next if $user eq 'root@pam';
-
 	my $d = $cfg->{users}->{$user};
 	my $firstname = $d->{firstname} ? PVE::Tools::encode_text($d->{firstname}) : '';
 	my $lastname = $d->{lastname} ? PVE::Tools::encode_text($d->{lastname}) : '';
