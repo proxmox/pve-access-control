@@ -5,7 +5,7 @@ use warnings;
 
 use PVE::SafeSyslog;
 use PVE::RPCEnvironment;
-use PVE::Cluster;
+use PVE::Cluster qw(cfs_read_file);
 use PVE::RESTHandler;
 use PVE::AccessControl;
 use PVE::JSONSchema qw(get_standard_option);
