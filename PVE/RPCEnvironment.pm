@@ -239,7 +239,7 @@ sub parse_params {
 	}
 	$self->{cgi} = $cgi;
 	my $params = $cgi->Vars();
-	return $params;
+	return PVE::Tools::decode_utf8_parameters($params);
     } elsif ($self->{params}) {
 	return $self->{params};
     } else {
