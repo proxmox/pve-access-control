@@ -165,11 +165,11 @@ sub check {
     return 1;
 };
 
-sub user_enabled {
-    my ($self, $user) = @_;
+sub check_user_enabled {
+    my ($self, $user, $noerr) = @_;
     
     my $cfg = $self->{user_cfg};
-    return PVE::AccessControl::user_enabled($cfg, $user);
+    return PVE::AccessControl::check_user_enabled($cfg, $user, $noerr);
 }
 
 # initialize environment - must be called once at program startup

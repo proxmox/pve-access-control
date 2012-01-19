@@ -323,10 +323,10 @@ sub authenticate_user_domain {
     }
 }
 
-sub user_enabled {
-    my ($usercfg, $username) = @_;
+sub check_user_enabled {
+    my ($usercfg, $username, $noerr) = @_;
 
-    $username = verify_username($username, 1);
+    $username = verify_username($username, $noerr);
     return undef if !$username;
  
     return 1 if $usercfg && $usercfg->{users}->{$username} &&
@@ -334,7 +334,9 @@ sub user_enabled {
 
     return 1 if $username eq 'root@pam'; # root is always enabled
 
-    return 0;
+    die "no such user ('$username')\n" if !$noerr;
+ 
+    return undef;
 }
 
 # password should be utf8 encoded
@@ -349,9 +351,10 @@ sub authenticate_user {
 
     my $usercfg = cfs_read_file('user.cfg');
 
-    if (!user_enabled($usercfg, $username)) {
+    eval { check_user_enabled($usercfg, $username); };
+    if (my $err = $@) {
 	sleep(2);
-	die "no such user ('$username')\n";
+	die $err;
     }
 
     my $ctime = time();

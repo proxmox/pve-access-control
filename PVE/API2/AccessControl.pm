@@ -140,6 +140,9 @@ __PACKAGE__->register_method ({
 	my $token;
 	eval {
 
+	    # test if user exists and is enabled
+	    $rpcenv->check_user_enabled($username);
+
 	    if ($param->{path} && $param->{privs}) {
 		my $privs = [ PVE::Tools::split_list($param->{privs}) ];
 		my $path = PVE::AccessControl::normalize_path($param->{path});
@@ -154,9 +157,6 @@ __PACKAGE__->register_method ({
 		# got valid ticket
 		# Note: root@pam can create tickets for other users
 		
-		# test if user exists and is enabled
-		my $usercfg = cfs_read_file('user.cfg');
-		die "no such user ('$username')\n" if !user_enabled($usercfg, $username);
 	    } else {
 		$username = PVE::AccessControl::authenticate_user($username, $param->{password});
 	    }
