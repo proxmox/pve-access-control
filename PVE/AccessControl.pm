@@ -150,7 +150,7 @@ sub assemble_ticket {
 sub verify_ticket {
     my ($ticket, $noerr) = @_;
 
-    if ($ticket && $ticket =~ m/^(\S+)::([^:\s]+)$/) {
+    if ($ticket && $ticket =~ m/^(PVE:\S+)::([^:\s]+)$/) {
 	my $plain = $1;
 	my $sig = $2;
 
@@ -174,6 +174,56 @@ sub verify_ticket {
 
     return undef;
 }
+
+# VNC tickets
+# - they do not contain the username in plain text
+# - they are restricted to a specific resource path (example: '/vms/100')
+sub assemble_vnc_ticket {
+    my ($username, $path) = @_;
+
+    my $rsa_priv = get_privkey();
+
+    my $timestamp = sprintf("%08X", time());
+
+    my $plain = "PVEVNC:$timestamp";
+
+    $path = normalize_path($path);
+
+    my $full = "$plain:$username:$path";
+
+    my $ticket = $plain . "::" . encode_base64($rsa_priv->sign($full), '');
+
+    return $ticket;
+}
+
+sub verify_vnc_ticket {
+    my ($ticket, $username, $path, $noerr) = @_;
+
+    if ($ticket && $ticket =~ m/^(PVEVNC:\S+)::([^:\s]+)$/) {
+	my $plain = $1;
+	my $sig = $2;
+	my $full = "$plain:$username:$path";
+
+	my $rsa_pub = get_pubkey();
+	# Note: sign only match if $username and  $path is correct
+	if ($rsa_pub->verify($full, decode_base64($sig))) {
+	    if ($plain =~ m/^PVEVNC:([A-Z0-9]{8})$/) {
+		my $ttime = hex($1);
+
+		my $age = time() - $ttime;
+
+		if (($age > -20) && ($age < 40)) {
+		    return 1;
+		}
+	    }
+	}
+    }
+
+    die "permission denied - invalid vnc ticket\n" if !$noerr;
+
+    return undef;
+}
+
 
 sub authenticate_user_shadow {
     my ($userid, $password) = @_;

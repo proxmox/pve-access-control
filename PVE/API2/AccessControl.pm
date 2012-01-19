@@ -81,13 +81,58 @@ __PACKAGE__->register_method ({
 	return $res;
     }});
 
+
+my $verify_auth = sub {
+    my ($rpcenv, $username, $pw_or_ticket, $path, $privs) = @_;
+
+    my $normpath = PVE::AccessControl::normalize_path($path);
+
+    my $ticketuser;
+    if (($ticketuser = PVE::AccessControl::verify_ticket($pw_or_ticket, 1)) &&
+	($ticketuser eq $username)) {
+	# valid ticket
+    } elsif (PVE::AccessControl::verify_vnc_ticket($pw_or_ticket, $username, $normpath, 1)) {
+	# valid vnc ticket
+    } else {
+	$username = PVE::AccessControl::authenticate_user($username, $pw_or_ticket);
+    }
+
+    my $privlist = [ PVE::Tools::split_list($privs) ];
+    if (!($normpath && scalar(@$privlist) && $rpcenv->check($username, $normpath, $privlist))) {
+	die "no permission ($path, $privs)\n";
+    }
+
+    return { username => $username };
+};
+
+my $create_ticket = sub {
+    my ($rpcenv, $username, $pw_or_ticket) = @_;
+
+    my $ticketuser;
+    if (($ticketuser = PVE::AccessControl::verify_ticket($pw_or_ticket, 1)) &&
+	($ticketuser eq 'root@pam' || $ticketuser eq $username)) {
+	# valid ticket. Note: root@pam can create tickets for other users
+    } else {
+	$username = PVE::AccessControl::authenticate_user($username, $pw_or_ticket);
+    }
+
+    my $ticket = PVE::AccessControl::assemble_ticket($username);
+    my $csrftoken = PVE::AccessControl::assemble_csrf_prevention_token($username);
+
+    return {
+	ticket => $ticket,
+	username => $username,
+	CSRFPreventionToken => $csrftoken,
+    };
+};
+
 __PACKAGE__->register_method ({
     name => 'create_ticket', 
     path => 'ticket', 
     method => 'POST',
     permissions => { user => 'world' },
     protected => 1, # else we can't access shadow files
-    description => "Create authentication ticket.",
+    description => "Create or verify authentication ticket.",
     parameters => {
 	additionalProperties => 0,
 	properties => {
@@ -104,14 +149,14 @@ __PACKAGE__->register_method ({
 		type => 'string',
 	    },
 	    path => {
-		description => "Only create ticket if user have access 'privs' on 'path'",
+		description => "Verify ticket, and check if user have access 'privs' on 'path'",
 		type => 'string',
 		requires => 'privs',
 		optional => 1,
 		maxLength => 64,
 	    },
 	    privs => { 
-		description => "Only create ticket if user have access 'privs' on 'path'",
+		description => "Verify ticket, and check if user have access 'privs' on 'path'",
 		type => 'string' , format => 'pve-priv-list',
 		requires => 'path',
 		optional => 1,
@@ -122,9 +167,9 @@ __PACKAGE__->register_method ({
     returns => {
 	type => "object",
 	properties => {
-	    ticket => { type => 'string' },
 	    username => { type => 'string' },
-	    CSRFPreventionToken => { type => 'string' },
+	    ticket => { type => 'string', optional => 1},
+	    CSRFPreventionToken => { type => 'string', optional => 1 },
 	}
     },
     code => sub {
@@ -134,47 +179,29 @@ __PACKAGE__->register_method ({
 	$username .= "\@$param->{realm}" if $param->{realm};
 
 	my $rpcenv = PVE::RPCEnvironment::get();
-	my $clientip = $rpcenv->get_client_ip() || '';
 
-	my $ticket;
-	my $token;
+	my $res;
+
 	eval {
-
 	    # test if user exists and is enabled
 	    $rpcenv->check_user_enabled($username);
 
 	    if ($param->{path} && $param->{privs}) {
-		my $privs = [ PVE::Tools::split_list($param->{privs}) ];
-		my $path = PVE::AccessControl::normalize_path($param->{path});
-		if (!($path && scalar(@$privs) && $rpcenv->check($username, $path, $privs))) {
-		    die "no permission ($param->{path}, $param->{privs})\n";
-		}
-	    }
-
-	    my $tmp;
-	    if (($tmp = PVE::AccessControl::verify_ticket($param->{password}, 1)) &&
-		($tmp eq 'root@pam' || $tmp eq $username)) {
-		# got valid ticket
-		# Note: root@pam can create tickets for other users
-		
+		$res = &$verify_auth($rpcenv, $username, $param->{password},
+				     $param->{path}, $param->{privs});
 	    } else {
-		$username = PVE::AccessControl::authenticate_user($username, $param->{password});
+		$res = &$create_ticket($rpcenv, $username, $param->{password});
 	    }
-	    $ticket = PVE::AccessControl::assemble_ticket($username);
-	    $token = PVE::AccessControl::assemble_csrf_prevention_token($username);
 	};
 	if (my $err = $@) {
+	    my $clientip = $rpcenv->get_client_ip() || '';
 	    syslog('err', "authentication failure; rhost=$clientip user=$username msg=$err");
 	    die $err;
 	}
 
 	PVE::Cluster::log_msg('info', 'root@pam', "successful auth for user '$username'");
 
-	return {
-	    ticket => $ticket,
-	    username => $username,
-	    CSRFPreventionToken => $token,
-	};
+	return $res;
     }});
 
 1;
