@@ -2,6 +2,7 @@ package PVE::API2::User;
 
 use strict;
 use warnings;
+use PVE::Exception qw(raise raise_perm_exc);
 use PVE::Cluster qw (cfs_read_file cfs_write_file);
 use PVE::Tools qw(split_list);
 use PVE::AccessControl;
@@ -61,15 +62,22 @@ __PACKAGE__->register_method ({
 	my ($param) = @_;
     
 	my $rpcenv = PVE::RPCEnvironment::get();
+	my $usercfg = $rpcenv->{user_cfg};
 	my $authuser = $rpcenv->get_user();
 
 	my $res = [];
 
-	my $usercfg = cfs_read_file("user.cfg");
- 
+	my $privs = [ 'Sys.UserMod', 'Sys.UserAdd' ];
+
+	my $canUserMod = $rpcenv->check_any($authuser, "/access", $privs, 1);
+	my $groups = $rpcenv->filter_groups($authuser, sub { return "/access/groups/" . shift; }, $privs, 1);
+	my $allowed_users = $rpcenv->group_member_join([keys %$groups]);      
+
 	foreach my $user (keys %{$usercfg->{users}}) {
-	    # root sees all entries, a user only sees its own entry
-	    next if $authuser ne 'root@pam' && $user ne $authuser;
+
+	    if (!($canUserMod || $user eq $authuser)) {
+		next if !$allowed_users->{$user};
+	    }
 
 	    my $entry = &$extract_user_data($usercfg->{users}->{$user});
 
@@ -95,7 +103,13 @@ __PACKAGE__->register_method ({
    	additionalProperties => 0,
 	properties => {
 	    userid => get_standard_option('userid'),
-	    password => { type => 'string', optional => 1, minLength => 5, maxLength => 64 },
+	    password => {
+		description => "Initial password.",
+		type => 'string', 
+		optional => 1, 
+		minLength => 5, 
+		maxLength => 64 
+	    },
 	    groups => { type => 'string', optional => 1, format => 'pve-groupid-list'},
 	    firstname => { type => 'string', optional => 1 },
 	    lastname => { type => 'string', optional => 1 },
@@ -187,11 +201,9 @@ __PACKAGE__->register_method ({
 	    PVE::AccessControl::verify_username($param->{userid});
 
 	my $usercfg = cfs_read_file("user.cfg");
+
+	my $data = PVE::AccessControl::check_user_exist($usercfg, $username);
  
-	my $data = $usercfg->{users}->{$username};
-
-	die "user '$username' does not exist\n" if !$data;
-
 	return &$extract_user_data($data, 1);
     }});
 
@@ -205,7 +217,6 @@ __PACKAGE__->register_method ({
    	additionalProperties => 0,
 	properties => {
 	    userid => get_standard_option('userid'),
-	    password => { type => 'string', optional => 1, minLength => 5, maxLength => 64 },
 	    groups => { type => 'string', optional => 1,  format => 'pve-groupid-list'  },
 	    append => { 
 		type => 'boolean', 
@@ -232,20 +243,16 @@ __PACKAGE__->register_method ({
     returns => { type => 'null' },
     code => sub {
 	my ($param) = @_;
+
+	my ($username, $ruid, $realm) = 
+	    PVE::AccessControl::verify_username($param->{userid});
 	
 	PVE::AccessControl::lock_user_config(
 	    sub {
-
-		my ($username, $ruid, $realm) = 
-		    PVE::AccessControl::verify_username($param->{userid});
 	
 		my $usercfg = cfs_read_file("user.cfg");
 
-		die "user '$username' does not exist\n" 
-		    if !$usercfg->{users}->{$username};
-
-		PVE::AccessControl::domain_set_password($realm, $ruid, $param->{password})
-		    if defined($param->{password});
+		PVE::AccessControl::check_user_exist($usercfg, $username);
 
 		$usercfg->{users}->{$username}->{enable} = $param->{enable} if defined($param->{enable});
 
@@ -281,6 +288,7 @@ __PACKAGE__->register_method ({
     path => '{userid}', 
     method => 'DELETE',
     description => "Delete user.",
+    permissions => { user => 'all' },
     parameters => {
    	additionalProperties => 0,
 	properties => {
@@ -290,23 +298,33 @@ __PACKAGE__->register_method ({
     returns => { type => 'null' },
     code => sub {
 	my ($param) = @_;
+	
+	my $rpcenv = PVE::RPCEnvironment::get();
+	my $authuser = $rpcenv->get_user();
+
+	my ($userid, $ruid, $realm) = 
+	    PVE::AccessControl::verify_username($param->{userid});
 
 	PVE::AccessControl::lock_user_config(
 	    sub {
 
-		my ($username, $ruid, $realm) = 
-		    PVE::AccessControl::verify_username($param->{userid});
-
 		my $usercfg = cfs_read_file("user.cfg");
 
-		die "user '$username' does not exist\n" 
-		    if !$usercfg->{users}->{$username};
+		PVE::AccessControl::check_user_exist($usercfg, $userid);
 
-		delete ($usercfg->{users}->{$username});
+		my $privs = [ 'Sys.UserAdd' ]; # there is no Sys.UserDel
+		if (!$rpcenv->check($authuser, "/access", $privs, 1)) {
+		    my $groups = $rpcenv->filter_groups($authuser, sub { return "/access/groups/" . shift; }, $privs, 1);
+		    my $allowed_users = $rpcenv->group_member_join([keys %$groups]);      
+		    raise_perm_exc() if !$allowed_users->{$userid};
+		}
+
+		delete ($usercfg->{users}->{$userid});
 
 		PVE::AccessControl::delete_shadow_password($ruid) if $realm eq 'pve';
-		PVE::AccessControl::delete_user_group($username, $usercfg);
-		PVE::AccessControl::delete_user_acl($username, $usercfg);
+
+		PVE::AccessControl::delete_user_group($userid, $usercfg);
+		PVE::AccessControl::delete_user_acl($userid, $usercfg);
 
 		cfs_write_file("user.cfg", $usercfg);
 	    }, "delete user failed");

@@ -373,18 +373,30 @@ sub authenticate_user_domain {
     }
 }
 
-sub check_user_enabled {
+sub check_user_exist {
     my ($usercfg, $username, $noerr) = @_;
 
     $username = verify_username($username, $noerr);
     return undef if !$username;
  
-    return 1 if $usercfg && $usercfg->{users}->{$username} &&
-	$usercfg->{users}->{$username}->{enable};
+    return $usercfg->{users}->{$username} if $usercfg && $usercfg->{users}->{$username};
+
+    die "no such user ('$username')\n" if !$noerr;
+ 
+    return undef;
+}
+
+sub check_user_enabled {
+    my ($usercfg, $username, $noerr) = @_;
+
+    my $data = check_user_exist($usercfg, $username, $noerr);
+    return undef if !$data;
+
+    return 1 if $data->{enable};
 
     return 1 if $username eq 'root@pam'; # root is always enabled
 
-    die "no such user ('$username')\n" if !$noerr;
+    die "user '$username' is disabled\n" if !$noerr;
  
     return undef;
 }
@@ -541,11 +553,13 @@ my $privgroups = {
     Sys => {
 	root => [
 	    'Sys.PowerMgmt',	 
-	    'Sys.Modify', # edit/change node settings	 
+	    'Sys.Modify', # edit/change node settings
+	    'Sys.UserAdd', # add/delete users
 	],
 	admin => [
 	    'Sys.Console',    
 	    'Sys.Syslog',
+	    'Sys.UserMod', # modify users settings
 	],
 	user => [],
 	audit => [

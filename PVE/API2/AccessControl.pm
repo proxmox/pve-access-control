@@ -3,6 +3,7 @@ package PVE::API2::AccessControl;
 use strict;
 use warnings;
 
+use PVE::Exception qw(raise raise_perm_exc);
 use PVE::SafeSyslog;
 use PVE::RPCEnvironment;
 use PVE::Cluster qw(cfs_read_file);
@@ -77,6 +78,7 @@ __PACKAGE__->register_method ({
 	}
 
 	push @$res, { subdir => 'ticket' };
+	push @$res, { subdir => 'password' };
 
 	return $res;
     }});
@@ -202,6 +204,62 @@ __PACKAGE__->register_method ({
 	PVE::Cluster::log_msg('info', 'root@pam', "successful auth for user '$username'");
 
 	return $res;
+    }});
+
+__PACKAGE__->register_method ({
+    name => 'change_passsword', 
+    path => 'password', 
+    method => 'PUT',
+    permissions => { user => 'all' },
+    protected => 1, # else we can't access shadow files
+    description => "Change user password.",
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid'),
+	    password => { 
+		description => "The new password.",
+		type => 'string',
+		minLength => 5, 
+		maxLength => 64,
+	    },
+	}
+    },
+    returns => { type => "null" },
+    code => sub {
+	my ($param) = @_;
+
+	my $rpcenv = PVE::RPCEnvironment::get();
+	my $authuser = $rpcenv->get_user();
+
+	my ($userid, $ruid, $realm) = PVE::AccessControl::verify_username($param->{userid});
+
+	my $usercfg = $rpcenv->{user_cfg};
+	PVE::AccessControl::check_user_exist($usercfg, $userid);
+
+	if ($authuser eq 'root@pam') {
+	    # OK - root can change anything
+	} else {
+	    if ($authuser eq $userid) {
+		$rpcenv->check_user_enabled($userid);
+		# OK - each user can change its own password
+	    } else {
+		raise_perm_exc() if $userid eq 'root@pam';
+
+		my $privs = [ 'Sys.UserMod', 'Sys.UserAdd' ];
+		if (!$rpcenv->check_any($authuser, "/access", $privs, 1)) {
+		    my $groups = $rpcenv->filter_groups($authuser, sub { return "/access/groups/" . shift; }, $privs, 1);
+		    my $allowed_users = $rpcenv->group_member_join([keys %$groups]);      
+		    raise_perm_exc() if !$allowed_users->{$userid};
+		}
+	    }
+	}
+
+	PVE::AccessControl::domain_set_password($realm, $ruid, $param->{password});
+
+	PVE::Cluster::log_msg('info', 'root@pam', "changed password for user '$userid'");
+
+	return undef;
     }});
 
 1;

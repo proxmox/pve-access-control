@@ -7,6 +7,7 @@ use IO::Handle;
 use IO::File;
 use IO::Select;
 use Fcntl qw(:flock);
+use PVE::Exception qw(raise raise_perm_exc);
 use PVE::SafeSyslog;
 use PVE::Tools;
 use PVE::INotify;
@@ -154,15 +155,40 @@ sub permissions {
 }
 
 sub check {
-    my ($self, $user, $path, $privs) = @_;
+    my ($self, $user, $path, $privs, $noerr) = @_;
 
     my $perm = $self->permissions($user, $path);
 
     foreach my $priv (@$privs) {
-	return undef if !$perm->{$priv};
+	PVE::AccessControl::verify_privname($priv);
+	if (!$perm->{$priv}) {
+	    return undef if $noerr;
+	    raise_perm_exc("$path, $priv"); 
+	}
     };
 
     return 1;
+};
+
+sub check_any {
+    my ($self, $user, $path, $privs, $noerr) = @_;
+
+    my $perm = $self->permissions($user, $path);
+
+    my $found = 0;
+    foreach my $priv (@$privs) {
+	PVE::AccessControl::verify_privname($priv);
+	if ($perm->{$priv}) {
+	    $found = 1;
+	    last;
+	}
+    };
+
+    return 1 if $found;
+
+    return undef if $noerr;
+
+    raise_perm_exc("$path, " . join("|", @$privs)); 
 };
 
 sub check_user_enabled {
@@ -170,6 +196,61 @@ sub check_user_enabled {
     
     my $cfg = $self->{user_cfg};
     return PVE::AccessControl::check_user_enabled($cfg, $user, $noerr);
+}
+
+sub check_user_exist {
+    my ($self, $user, $noerr) = @_;
+    
+    my $cfg = $self->{user_cfg};
+    return PVE::AccessControl::check_user_exist($cfg, $user, $noerr);
+}
+
+sub is_group_member {
+    my ($self, $group, $user) = @_;
+
+    my $cfg = $self->{user_cfg};
+
+    return 0 if !$cfg->{groups}->{$group};
+
+    return defined($cfg->{groups}->{$group}->{users}->{$user});
+}
+
+sub filter_groups {
+    my ($self, $user, $getPath, $privs, $any) = @_;
+
+    my $cfg = $self->{user_cfg};
+
+    my $groups = {};
+    foreach my $group (keys %{$cfg->{groups}}) {
+	if ($any) {
+	    if ($self->check_any($user, &$getPath($group), $privs, 1)) {
+		$groups->{$group} = $cfg->{groups}->{$group};
+	    }
+	} else {
+	    if ($self->check($user, &$getPath($group), $privs, 1)) {
+		$groups->{$group} = $cfg->{groups}->{$group};
+	    }
+	}
+    }
+
+    return $groups;
+}
+
+sub group_member_join {
+    my ($self, $grouplist) = @_;
+
+    my $users = {};
+
+    my $cfg = $self->{user_cfg};
+    foreach my $group (@$grouplist) {
+	my $data = $cfg->{groups}->{$group};
+	next if !$data;
+	foreach my $user (keys %{$data->{users}}) {
+	    $users->{$user} = 1;
+	}
+    }
+
+    return $users;
 }
 
 # initialize environment - must be called once at program startup
