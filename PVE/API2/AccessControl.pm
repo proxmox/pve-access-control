@@ -248,7 +248,7 @@ __PACKAGE__->register_method ({
 
 		my $privs = [ 'Sys.UserMod', 'Sys.UserAdd' ];
 		if (!$rpcenv->check_any($authuser, "/access", $privs, 1)) {
-		    my $groups = $rpcenv->filter_groups($authuser, sub { return "/access/groups/" . shift; }, $privs, 1);
+		    my $groups = $rpcenv->filter_groups($authuser, $privs, 1);
 		    my $allowed_users = $rpcenv->group_member_join([keys %$groups]);      
 		    raise_perm_exc() if !$allowed_users->{$userid};
 		}

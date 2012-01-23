@@ -216,18 +216,19 @@ sub is_group_member {
 }
 
 sub filter_groups {
-    my ($self, $user, $getPath, $privs, $any) = @_;
+    my ($self, $user, $privs, $any) = @_;
 
     my $cfg = $self->{user_cfg};
 
     my $groups = {};
     foreach my $group (keys %{$cfg->{groups}}) {
+	my $path = "/access/groups/$group";
 	if ($any) {
-	    if ($self->check_any($user, &$getPath($group), $privs, 1)) {
+	    if ($self->check_any($user, $path, $privs, 1)) {
 		$groups->{$group} = $cfg->{groups}->{$group};
 	    }
 	} else {
-	    if ($self->check($user, &$getPath($group), $privs, 1)) {
+	    if ($self->check($user, $path, $privs, 1)) {
 		$groups->{$group} = $cfg->{groups}->{$group};
 	    }
 	}
