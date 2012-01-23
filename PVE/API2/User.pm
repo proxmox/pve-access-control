@@ -67,7 +67,7 @@ __PACKAGE__->register_method ({
 
 	my $res = [];
 
-	my $privs = [ 'Sys.UserMod', 'Sys.UserAdd' ];
+	my $privs = [ 'User.Modify', 'User.Delete' ];
 
 	my $canUserMod = $rpcenv->check_any($authuser, "/access", $privs, 1);
 	my $groups = $rpcenv->filter_groups($authuser, $privs, 1);
@@ -288,7 +288,9 @@ __PACKAGE__->register_method ({
     path => '{userid}', 
     method => 'DELETE',
     description => "Delete user.",
-    permissions => { user => 'all' },
+    permissions => { 
+	check => ['userid-group', ['User.Delete']],
+    },
     parameters => {
    	additionalProperties => 0,
 	properties => {
@@ -309,15 +311,6 @@ __PACKAGE__->register_method ({
 	    sub {
 
 		my $usercfg = cfs_read_file("user.cfg");
-
-		PVE::AccessControl::check_user_exist($usercfg, $userid);
-
-		my $privs = [ 'Sys.UserAdd' ]; # there is no Sys.UserDel
-		if (!$rpcenv->check($authuser, "/access", $privs, 1)) {
-		    my $groups = $rpcenv->filter_groups($authuser, sub { return "/access/groups/" . shift; }, $privs, 1);
-		    my $allowed_users = $rpcenv->group_member_join([keys %$groups]);      
-		    raise_perm_exc() if !$allowed_users->{$userid};
-		}
 
 		delete ($usercfg->{users}->{$userid});
 

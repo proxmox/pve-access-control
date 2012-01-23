@@ -210,7 +210,13 @@ __PACKAGE__->register_method ({
     name => 'change_passsword', 
     path => 'password', 
     method => 'PUT',
-    permissions => { user => 'all' },
+    permissions => { 
+	description => "Each user is allowed to change his own password. A user can change the password of another user if he has modify permission on /access/groups/<group> on a group where user <userid> is member of.",
+	check => [ 'or', 
+		   ['userid-param', 'self'],
+		   ['userid-group', ['User.Modify']],
+	    ],
+    },
     protected => 1, # else we can't access shadow files
     description => "Change user password.",
     parameters => {
@@ -234,8 +240,7 @@ __PACKAGE__->register_method ({
 
 	my ($userid, $ruid, $realm) = PVE::AccessControl::verify_username($param->{userid});
 
-	my $usercfg = $rpcenv->{user_cfg};
-	PVE::AccessControl::check_user_exist($usercfg, $userid);
+	$rpcenv->check_user_exist($userid);
 
 	if ($authuser eq 'root@pam') {
 	    # OK - root can change anything
@@ -244,14 +249,8 @@ __PACKAGE__->register_method ({
 		$rpcenv->check_user_enabled($userid);
 		# OK - each user can change its own password
 	    } else {
+		# only root may change root password
 		raise_perm_exc() if $userid eq 'root@pam';
-
-		my $privs = [ 'Sys.UserMod', 'Sys.UserAdd' ];
-		if (!$rpcenv->check_any($authuser, "/access", $privs, 1)) {
-		    my $groups = $rpcenv->filter_groups($authuser, $privs, 1);
-		    my $allowed_users = $rpcenv->group_member_join([keys %$groups]);      
-		    raise_perm_exc() if !$allowed_users->{$userid};
-		}
 	    }
 	}
 

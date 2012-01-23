@@ -554,12 +554,10 @@ my $privgroups = {
 	root => [
 	    'Sys.PowerMgmt',	 
 	    'Sys.Modify', # edit/change node settings
-	    'Sys.UserAdd', # add/delete users
 	],
 	admin => [
 	    'Sys.Console',    
 	    'Sys.Syslog',
-	    'Sys.UserMod', # modify users settings
 	],
 	user => [],
 	audit => [
@@ -578,6 +576,18 @@ my $privgroups = {
 	audit => [
 	    'Datastore.Audit',
 	],
+    },
+    User => {
+	root => [
+
+	    ],
+	admin => [
+	    'User.Modify',
+	    'User.Add',
+	    'User.Delete',
+	    ],
+	user => [],
+	audit => [],
     },
 };
 
