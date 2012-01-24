@@ -132,7 +132,10 @@ __PACKAGE__->register_method ({
     name => 'create_ticket', 
     path => 'ticket', 
     method => 'POST',
-    permissions => { user => 'world' },
+    permissions => { 
+	description => "You need to pass valid credientials.",
+	user => 'world' 
+    },
     protected => 1, # else we can't access shadow files
     description => "Create or verify authentication ticket.",
     parameters => {

@@ -33,6 +33,10 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'GET',
     description => "Group index.",
+    permissions => { 
+	description => "The returned list is restricted to groups where you have 'User.Add' or 'Sys.Audit' permissions on '/access', or 'User.Add' on /access/groups/<group>.",
+	user => 'all',
+    },
     parameters => {
 	additionalProperties => 0,
 	properties => {},
@@ -52,9 +56,16 @@ __PACKAGE__->register_method ({
     
 	my $res = [];
 
+	my $rpcenv = PVE::RPCEnvironment::get();
 	my $usercfg = cfs_read_file("user.cfg");
+	my $authuser = $rpcenv->get_user();
+
+	my $privs = [ 'User.Add', 'Sys.Audit' ];
+	my $allow = $rpcenv->check_any($authuser, "/access", $privs, 1);
+	my $allowed_groups = $rpcenv->filter_groups($authuser, $privs, 1);
  
 	foreach my $group (keys %{$usercfg->{groups}}) {
+	    next if !($allow || $allowed_groups->{$group});
 	    my $entry = &$extract_group_data($usercfg->{groups}->{$group});
 	    $entry->{groupid} = $group;
 	    push @$res, $entry;
@@ -68,6 +79,9 @@ __PACKAGE__->register_method ({
     protected => 1,
     path => '', 
     method => 'POST',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Modify']],
+    },
     description => "Create new group.",
     parameters => {
    	additionalProperties => 0,
@@ -106,6 +120,9 @@ __PACKAGE__->register_method ({
     protected => 1,
     path => '{groupid}', 
     method => 'PUT',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Modify']],
+    },
     description => "Update group data.",
     parameters => {
    	additionalProperties => 0,
@@ -144,6 +161,9 @@ __PACKAGE__->register_method ({
     name => 'read_group', 
     path => '{groupid}', 
     method => 'GET',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Audit']],
+    },
     description => "Get group configuration.",
     parameters => {
    	additionalProperties => 0,
@@ -172,6 +192,9 @@ __PACKAGE__->register_method ({
     protected => 1,
     path => '{groupid}', 
     method => 'DELETE',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Modify']],
+    },
     description => "Delete group.",
     parameters => {
    	additionalProperties => 0,

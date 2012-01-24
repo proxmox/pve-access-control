@@ -37,7 +37,10 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'GET',
     description => "User index.",
-    permissions => { user => 'all' },
+    permissions => { 
+	description => "The returned list is restricted to users where you have 'User.Modify' or 'User.Delete' permissions on '/access' or on a group the user belongs too. But it always includes the current (authenticated) user.",
+	user => 'all',
+    },
     parameters => {
 	additionalProperties => 0,
 	properties => {
@@ -98,6 +101,10 @@ __PACKAGE__->register_method ({
     protected => 1,
     path => '', 
     method => 'POST',
+    permissions => { 
+	description => "You need 'User.Add' permissions to '/access/groups/<group>' for any group specified, or 'User.Add' on '/access' if you pass no groups.",
+	check => ['userid-group', ['User.Add'], groups_param => 1],
+    },
     description => "Create new user.",
     parameters => {
    	additionalProperties => 0,
@@ -176,6 +183,9 @@ __PACKAGE__->register_method ({
     path => '{userid}', 
     method => 'GET',
     description => "Get user configuration.",
+    permissions => { 
+	check => ['userid-group', ['User.Modify']],
+    },
     parameters => {
    	additionalProperties => 0,
 	properties => {
@@ -212,6 +222,9 @@ __PACKAGE__->register_method ({
     protected => 1,
     path => '{userid}', 
     method => 'PUT',
+    permissions => { 
+	check => ['userid-group', ['User.Modify'], groups_param => 1 ],
+    },
     description => "Update user configuration.",
     parameters => {
    	additionalProperties => 0,

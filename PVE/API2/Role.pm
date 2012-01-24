@@ -18,6 +18,9 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'GET',
     description => "Role index.",
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Audit']],
+    },
     parameters => {
 	additionalProperties => 0,
 	properties => {},
@@ -52,6 +55,9 @@ __PACKAGE__->register_method ({
     protected => 1,
     path => '', 
     method => 'POST',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Modify']],
+    },
     description => "Create new role.",
     parameters => {
    	additionalProperties => 0,
@@ -89,6 +95,9 @@ __PACKAGE__->register_method ({
     protected => 1,
     path => '{roleid}', 
     method => 'PUT',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Modify']],
+    },
     description => "Create new role.",
     parameters => {
    	additionalProperties => 0,
@@ -131,6 +140,9 @@ __PACKAGE__->register_method ({
     name => 'read_role', 
     path => '{roleid}', 
     method => 'GET',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Audit']],
+    },
     description => "Get role configuration.",
     parameters => {
    	additionalProperties => 0,
@@ -159,6 +171,9 @@ __PACKAGE__->register_method ({
     protected => 1,
     path => '{roleid}', 
     method => 'DELETE',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Modify']],
+    },
     description => "Delete role.",
     parameters => {
    	additionalProperties => 0,

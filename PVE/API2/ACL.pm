@@ -20,6 +20,9 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'GET',
     description => "Get Access Control List (ACLs).",
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Audit', 'Permissions.Modify'], any => 1],
+    },
     parameters => {
 	additionalProperties => 0,
 	properties => {},
@@ -77,6 +80,9 @@ __PACKAGE__->register_method ({
     protected => 1,
     path => '', 
     method => 'PUT',
+    permissions => { 
+	check => ['perm', '/access', ['Permissions.Modify']],
+    },
     description => "Update Access Control List (add or remove permissions).",
     parameters => {
    	additionalProperties => 0,

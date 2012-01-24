@@ -7,9 +7,6 @@ use PVE::AccessControl;
 use PVE::JSONSchema qw(get_standard_option);
 
 use PVE::SafeSyslog;
-
-use Data::Dumper; # fixme: remove
-
 use PVE::RESTHandler;
 
 my $domainconfigfile = "domains.cfg";
@@ -60,6 +57,9 @@ __PACKAGE__->register_method ({
     protected => 1,
     path => '', 
     method => 'POST',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Modify']],
+    },
     description => "Add an authentication server.",
     parameters => {
    	additionalProperties => 0,
@@ -167,6 +167,9 @@ __PACKAGE__->register_method ({
     name => 'update', 
     path => '{realm}', 
     method => 'PUT',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Modify']],
+    },
     description => "Update authentication server settings.",
     protected => 1,
     parameters => {
@@ -269,6 +272,9 @@ __PACKAGE__->register_method ({
     path => '{realm}', 
     method => 'GET',
     description => "Get auth server configuration.",
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Audit']],
+    },
     parameters => {
    	additionalProperties => 0,
 	properties => {
@@ -294,6 +300,9 @@ __PACKAGE__->register_method ({
     name => 'delete', 
     path => '{realm}', 
     method => 'DELETE',
+    permissions => { 
+	check => ['perm', '/access', ['Sys.Modify']],
+    },
     description => "Delete an authentication server.",
     protected => 1,
     parameters => {
