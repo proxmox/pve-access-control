@@ -254,6 +254,94 @@ sub group_member_join {
     return $users;
 }
 
+sub exec_api2_perm_check {
+    my ($self, $check, $username, $param, $noerr) = @_;
+
+    # syslog("info", "CHECK " . join(', ', @$check));
+
+    my $ind = 0;
+    my $test = $check->[$ind++];
+    die "no permission test specified" if !$test;
+ 
+    if ($test eq 'and') {
+	while (my $subcheck = $check->[$ind++]) {
+	    $self->exec_api2_perm_check($subcheck, $username, $param); 
+	}
+	return 1;
+    } elsif ($test eq 'or') {
+	while (my $subcheck = $check->[$ind++]) {
+	    return 1 if $self->exec_api2_perm_check($subcheck, $username, $param, 1); 
+	}
+	return 0 if $noerr;
+	raise_perm_exc();
+    } elsif ($test eq 'perm') {
+	my ($t, $tmplpath, $privs, %options) = @$check;
+	my $any = $options{any};
+	die "missing parameters" if !($tmplpath && $privs);
+	my $path = PVE::Tools::template_replace($tmplpath, $param);
+	if ($any) {
+	    return $self->check_any($username, $path, $privs, $noerr);
+	} else {
+	    return $self->check($username, $path, $privs, $noerr);
+	}
+    } elsif ($test eq 'userid-group') {
+	my $userid = $param->{userid};
+	my ($t, $privs, %options) = @$check;
+	return if !$options{groups_param} && !$self->check_user_exist($userid, $noerr);
+	if (!$self->check_any($username, "/access", $privs, 1)) {
+	    my $groups = $self->filter_groups($username, $privs, 1);
+	    if ($options{groups_param}) {
+		my @group_param = PVE::Tools::split_list($param->{groups});
+		raise_perm_exc("/access, " . join("|", @$privs)) if !scalar(@group_param);
+		foreach my $pg (@group_param) {
+		    raise_perm_exc("/access/groups/$pg, " . join("|", @$privs))
+			if !$groups->{$pg};
+		}
+	    } else {
+		my $allowed_users = $self->group_member_join([keys %$groups]);
+		if (!$allowed_users->{$userid}) {
+		    return 0 if $noerr;
+		    raise_perm_exc();
+		}
+	    }
+	}
+	return 1;
+    } elsif ($test eq 'userid-param') {
+	my $userid = $param->{userid};
+	return if !$self->check_user_exist($userid, $noerr);
+	my ($t, $subtest) = @$check;
+	die "missing parameters" if !$subtest;
+	if ($subtest eq 'self') {
+	    return 1 if $username eq 'userid';
+	    return 0 if $noerr;
+	    raise_perm_exc();
+	} else {
+	    die "unknown userid-param test";
+	}
+    } else {
+	die "unknown permission test";
+    }
+};
+
+sub check_api2_permissions {
+    my ($self, $perm, $username, $param) = @_;
+
+    return 1 if !$username && $perm->{user} eq 'world';
+
+    raise_perm_exc("user != null") if !$username;
+
+    return 1 if $username eq 'root@pam';
+
+    raise_perm_exc('user != root@pam') if !$perm;
+
+    return 1 if $perm->{user} && $perm->{user} eq 'all';
+
+    return $self->exec_api2_perm_check($perm->{check}, $username, $param) 
+	if $perm->{check};
+
+    raise_perm_exc();
+}
+
 # initialize environment - must be called once at program startup
 sub init {
     my ($class, $type, %params) = @_;
