@@ -62,6 +62,7 @@ __PACKAGE__->register_method ({
 
 	my $privs = [ 'User.Add', 'Sys.Audit' ];
 	my $allow = $rpcenv->check_any($authuser, "/access", $privs, 1);
+	syslog("info", "TEST $allow");
 	my $allowed_groups = $rpcenv->filter_groups($authuser, $privs, 1);
  
 	foreach my $group (keys %{$usercfg->{groups}}) {

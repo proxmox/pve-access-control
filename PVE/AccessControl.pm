@@ -663,11 +663,13 @@ sub add_role_privs {
 sub normalize_path {
     my $path = shift;
 
-    $path =~ s|/+|/|;
+    $path =~ s|/+|/|g;
 
     $path =~ s|/$||;
 
     $path = '/' if !$path;
+
+    $path = "/$path" if $path !~ m|^/|;
 
     return undef if $path !~ m|^[[:alnum:]\-\_\/]+$|;
 
@@ -916,6 +918,44 @@ sub parse_user_config {
 	    } else {
 		warn "user config - ignore invalid path in acl '$pathtxt'\n";
 	    }
+	} elsif ($et eq 'pool') {
+	    my ($pathtxt, $comment, $vmlist, $storelist) = @data;
+
+	    if (my $path = normalize_path($pathtxt)) {
+		# make sure to add the pool (even if there are no members)
+		$cfg->{pools}->{$path} = { vms => {}, storage => {} } if !$cfg->{pools}->{$path};
+
+		$cfg->{pools}->{$path}->{comment} = PVE::Tools::decode_text($comment) if $comment;
+
+		foreach my $vmid (split_list($vmlist)) {
+		    if ($vmid !~ m/^\d+$/) {
+			warn "user config - ignore invalid vmid '$vmid' in pool '$path'\n";
+			next;
+		    }
+		    $vmid = int($vmid);
+
+		    if ($cfg->{vms}->{$vmid}) {
+			warn "user config - ignore duplicate vmid '$vmid' in pool '$path'\n";
+			next;
+		    }
+
+		    $cfg->{pools}->{$path}->{vms}->{$vmid} = 1;
+		    
+		    # record vmid ==> pool relation
+		    $cfg->{vms}->{$vmid} = $path;
+		}
+
+		foreach my $storeid (split_list($storelist)) {
+		    if ($storeid !~ m/^[a-z][a-z0-9\-\_\.]*[a-z0-9]$/i) {
+			warn "user config - ignore invalid storage '$storeid' in pool '$path'\n";
+			next;
+		    }
+		    $cfg->{pools}->{$path}->{storage}->{$storeid} = 1;
+		}
+
+	    } else {
+		warn "user config - ignore invalid path in pool'$pathtxt'\n";
+	    }
 	} else {
 	    warn "user config - ignore config line: $line\n";
 	}
@@ -1138,6 +1178,16 @@ sub write_user_config {
 
     $data .= "\n";
 
+    foreach my $path (keys %{$cfg->{pools}}) {
+	my $d = $cfg->{pools}->{$path};
+	my $vmlist = join (',', keys %{$d->{vms}});
+	my $storelist = join (',', keys %{$d->{storage}});
+	my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';	
+	$data .= "pool:$path:$comment:$vmlist:$storelist:\n";
+    }
+
+    $data .= "\n";
+
     foreach my $role (keys %{$cfg->{roles}}) {
 	next if $special_roles->{$role};
 
@@ -1206,6 +1256,9 @@ sub write_user_config {
 sub roles {
     my ($cfg, $user, $path) = @_;
 
+    # NOTE: we do not consider pools here. 
+    # You need to use $rpcenv->roles() instead if you want that.
+
     return 'Administrator' if $user eq 'root@pam'; # root can do anything
 
     my $perm = {};
@@ -1254,18 +1307,14 @@ sub roles {
 	    $perm = $new; # overwrite previous settings
 	    next;
 	}
-
-	#die "what herea?";
     }
 
-    my $res = {};
-    if (!defined ($perm->{NoAccess})) {
-	$res = $perm; 
-    }
+    return ('NoAccess') if defined ($perm->{NoAccess});
+    #return () if defined ($perm->{NoAccess});
    
     #print "permission $user $path = " . Dumper ($perm);
 
-    my @ra = keys %$res;
+    my @ra = keys %$perm;
 
     #print "roles $user $path = " . join (',', @ra) . "\n";
 

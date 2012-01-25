@@ -90,68 +90,109 @@ my $register_worker = sub {
 
 # ACL cache
 
-my $compile_acl = sub {
-    my ($self, $user) = @_;
+my $compile_acl_path = sub {
+    my ($self, $user, $path) = @_;
 
-    my $res = {};
     my $cfg = $self->{user_cfg};
 
     return undef if !$cfg->{roles};
 
-    if ($user eq 'root@pam') { # root can do anything
-	return {'/' => $cfg->{roles}->{'Administrator'}};
-    } 
+    die "internal error" if $user eq 'root@pam';
 
-    foreach my $path (sort keys %{$cfg->{acl}}) {
-	my @ra = PVE::AccessControl::roles($cfg, $user, $path);
+    my $cache = $self->{aclcache};
+    $cache->{$user} = {} if !$cache->{$user};
+    my $data = $cache->{$user};
 
-	my $privs = {};
-	foreach my $role (@ra) {
-	    if (my $privset = $cfg->{roles}->{$role}) {
-		foreach my $p (keys %$privset) {
-		    $privs->{$p} = 1;
+    if (!$data->{poolroles}) {
+	$data->{poolroles} = {}; 
+ 
+	foreach my $poolpath (keys %{$cfg->{pools}}) {
+	    my $d = $cfg->{pools}->{$poolpath};
+	    my @ra = PVE::AccessControl::roles($cfg, $user, "/pool$poolpath"); # pool roles
+	    next if !scalar(@ra);
+	    foreach my $vmid (keys %{$d->{vms}}) {
+		for my $role (@ra) {
+		    $data->{poolroles}->{"/vms/$vmid"}->{$role} = 1;
+		}
+	    }
+	    foreach my $storeid (keys %{$d->{storage}}) {
+		for my $role (@ra) {
+		    $data->{poolroles}->{"/storage/$storeid"}->{$role} = 1;
 		}
 	    }
 	}
-
-	$res->{$path} = $privs;
     }
 
-    return $res;
+    my @ra = PVE::AccessControl::roles($cfg, $user, $path);
+
+    # apply roles inherited from pools
+    # Note: assume we do not want to propagate those privs
+    if ($data->{poolroles}->{$path}) {
+	if (!($ra[0] && $ra[0] eq 'NoAccess')) {
+	    foreach my $role (keys %{$data->{poolroles}->{$path}}) {
+		push @ra, $role;
+	    }
+	}
+    }
+
+    $data->{roles}->{$path} = [ @ra ];
+ 
+    my $privs = {};
+    foreach my $role (@ra) {
+	if (my $privset = $cfg->{roles}->{$role}) {
+	    foreach my $p (keys %$privset) {
+		$privs->{$p} = 1;
+	    }
+	}
+    }
+    $data->{privs}->{$path} = $privs;
+
+    return $privs;
 };
+
+sub roles {
+   my ($self, $user, $path) = @_;
+
+   if ($user eq 'root@pam') { # root can do anything
+       return ('Administrator');
+   } 
+
+   $user = PVE::AccessControl::verify_username($user, 1);
+   return () if !$user;
+
+   my $cache = $self->{aclcache};
+   $cache->{$user} = {} if !$cache->{$user};
+
+   my $acl = $cache->{$user};
+
+   my $roles = $acl->{roles}->{$path};
+   return @$roles if $roles;
+
+   &$compile_acl_path($self, $user, $path);
+   $roles = $acl->{roles}->{$path} || [];
+   return @$roles;
+}
 
 sub permissions {
     my ($self, $user, $path) = @_;
+
+    if ($user eq 'root@pam') { # root can do anything
+	my $cfg = $self->{user_cfg};
+	return $cfg->{roles}->{'Administrator'};
+    } 
 
     $user = PVE::AccessControl::verify_username($user, 1);
     return {} if !$user;
 
     my $cache = $self->{aclcache};
+    $cache->{$user} = {} if !$cache->{$user};
 
     my $acl = $cache->{$user};
 
-    if (!$acl) {
-	if (!($acl = &$compile_acl($self, $user))) {
-	    return {};
-	}
-	$cache->{$user} = $acl;
-    }
+    my $perm = $acl->{privs}->{$path};
+    return $perm if $perm;
 
-    my $perm;
-
-    if (!($perm = $acl->{$path})) {
-	$perm = {};
-	foreach my $p (sort keys %$acl) {
-	    my $final = ($path eq $p);
-	    
-	    next if !(($p eq '/') || $final || ($path =~ m|^$p/|));
-
-	    $perm = $acl->{$p};
-	}
-	$acl->{$path} = $perm;
-    }
-
-    return $perm;
+    return &$compile_acl_path($self, $user, $path);
 }
 
 sub check {
@@ -174,7 +215,7 @@ sub check_any {
     my ($self, $user, $path, $privs, $noerr) = @_;
 
     my $perm = $self->permissions($user, $path);
-
+    syslog("info", "check_any $user $path " . join(" ", keys %$perm));
     my $found = 0;
     foreach my $priv (@$privs) {
 	PVE::AccessControl::verify_privname($priv);
@@ -469,6 +510,7 @@ sub init_request {
 	    my $ucdata = PVE::Tools::file_get_contents($userconfig);
 	    my $cfg = PVE::AccessControl::parse_user_config($userconfig, $ucdata);
 	    $self->{user_cfg} = $cfg;
+	    #print Dumper($cfg);
 	} else {
 	    my $ucvers = PVE::Cluster::cfs_file_version('user.cfg'); 
 	    if (!$self->{aclcache} || !defined($self->{aclversion}) || 

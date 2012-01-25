@@ -25,7 +25,7 @@ sub check_roles {
 
 
 check_roles('User1@pve', '/vms/300', 'Role1');
-check_roles('User2@pve', '/vms/300', '');
+check_roles('User2@pve', '/vms/300', 'NoAccess');
 
 print "all tests passed\n";
 

@@ -58,7 +58,7 @@ check_permission('alex@pve', '/vms/100', 'VM.Audit,VM.PowerMgmt');
 
 check_roles('max@pve', '/vms/200', 'storage_manager');
 check_roles('joe@pve', '/vms/200', 'vm_admin');
-check_roles('sue@pve', '/vms/200', '');
+check_roles('sue@pve', '/vms/200', 'NoAccess');
 
 print "all tests passed\n";
 
