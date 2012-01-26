@@ -21,7 +21,7 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "Get Access Control List (ACLs).",
     permissions => { 
-	check => ['perm', '/access', ['Sys.Audit', 'Permissions.Modify'], any => 1],
+	user => 'all',
     },
     parameters => {
 	additionalProperties => 0,
@@ -44,19 +44,23 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
     
+	my $rpcenv = PVE::RPCEnvironment::get();
+	my $authuser = $rpcenv->get_user();
 	my $res = [];
 
-	my $usercfg = cfs_read_file("user.cfg");
-
+	my $usercfg = $rpcenv->{user_cfg};
 	if (!$usercfg || !$usercfg->{acl}) {
 	    return {};
 	}
+
+	my $audit = $rpcenv->check($authuser, '/access', ['Sys.Audit'], 1);
 
 	my $acl = $usercfg->{acl};
 	foreach my $path (keys %$acl) {
 	    foreach my $type (qw(users groups)) {
 		my $d = $acl->{$path}->{$type};
 		next if !$d;
+		next if !($audit || $rpcenv->check_perm_modify($authuser, $path, 1));
 		foreach my $id (keys %$d) {
 		    foreach my $role (keys %{$d->{$id}}) {
 			my $propagate = $d->{$id}->{$role};
@@ -81,7 +85,7 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'PUT',
     permissions => { 
-	check => ['perm', '/access', ['Permissions.Modify']],
+	check => ['perm-modify', '{path}'],
     },
     description => "Update Access Control List (add or remove permissions).",
     parameters => {

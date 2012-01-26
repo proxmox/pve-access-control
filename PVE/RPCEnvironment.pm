@@ -299,6 +299,21 @@ sub group_member_join {
     return $users;
 }
 
+sub check_perm_modify {
+    my ($self, $username, $path, $noerr) = @_;
+
+    return $self->check($username, '/access', [ 'Permissions.Modify' ], $noerr) if !$path;
+
+    my $testperms = [ 'Permissions.Modify' ];
+    if ($path =~ m|^/storage/.+$|) {
+	push @$testperms, 'Datastore.Allocate';
+    } elsif ($path =~ m|^/vms/.+$|) {
+	push @$testperms, 'VM.Allocate';
+    }
+
+    return $self->check_any($username, $path, $testperms, $noerr);
+}
+
 sub exec_api2_perm_check {
     my ($self, $check, $username, $param, $noerr) = @_;
 
@@ -324,6 +339,7 @@ sub exec_api2_perm_check {
 	my $any = $options{any};
 	die "missing parameters" if !($tmplpath && $privs);
 	my $path = PVE::Tools::template_replace($tmplpath, $param);
+	$path = PVE::AccessControl::normalize_path($path);
 	if ($any) {
 	    return $self->check_any($username, $path, $privs, $noerr);
 	} else {
@@ -363,7 +379,12 @@ sub exec_api2_perm_check {
 	} else {
 	    die "unknown userid-param test";
 	}
-    } else {
+    } elsif ($test eq 'perm-modify') {
+	my ($t, $tmplpath) = @$check;
+	my $path = PVE::Tools::template_replace($tmplpath, $param);
+	$path = PVE::AccessControl::normalize_path($path);
+	return $self->check_perm_modify($username, $path, $noerr);
+   } else {
 	die "unknown permission test";
     }
 };
