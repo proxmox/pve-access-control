@@ -214,7 +214,19 @@ __PACKAGE__->register_method ({
 	    poolid => {type => 'string', format => 'pve-poolid' },
 	},
     },
-    returns => {},
+    returns => {
+	type => 'array',
+	items => {
+	    type => "object",
+	    additionalProperties => 0,
+	    properties => {
+		type => { type => 'string', enum => ['vm', 'storage'] },
+		id => { type => 'string' },
+		vmid => { type => 'integer', optional => 1 },
+		storage => { type => 'string', optional => 1 },
+	    },
+	},
+    },
     code => sub {
 	my ($param) = @_;
 
@@ -227,7 +239,25 @@ __PACKAGE__->register_method ({
 	die "pool '$pool' does not exist\n" 
 	    if !$data;
  
-	return &$extract_pool_data($data, 1);
+	my $res = [];
+
+	foreach my $vmid (keys %{$data->{vms}}) {
+	    push @$res, {
+		id => "vm/$vmid",
+		vmid => $vmid + 0, 
+		type => 'vm',
+	    };
+	}
+
+	foreach my $storage (keys %{$data->{storage}}) {
+	    push @$res, {
+		id => "storage/$storage",
+		storage => $storage, 
+		type => 'storage',
+	    };
+	}
+
+	return $res;
     }});
 
 
