@@ -540,7 +540,6 @@ my $privgroups = {
 	    'VM.Modify', 
 	    'VM.Allocate', 
 	    'VM.Migrate',
-	    'Permissions.Modify',
 	],
 	user => [
 	    'VM.Console', 
@@ -556,6 +555,7 @@ my $privgroups = {
 	    'Sys.Modify', # edit/change node settings
 	],
 	admin => [
+	    'Permissions.Modify',
 	    'Sys.Console',    
 	    'Sys.Syslog',
 	],
@@ -565,9 +565,7 @@ my $privgroups = {
 	],
     },
     Datastore => {
-	root => [
-	    'Permissions.Modify',
-	],
+	root => [],
 	admin => [
 	    'Datastore.Allocate',
 	],
