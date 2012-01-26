@@ -184,7 +184,6 @@ __PACKAGE__->register_method ({
 	return undef;
     }});
 
-# fixme: return format!
 __PACKAGE__->register_method ({
     name => 'read_pool', 
     path => '{poolid}', 
@@ -200,15 +199,22 @@ __PACKAGE__->register_method ({
 	},
     },
     returns => {
-	type => 'array',
-	items => {
-	    type => "object",
-	    additionalProperties => 0,
-	    properties => {
-		type => { type => 'string', enum => ['vm', 'storage'] },
-		id => { type => 'string' },
-		vmid => { type => 'integer', optional => 1 },
-		storage => { type => 'string', optional => 1 },
+	type => "object",
+	additionalProperties => 0,
+	properties => {
+	    comment => { type => 'string', optional => 1 },
+	    members => {
+		type => 'array',
+		items => {
+		    type => "object",
+		    additionalProperties => 0,
+		    properties => {
+			type => { type => 'string', enum => ['vm', 'storage'] },
+			id => { type => 'string' },
+			vmid => { type => 'integer', optional => 1 },
+			storage => { type => 'string', optional => 1 },
+		    },
+		},
 	    },
 	},
     },
@@ -224,10 +230,10 @@ __PACKAGE__->register_method ({
 	die "pool '$pool' does not exist\n" 
 	    if !$data;
  
-	my $res = [];
+	my $members = [];
 
 	foreach my $vmid (keys %{$data->{vms}}) {
-	    push @$res, {
+	    push @$members, {
 		id => "vm/$vmid",
 		vmid => $vmid + 0, 
 		type => 'vm',
@@ -235,12 +241,15 @@ __PACKAGE__->register_method ({
 	}
 
 	foreach my $storage (keys %{$data->{storage}}) {
-	    push @$res, {
+	    push @$members, {
 		id => "storage/$storage",
 		storage => $storage, 
 		type => 'storage',
 	    };
 	}
+
+	my $res = { members => $members	};
+	$res->{comment} = $data->{comment} if defined($data->{comment});
 
 	return $res;
     }});
