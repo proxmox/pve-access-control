@@ -21,6 +21,7 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "Get Access Control List (ACLs).",
     permissions => { 
+	description => "The returned list is restricted to objects where you have rights to modify permissions.",
 	user => 'all',
     },
     parameters => {
