@@ -1,10 +1,11 @@
 
-API2_SOURCES= 		 \
-	AccessControl.pm \
-	Domains.pm	 \
-	ACL.pm		 \
-	Role.pm		 \
-	Group.pm	 \
+API2_SOURCES= 		 	\
+	AccessControl.pm 	\
+	Pool.pm	 		\
+	Domains.pm	 	\
+	ACL.pm		 	\
+	Role.pm		 	\
+	Group.pm	 	\
 	User.pm
 
 .PHONY: install

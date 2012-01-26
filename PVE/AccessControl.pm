@@ -514,8 +514,8 @@ sub delete_user_acl {
 	delete ($usercfg->{acl}->{$acl}->{users}->{$username}) 
 	    if $usercfg->{acl}->{$acl}->{users}->{$username};
     }
-
 }
+
 sub delete_group_acl {
 
     my ($group, $usercfg) = @_;
@@ -525,7 +525,18 @@ sub delete_group_acl {
 	delete ($usercfg->{acl}->{$acl}->{groups}->{$group}) 
 	    if $usercfg->{acl}->{$acl}->{groups}->{$group};
     }
+}
 
+sub delete_pool_acl {
+
+    my ($pool, $usercfg) = @_;
+
+    my $path = "/pool/$pool";
+
+    foreach my $aclpath (keys %{$usercfg->{acl}}) {
+	delete ($usercfg->{acl}->{$aclpath})
+	    if $usercfg->{acl}->{$aclpath} eq 'path';
+    }
 }
 
 # we automatically create some predefined roles by splitting privs
@@ -749,6 +760,20 @@ sub verify_rolename {
     return $rolename;
 }
 
+PVE::JSONSchema::register_format('pve-poolid', \&verify_groupname);
+sub verify_poolname {
+    my ($poolname, $noerr) = @_;
+
+    if ($poolname !~ m/^[A-Za-z0-9\.\-_]+$/) {
+
+	die "pool name '$poolname' contains invalid characters\n" if !$noerr;
+
+	return undef;
+    }
+    
+    return $poolname;
+}
+
 PVE::JSONSchema::register_format('pve-priv', \&verify_privname);
 sub verify_privname {
     my ($priv, $noerr) = @_;
@@ -915,42 +940,42 @@ sub parse_user_config {
 		warn "user config - ignore invalid path in acl '$pathtxt'\n";
 	    }
 	} elsif ($et eq 'pool') {
-	    my ($pathtxt, $comment, $vmlist, $storelist) = @data;
+	    my ($pool, $comment, $vmlist, $storelist) = @data;
 
-	    if (my $path = normalize_path($pathtxt)) {
-		# make sure to add the pool (even if there are no members)
-		$cfg->{pools}->{$path} = { vms => {}, storage => {} } if !$cfg->{pools}->{$path};
+	    if (!verify_poolname($pool, 1)) {
+		warn "user config - ignore pool '$pool' - invalid characters in pool name\n";
+		next;
+	    }
 
-		$cfg->{pools}->{$path}->{comment} = PVE::Tools::decode_text($comment) if $comment;
+	    # make sure to add the pool (even if there are no members)
+	    $cfg->{pools}->{$pool} = { vms => {}, storage => {} } if !$cfg->{pools}->{$pool};
 
-		foreach my $vmid (split_list($vmlist)) {
-		    if ($vmid !~ m/^\d+$/) {
-			warn "user config - ignore invalid vmid '$vmid' in pool '$path'\n";
-			next;
-		    }
-		    $vmid = int($vmid);
+	    $cfg->{pools}->{$pool}->{comment} = PVE::Tools::decode_text($comment) if $comment;
 
-		    if ($cfg->{vms}->{$vmid}) {
-			warn "user config - ignore duplicate vmid '$vmid' in pool '$path'\n";
-			next;
-		    }
+	    foreach my $vmid (split_list($vmlist)) {
+		if ($vmid !~ m/^\d+$/) {
+		    warn "user config - ignore invalid vmid '$vmid' in pool '$pool'\n";
+		    next;
+		}
+		$vmid = int($vmid);
 
-		    $cfg->{pools}->{$path}->{vms}->{$vmid} = 1;
+		if ($cfg->{vms}->{$vmid}) {
+		    warn "user config - ignore duplicate vmid '$vmid' in pool '$pool'\n";
+		    next;
+		}
+
+		$cfg->{pools}->{$pool}->{vms}->{$vmid} = 1;
 		    
-		    # record vmid ==> pool relation
-		    $cfg->{vms}->{$vmid} = $path;
-		}
+		# record vmid ==> pool relation
+		$cfg->{vms}->{$vmid} = $pool;
+	    }
 
-		foreach my $storeid (split_list($storelist)) {
-		    if ($storeid !~ m/^[a-z][a-z0-9\-\_\.]*[a-z0-9]$/i) {
-			warn "user config - ignore invalid storage '$storeid' in pool '$path'\n";
-			next;
-		    }
-		    $cfg->{pools}->{$path}->{storage}->{$storeid} = 1;
+	    foreach my $storeid (split_list($storelist)) {
+		if ($storeid !~ m/^[a-z][a-z0-9\-\_\.]*[a-z0-9]$/i) {
+		    warn "user config - ignore invalid storage '$storeid' in pool '$pool'\n";
+		    next;
 		}
-
-	    } else {
-		warn "user config - ignore invalid path in pool'$pathtxt'\n";
+		$cfg->{pools}->{$pool}->{storage}->{$storeid} = 1;
 	    }
 	} else {
 	    warn "user config - ignore config line: $line\n";
@@ -1174,12 +1199,12 @@ sub write_user_config {
 
     $data .= "\n";
 
-    foreach my $path (keys %{$cfg->{pools}}) {
-	my $d = $cfg->{pools}->{$path};
+    foreach my $pool (keys %{$cfg->{pools}}) {
+	my $d = $cfg->{pools}->{$pool};
 	my $vmlist = join (',', keys %{$d->{vms}});
 	my $storelist = join (',', keys %{$d->{storage}});
 	my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';	
-	$data .= "pool:$path:$comment:$vmlist:$storelist:\n";
+	$data .= "pool:$pool:$comment:$vmlist:$storelist:\n";
     }
 
     $data .= "\n";

@@ -148,10 +148,10 @@ __PACKAGE__->register_method ({
 		die "group '$group' does not exist\n" 
 		    if !$data;
 
-		$data->{comment} = $param->{comment} if $param->{comment};
+		$data->{comment} = $param->{comment} if defined($param->{comment});
 		
 		cfs_write_file("user.cfg", $usercfg);
-	    }, "create group failed");
+	    }, "update group failed");
 
 	return undef;
     }});

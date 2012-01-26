@@ -15,6 +15,7 @@ use PVE::API2::User;
 use PVE::API2::Group;
 use PVE::API2::Role;
 use PVE::API2::ACL;
+use PVE::API2::Pool;
 
 use base qw(PVE::RESTHandler);
 
@@ -41,6 +42,11 @@ __PACKAGE__->register_method ({
 __PACKAGE__->register_method ({
     subclass => "PVE::API2::Domains",  
     path => 'domains',
+});
+
+__PACKAGE__->register_method ({
+    subclass => "PVE::API2::Pool",  
+    path => 'pools',
 });
 
 __PACKAGE__->register_method ({

@@ -106,9 +106,9 @@ my $compile_acl_path = sub {
     if (!$data->{poolroles}) {
 	$data->{poolroles} = {}; 
  
-	foreach my $poolpath (keys %{$cfg->{pools}}) {
-	    my $d = $cfg->{pools}->{$poolpath};
-	    my @ra = PVE::AccessControl::roles($cfg, $user, "/pool$poolpath"); # pool roles
+	foreach my $pool (keys %{$cfg->{pools}}) {
+	    my $d = $cfg->{pools}->{$pool};
+	    my @ra = PVE::AccessControl::roles($cfg, $user, "/pool/$pool"); # pool roles
 	    next if !scalar(@ra);
 	    foreach my $vmid (keys %{$d->{vms}}) {
 		for my $role (@ra) {

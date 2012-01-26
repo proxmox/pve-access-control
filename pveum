@@ -14,6 +14,7 @@ use PVE::API2::User;
 use PVE::API2::Group;
 use PVE::API2::Role;
 use PVE::API2::ACL;
+use PVE::API2::Pool;
 use PVE::API2::AccessControl;
 use PVE::JSONSchema qw(get_standard_option);
 use PVE::CLIHandler;
@@ -71,6 +72,10 @@ my $cmddef = {
     roleadd => [ 'PVE::API2::Role', 'create_role', ['roleid'] ],
     rolemod => [ 'PVE::API2::Role', 'update_role', ['roleid'] ],
     roledel => [ 'PVE::API2::Role', 'delete_role', ['roleid'] ],
+
+    pooladd => [ 'PVE::API2::Pool', 'create_pool', ['poolid'] ],
+    poolmod => [ 'PVE::API2::Pool', 'update_pool', ['poolid'] ],
+    pooldel => [ 'PVE::API2::Pool', 'delete_pool', ['poolid'] ],
 
     aclmod => [ 'PVE::API2::ACL', 'update_acl', ['path', 'roles'], { delete => 0 }],
     acldel => [ 'PVE::API2::ACL', 'update_acl', ['path', 'roles'], { delete => 1 }],
