@@ -14,22 +14,6 @@ use PVE::RESTHandler;
 
 use base qw(PVE::RESTHandler);
 
-my $extract_pool_data = sub {
-    my ($data, $full) = @_;
-
-    my $res = {};
-
-    $res->{comment} = $data->{comment} if defined($data->{comment});
-
-    return $res if !$full;
-
-    $res->{vms} = $data->{vms} ? [ keys %{$data->{vms}} ] : [];
- 
-    $res->{storages} = $data->{storage} ? [ keys %{$data->{storage}} ] : [];
-
-    return $res;
-};
-
 __PACKAGE__->register_method ({
     name => 'index', 
     path => '', 
@@ -61,9 +45,10 @@ __PACKAGE__->register_method ({
 
 	my $usercfg = $rpcenv->{user_cfg};
 
-	foreach my $poolpath (keys %{$usercfg->{pools}}) {
-	    my $entry = &$extract_pool_data($usercfg->{pools}->{$poolpath});
-	    $entry->{poolid} = $poolpath;
+	foreach my $pool (keys %{$usercfg->{pools}}) {
+	    my $entry = { poolid => $pool };
+	    my $data = $usercfg->{pools}->{$pool};
+	    $entry->{comment} = $data->{comment} if defined($data->{comment});
 	    push @$res, $entry;
 	}
 
