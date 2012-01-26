@@ -215,7 +215,7 @@ sub check_any {
     my ($self, $user, $path, $privs, $noerr) = @_;
 
     my $perm = $self->permissions($user, $path);
-    syslog("info", "check_any $user $path " . join(" ", keys %$perm));
+
     my $found = 0;
     foreach my $priv (@$privs) {
 	PVE::AccessControl::verify_privname($priv);
