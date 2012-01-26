@@ -34,7 +34,7 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "Group index.",
     permissions => { 
-	description => "The returned list is restricted to groups where you have 'User.Add' or 'Sys.Audit' permissions on '/access', or 'User.Add' on /access/groups/<group>.",
+	description => "The returned list is restricted to groups where you have 'User.Allocate' or 'Sys.Audit' permissions on '/access', or 'User.Allocate' on /access/groups/<group>.",
 	user => 'all',
     },
     parameters => {
@@ -60,7 +60,7 @@ __PACKAGE__->register_method ({
 	my $usercfg = cfs_read_file("user.cfg");
 	my $authuser = $rpcenv->get_user();
 
-	my $privs = [ 'User.Add', 'Sys.Audit' ];
+	my $privs = [ 'User.Allocate', 'Sys.Audit' ];
 	my $allow = $rpcenv->check_any($authuser, "/access", $privs, 1);
 	syslog("info", "TEST $allow");
 	my $allowed_groups = $rpcenv->filter_groups($authuser, $privs, 1);

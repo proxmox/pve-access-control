@@ -566,10 +566,11 @@ my $privgroups = {
     },
     Datastore => {
 	root => [
-	    'Datastore.Allocate',
 	    'Permissions.Modify',
 	],
-	admin => [],
+	admin => [
+	    'Datastore.Allocate',
+	],
 	user => [
 	    'Datastore.AllocateSpace',
 	],
@@ -578,14 +579,11 @@ my $privgroups = {
 	],
     },
     User => {
-	root => [
-
-	    ],
+	root => [],
 	admin => [
 	    'User.Modify',
-	    'User.Add',
-	    'User.Delete',
-	    ],
+	    'User.Allocate',
+	],
 	user => [],
 	audit => [],
     },

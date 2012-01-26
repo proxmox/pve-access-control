@@ -38,7 +38,7 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "User index.",
     permissions => { 
-	description => "The returned list is restricted to users where you have 'User.Modify' or 'User.Delete' permissions on '/access' or on a group the user belongs too. But it always includes the current (authenticated) user.",
+	description => "The returned list is restricted to users where you have 'User.Modify' or 'User.Allocate' permissions on '/access' or on a group the user belongs too. But it always includes the current (authenticated) user.",
 	user => 'all',
     },
     parameters => {
@@ -70,7 +70,7 @@ __PACKAGE__->register_method ({
 
 	my $res = [];
 
-	my $privs = [ 'User.Modify', 'User.Delete' ];
+	my $privs = [ 'User.Modify', 'User.Allocate' ];
 
 	my $canUserMod = $rpcenv->check_any($authuser, "/access", $privs, 1);
 	my $groups = $rpcenv->filter_groups($authuser, $privs, 1);
@@ -102,8 +102,8 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'POST',
     permissions => { 
-	description => "You need 'User.Add' permissions to '/access/groups/<group>' for any group specified, or 'User.Add' on '/access' if you pass no groups.",
-	check => ['userid-group', ['User.Add'], groups_param => 1],
+	description => "You need 'User.Allocate' permissions to '/access/groups/<group>' for any group specified, or 'User.Allocate' on '/access' if you pass no groups.",
+	check => ['userid-group', ['User.Allocate'], groups_param => 1],
     },
     description => "Create new user.",
     parameters => {
@@ -302,7 +302,7 @@ __PACKAGE__->register_method ({
     method => 'DELETE',
     description => "Delete user.",
     permissions => { 
-	check => ['userid-group', ['User.Delete']],
+	check => ['userid-group', ['User.Allocate']],
     },
     parameters => {
    	additionalProperties => 0,
