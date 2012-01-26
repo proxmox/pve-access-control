@@ -4,30 +4,11 @@ use strict;
 use warnings;
 use PVE::Cluster qw (cfs_read_file cfs_write_file);
 use PVE::AccessControl;
-
 use PVE::SafeSyslog;
-
-use Data::Dumper; # fixme: remove
-
 use PVE::RESTHandler;
 
 use base qw(PVE::RESTHandler);
 
-my $extract_group_data = sub {
-    my ($data, $full) = @_;
-
-    my $res = {};
-
-    $res->{comment} = $data->{comment} if defined($data->{comment});
-
-    return $res if !$full;
-
-    $res->{users} = $data->{users} ? [ keys %{$data->{users}} ] : [];
-
-    return $res;
-};
-
-# fixme: index should return more/all attributes?
 __PACKAGE__->register_method ({
     name => 'index', 
     path => '', 
@@ -66,8 +47,9 @@ __PACKAGE__->register_method ({
  
 	foreach my $group (keys %{$usercfg->{groups}}) {
 	    next if !($allow || $allowed_groups->{$group});
-	    my $entry = &$extract_group_data($usercfg->{groups}->{$group});
-	    $entry->{groupid} = $group;
+	    my $data = $usercfg->{groups}->{$group};
+	    my $entry = { groupid => $group };
+	    $entry->{comment} = $data->{comment} if defined($data->{comment});
 	    push @$res, $entry;
 	}
 
@@ -127,7 +109,6 @@ __PACKAGE__->register_method ({
     parameters => {
    	additionalProperties => 0,
 	properties => {
-	    # fixme: set/delete members
 	    groupid => { type => 'string', format => 'pve-groupid' },
 	    comment => { type => 'string', optional => 1 },
 	},
@@ -156,7 +137,6 @@ __PACKAGE__->register_method ({
 	return undef;
     }});
 
-# fixme: return format!
 __PACKAGE__->register_method ({
     name => 'read_group', 
     path => '{groupid}', 
@@ -171,7 +151,19 @@ __PACKAGE__->register_method ({
 	    groupid => { type => 'string', format => 'pve-groupid' },
 	},
     },
-    returns => {},
+    returns => {
+	type => "object",
+	additionalProperties => 0,
+	properties => {
+	    comment => { type => 'string', optional => 1 },
+	    members => {
+		type => 'array',
+		items => {
+		    type => "string",
+		},
+	    },
+	},
+    },
     code => sub {
 	my ($param) = @_;
 
@@ -183,7 +175,13 @@ __PACKAGE__->register_method ({
 
 	die "group '$group' does not exist\n" if !$data;
 
-	return &$extract_group_data($data, 1);
+	my $members = $data->{users} ? [ keys %{$data->{users}} ] : [];
+
+	my $res = { members => $members };
+
+	$res->{comment} = $data->{comment} if defined($data->{comment});
+
+	return $res;
     }});
 
 
