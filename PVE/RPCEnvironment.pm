@@ -129,8 +129,12 @@ my $compile_acl_path = sub {
     # Note: assume we do not want to propagate those privs
     if ($data->{poolroles}->{$path}) {
 	if (!($ra[0] && $ra[0] eq 'NoAccess')) {
-	    foreach my $role (keys %{$data->{poolroles}->{$path}}) {
-		push @ra, $role;
+	    if ($data->{poolroles}->{$path}->{NoAccess}) {
+		@ra = ('NoAccess');
+	    } else {
+		foreach my $role (keys %{$data->{poolroles}->{$path}}) {
+		    push @ra, $role;
+		}
 	    }
 	}
     }
