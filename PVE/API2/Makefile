@@ -1,7 +1,6 @@
 
 API2_SOURCES= 		 	\
 	AccessControl.pm 	\
-	Pool.pm	 		\
 	Domains.pm	 	\
 	ACL.pm		 	\
 	Role.pm		 	\
