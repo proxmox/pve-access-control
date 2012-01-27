@@ -348,12 +348,12 @@ sub exec_api2_perm_check {
     } elsif ($test eq 'userid-group') {
 	my $userid = $param->{userid};
 	my ($t, $privs, %options) = @$check;
-	return if !$options{groups_param} && !$self->check_user_exist($userid, $noerr);
-	if (!$self->check_any($username, "/access", $privs, 1)) {
+	return 0 if !$options{groups_param} && !$self->check_user_exist($userid, $noerr);
+	if (!$self->check_any($username, "/access/groups", $privs, 1)) {
 	    my $groups = $self->filter_groups($username, $privs, 1);
 	    if ($options{groups_param}) {
 		my @group_param = PVE::Tools::split_list($param->{groups});
-		raise_perm_exc("/access, " . join("|", @$privs)) if !scalar(@group_param);
+		raise_perm_exc("/access/groups, " . join("|", @$privs)) if !scalar(@group_param);
 		foreach my $pg (@group_param) {
 		    raise_perm_exc("/access/groups/$pg, " . join("|", @$privs))
 			if !$groups->{$pg};
@@ -368,7 +368,7 @@ sub exec_api2_perm_check {
 	}
 	return 1;
     } elsif ($test eq 'userid-param') {
-	my $userid = $param->{userid};
+	my ($userid, undef, $realm) = verify_username($param->{userid});
 	return if !$self->check_user_exist($userid, $noerr);
 	my ($t, $subtest) = @$check;
 	die "missing parameters" if !$subtest;
@@ -376,10 +376,15 @@ sub exec_api2_perm_check {
 	    return 1 if $username eq 'userid';
 	    return 0 if $noerr;
 	    raise_perm_exc();
+	} elsif ($subtest eq 'Realm.AllocateUser') {
+	    my $path =  "/access/realm/$realm";
+	    return $self->check($username, $path, ['Realm.AllocateUser'], $noerr);
+	    return 0 if $noerr;
+	    raise_perm_exc("$path, 'Realm.AllocateUser'");
 	} else {
 	    die "unknown userid-param test";
 	}
-    } elsif ($test eq 'perm-modify') {
+     } elsif ($test eq 'perm-modify') {
 	my ($t, $tmplpath) = @$check;
 	my $path = PVE::Tools::template_replace($tmplpath, $param);
 	$path = PVE::AccessControl::normalize_path($path);

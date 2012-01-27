@@ -18,7 +18,10 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'GET',
     description => "Authentication domain index.",
-    permissions => { user => 'world' },
+    permissions => { 
+	description => "Anyone can access that, because we need that list for the login box (before the user is authenticated).",
+	user => 'world', 
+    },
     parameters => {
 	additionalProperties => 0,
 	properties => {},
@@ -58,7 +61,7 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'POST',
     permissions => { 
-	check => ['perm', '/access', ['Sys.Modify']],
+	check => ['perm', '/access/realm', ['Realm.Allocate']],
     },
     description => "Add an authentication server.",
     parameters => {
@@ -168,7 +171,7 @@ __PACKAGE__->register_method ({
     path => '{realm}', 
     method => 'PUT',
     permissions => { 
-	check => ['perm', '/access', ['Sys.Modify']],
+	check => ['perm', '/access/realm', ['Realm.Allocate']],
     },
     description => "Update authentication server settings.",
     protected => 1,
@@ -273,7 +276,7 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "Get auth server configuration.",
     permissions => { 
-	check => ['perm', '/access', ['Sys.Audit']],
+	check => ['perm', '/access/realm', ['Realm.Allocate', 'Sys.Audit'], any => 1],
     },
     parameters => {
    	additionalProperties => 0,
@@ -301,7 +304,7 @@ __PACKAGE__->register_method ({
     path => '{realm}', 
     method => 'DELETE',
     permissions => { 
-	check => ['perm', '/access', ['Sys.Modify']],
+	check => ['perm', '/access/realm', ['Realm.Allocate']],
     },
     description => "Delete an authentication server.",
     protected => 1,

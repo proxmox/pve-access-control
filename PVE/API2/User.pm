@@ -38,7 +38,7 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "User index.",
     permissions => { 
-	description => "The returned list is restricted to users where you have 'User.Modify' or 'User.Allocate' permissions on '/access' or on a group the user belongs too. But it always includes the current (authenticated) user.",
+	description => "The returned list is restricted to users where you have 'User.Modify' or 'Sys.Audit' permissions on '/access/groups' or on a group the user belongs too. But it always includes the current (authenticated) user.",
 	user => 'all',
     },
     parameters => {
@@ -70,9 +70,8 @@ __PACKAGE__->register_method ({
 
 	my $res = [];
 
-	my $privs = [ 'User.Modify', 'User.Allocate' ];
-
-	my $canUserMod = $rpcenv->check_any($authuser, "/access", $privs, 1);
+	my $privs = [ 'User.Modify', 'Sys.Audit' ];
+	my $canUserMod = $rpcenv->check_any($authuser, "/access/groups", $privs, 1);
 	my $groups = $rpcenv->filter_groups($authuser, $privs, 1);
 	my $allowed_users = $rpcenv->group_member_join([keys %$groups]);      
 
@@ -102,8 +101,11 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'POST',
     permissions => { 
-	description => "You need 'User.Allocate' permissions to '/access/groups/<group>' for any group specified, or 'User.Allocate' on '/access' if you pass no groups.",
-	check => ['userid-group', ['User.Allocate'], groups_param => 1],
+	description => "You need 'Realm.AllocateUser' on '/access/realm/<realm>' on the realm of user <userid>, and 'User.Modify' permissions to '/access/groups/<group>' for any group specified (or 'User.Modify' on '/access/groups' if you pass no groups.",
+	check => [ 'and',
+		   [ 'userid-param', 'Realm.AllocateUser'],
+		   [ 'userid-group', ['User.Modify'], groups_param => 1],
+	    ],
     },
     description => "Create new user.",
     parameters => {
@@ -184,7 +186,7 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "Get user configuration.",
     permissions => { 
-	check => ['userid-group', ['User.Modify']],
+	check => ['userid-group', ['User.Modify', 'Sys.Audit']],
     },
     parameters => {
    	additionalProperties => 0,
@@ -302,7 +304,10 @@ __PACKAGE__->register_method ({
     method => 'DELETE',
     description => "Delete user.",
     permissions => { 
-	check => ['userid-group', ['User.Allocate']],
+	check => [ 'and',
+		   [ 'userid-param', 'Realm.AllocateUser'],
+		   [ 'userid-group', ['User.Modify']],
+	    ],
     },
     parameters => {
    	additionalProperties => 0,

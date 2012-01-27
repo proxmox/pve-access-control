@@ -54,6 +54,9 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'GET',
     description => "Directory index.",
+    permissions => { 
+	user => 'all',
+    },
     parameters => {
     	additionalProperties => 0,
 	properties => {},
@@ -220,10 +223,13 @@ __PACKAGE__->register_method ({
     path => 'password', 
     method => 'PUT',
     permissions => { 
-	description => "Each user is allowed to change his own password. A user can change the password of another user if he has modify permission on /access/groups/<group> on a group where user <userid> is member of.",
+	description => "Each user is allowed to change his own password. A user can change the password of another user if he has 'Realm.AllocateUser' (on the realm of user <userid>) and 'User.Modify' permission on /access/groups/<group> on a group where user <userid> is member of.",
 	check => [ 'or', 
 		   ['userid-param', 'self'],
-		   ['userid-group', ['User.Modify']],
+		   [ 'and',
+		     [ 'userid-param', 'Realm.AllocateUser'],
+		     [ 'userid-group', ['User.Modify']]
+		   ]
 	    ],
     },
     protected => 1, # else we can't access shadow files

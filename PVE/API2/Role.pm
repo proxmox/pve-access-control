@@ -19,7 +19,7 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "Role index.",
     permissions => { 
-	check => ['perm', '/access', ['Sys.Audit']],
+	user => 'all',
     },
     parameters => {
 	additionalProperties => 0,
@@ -141,7 +141,7 @@ __PACKAGE__->register_method ({
     path => '{roleid}', 
     method => 'GET',
     permissions => { 
-	check => ['perm', '/access', ['Sys.Audit']],
+	user => 'all',
     },
     description => "Get role configuration.",
     parameters => {

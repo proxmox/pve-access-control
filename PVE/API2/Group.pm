@@ -15,7 +15,7 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "Group index.",
     permissions => { 
-	description => "The returned list is restricted to groups where you have 'User.Allocate' or 'Sys.Audit' permissions on '/access', or 'User.Allocate' on /access/groups/<group>.",
+	description => "The returned list is restricted to groups where you have 'User.Modify', 'Sys.Audit'  or 'Group.Allocate' permissions on /access/groups/<group>.",
 	user => 'all',
     },
     parameters => {
@@ -41,12 +41,10 @@ __PACKAGE__->register_method ({
 	my $usercfg = cfs_read_file("user.cfg");
 	my $authuser = $rpcenv->get_user();
 
-	my $privs = [ 'User.Allocate', 'Sys.Audit' ];
-	my $allow = $rpcenv->check_any($authuser, "/access", $privs, 1);
-	my $allowed_groups = $rpcenv->filter_groups($authuser, $privs, 1);
- 
+	my $privs = [ 'User.Modify', 'Sys.Audit', 'Group.Allocate'];
+
 	foreach my $group (keys %{$usercfg->{groups}}) {
-	    next if !($allow || $allowed_groups->{$group});
+	    next if !$rpcenv->check_any($authuser, "/access/groups/$group", $privs, 1);
 	    my $data = $usercfg->{groups}->{$group};
 	    my $entry = { groupid => $group };
 	    $entry->{comment} = $data->{comment} if defined($data->{comment});
@@ -62,7 +60,7 @@ __PACKAGE__->register_method ({
     path => '', 
     method => 'POST',
     permissions => { 
-	check => ['perm', '/access', ['Sys.Modify']],
+	check => ['perm', '/access/groups', ['Group.Allocate']],
     },
     description => "Create new group.",
     parameters => {
@@ -103,7 +101,7 @@ __PACKAGE__->register_method ({
     path => '{groupid}', 
     method => 'PUT',
     permissions => { 
-	check => ['perm', '/access', ['Sys.Modify']],
+	check => ['perm', '/access/groups', ['Group.Allocate']],
     },
     description => "Update group data.",
     parameters => {
@@ -142,8 +140,8 @@ __PACKAGE__->register_method ({
     path => '{groupid}', 
     method => 'GET',
     permissions => { 
-	check => ['perm', '/access', ['Sys.Audit']],
-    },
+	check => ['perm', '/access/groups', ['Sys.Audit', 'Group.Allocate'], any => 1],
+   },
     description => "Get group configuration.",
     parameters => {
    	additionalProperties => 0,
@@ -191,7 +189,7 @@ __PACKAGE__->register_method ({
     path => '{groupid}', 
     method => 'DELETE',
     permissions => { 
-	check => ['perm', '/access', ['Sys.Modify']],
+	check => ['perm', '/access/groups', ['Group.Allocate']],
     },
     description => "Delete group.",
     parameters => {

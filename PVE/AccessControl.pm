@@ -557,7 +557,7 @@ my $privgroups = {
 	    'VM.PowerMgmt',
 	],
 	audit => [ 
-	    'VM.Audit' 
+	    'VM.Audit',
 	],
     },
     Sys => {
@@ -588,10 +588,13 @@ my $privgroups = {
 	],
     },
     User => {
-	root => [],
+	root => [
+	    'Realm.Allocate',
+	],
 	admin => [
 	    'User.Modify',
-	    'User.Allocate',
+	    'Group.Allocate', # edit/change group settings
+	    'Realm.AllocateUser', 
 	],
 	user => [],
 	audit => [],
