@@ -599,6 +599,14 @@ my $privgroups = {
 	user => [],
 	audit => [],
     },
+    Pool => {
+	root => [],
+	admin => [
+	    'Pool.Allocate', # create/delete pools
+	],
+	user => [],
+	audit => [],
+    },
 };
 
 my $valid_privs = {};
