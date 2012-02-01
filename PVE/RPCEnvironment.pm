@@ -236,6 +236,15 @@ sub check_any {
     raise_perm_exc("$path, " . join("|", @$privs)); 
 };
 
+sub check_full {
+    my ($self, $username, $path, $privs, $any, $noerr) = @_;
+    if ($any) {
+	return $self->check_any($username, $path, $privs, $noerr);
+    } else {
+	return $self->check($username, $path, $privs, $noerr);
+    }
+}
+
 sub check_user_enabled {
     my ($self, $user, $noerr) = @_;
     
@@ -268,14 +277,8 @@ sub filter_groups {
     my $groups = {};
     foreach my $group (keys %{$cfg->{groups}}) {
 	my $path = "/access/groups/$group";
-	if ($any) {
-	    if ($self->check_any($user, $path, $privs, 1)) {
-		$groups->{$group} = $cfg->{groups}->{$group};
-	    }
-	} else {
-	    if ($self->check($user, $path, $privs, 1)) {
-		$groups->{$group} = $cfg->{groups}->{$group};
-	    }
+	if ($self->check_full($user, $path, $privs, $any, 1)) {
+	    $groups->{$group} = $cfg->{groups}->{$group};
 	}
     }
 
@@ -340,13 +343,14 @@ sub exec_api2_perm_check {
 	my ($t, $tmplpath, $privs, %options) = @$check;
 	my $any = $options{any};
 	die "missing parameters" if !($tmplpath && $privs);
+	my $require_param = $options{require_param};
+	if ($require_param && !defined($param->{$require_param})) {
+	    return 0 if $noerr;
+	    raise_perm_exc();
+	}
 	my $path = PVE::Tools::template_replace($tmplpath, $param);
 	$path = PVE::AccessControl::normalize_path($path);
-	if ($any) {
-	    return $self->check_any($username, $path, $privs, $noerr);
-	} else {
-	    return $self->check($username, $path, $privs, $noerr);
-	}
+	return $self->check_full($username, $path, $privs, $any, $noerr);
     } elsif ($test eq 'userid-group') {
 	my $userid = $param->{userid};
 	my ($t, $privs, %options) = @$check;
@@ -381,8 +385,6 @@ sub exec_api2_perm_check {
 	} elsif ($subtest eq 'Realm.AllocateUser') {
 	    my $path =  "/access/realm/$realm";
 	    return $self->check($username, $path, ['Realm.AllocateUser'], $noerr);
-	    return 0 if $noerr;
-	    raise_perm_exc("$path, 'Realm.AllocateUser'");
 	} else {
 	    die "unknown userid-param test";
 	}
