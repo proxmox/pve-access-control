@@ -259,6 +259,41 @@ sub check_user_exist {
     return PVE::AccessControl::check_user_exist($cfg, $user, $noerr);
 }
 
+sub check_pool_exist {
+    my ($self, $pool, $noerr) = @_;
+
+    my $cfg = $self->{user_cfg};
+
+    return 1 if $cfg->{pools}->{$pool};
+
+    return undef if $noerr;
+
+    raise_perm_exc("pool '$pool' does not exist"); 
+}
+
+sub check_vm_perm {
+    my ($self, $user, $vmid, $pool, $privs, $any, $noerr) = @_;
+
+    my $cfg = $self->{user_cfg};
+   
+    if ($pool) {
+	return if $self->check_full($user, "/pool/$pool", $privs, $any, 1);
+    }
+    return $self->check_full($user, "/vms/$vmid", $privs, $any, $noerr);
+};
+
+sub check_storage_perm {
+    my ($self, $user, $vmid, $pool, $storeid, $privs, $any, $noerr) = @_;
+
+    my $cfg = $self->{user_cfg};
+   
+    if ($pool && $cfg->{pools}->{$pool} && 
+	$cfg->{pools}->{$pool}->{storage}->{$storeid}) {
+	return if $self->check_full($user, "/pool/$pool", $privs, $any, 1);
+    }
+    return $self->check_full($user, "/storage/$storeid", $privs, $any, $noerr);
+};
+
 sub is_group_member {
     my ($self, $group, $user) = @_;
 
