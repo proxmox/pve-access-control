@@ -64,6 +64,13 @@ group:
 	user_list: list of login names
 	comment: a more verbose description
 
+pool:
+
+	pool_name: the name of the pool
+	comment: a more verbose description
+	vm_list: list of VMs associated with the pool
+	storage_list: list of storage IDs associated with the pool
+
 privileges: 
 
 	defines rights required to execute actions or read
@@ -73,8 +80,20 @@ privileges:
 	VM.Migrate: migrate VM to alternate server on cluster
    	VM.PowerMgmt: power management (start, stop, reset, shutdown, ...)
 	VM.Console: console access to VM
+	VM.Monitor: access to VM monitor (kvm)
 	VM.Audit: view VM config
-	VM.Modify: modify VM config
+
+	VM.Config.XXX: modify VM config
+
+	  VM.Config.Disk: add/modify/delete Disks 
+	  VM.Config.CDROM: eject/change CDROM
+	  VM.Config.CPU: modify CPU settings
+	  VM.Config.Memory: modify Memory settings
+	  VM.Config.Network: add/modify/delete Network devices
+	  VM.Config.HWType: modify emulated HW type
+	  VM.Config.Options: modify any other VM configuration 
+
+	Pool.Allocate: create/remove/modify a pool.
 
 	Datastore.Allocate: create/remove/modify a data store.
 	Datastore.AllocateSpace: allocate space on a datastore
@@ -93,14 +112,12 @@ privileges:
 
 	VM.Create: create new VM to server inventory
 	VM.Remove: remove VM from inventory
-	VM.MemoryModify: modify memory associated with VM
 	VM.AddNewDisk: add new disk to VM
 	VM.AddExistingDisk: add an existing disk to VM
 	VM.DiskModify: modify disk space for associated VM
 	VM.UseRawDevice: associate a raw device with VM
 	VM.PowerOn: power on VM
 	VM.PowerOff: power off VM
-	VM.ConfigureCD: assign a device/image file to VM
 	VM.CpuModify: modify number of CPUs associated with VM
 	VM.CpuCyclesModify: modify CPU cycles for VM
 	VM.NetworkAdd: add network device to VM

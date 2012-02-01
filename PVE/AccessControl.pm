@@ -548,9 +548,16 @@ my $privgroups = {
     VM => {
 	root => [],
 	admin => [	     
-	    'VM.Modify', 
+	    'VM.Config.Disk', 
+	    'VM.Config.CDROM', 
+	    'VM.Config.CPU', 
+	    'VM.Config.Memory', 
+	    'VM.Config.Network', 
+	    'VM.Config.HWType',
+	    'VM.Config.Options', # covers all other things 
 	    'VM.Allocate', 
 	    'VM.Migrate',
+	    'VM.Monitor', 
 	],
 	user => [
 	    'VM.Console', 
