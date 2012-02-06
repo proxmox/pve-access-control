@@ -549,7 +549,7 @@ my $privgroups = {
 	root => [],
 	admin => [	     
 	    'VM.Config.Disk', 
-	    'VM.Config.CDROM', 
+	    'VM.Config.CDROM', # change CDROM media
 	    'VM.Config.CPU', 
 	    'VM.Config.Memory', 
 	    'VM.Config.Network', 
@@ -586,6 +586,7 @@ my $privgroups = {
 	root => [],
 	admin => [
 	    'Datastore.Allocate',
+	    'Datastore.AllocateTemplate',
 	],
 	user => [
 	    'Datastore.AllocateSpace',
