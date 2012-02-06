@@ -561,6 +561,7 @@ my $privgroups = {
 	],
 	user => [
 	    'VM.Console', 
+	    'VM.Backup',
 	    'VM.PowerMgmt',
 	],
 	audit => [ 

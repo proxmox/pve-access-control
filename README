@@ -81,6 +81,7 @@ privileges:
    	VM.PowerMgmt: power management (start, stop, reset, shutdown, ...)
 	VM.Console: console access to VM
 	VM.Monitor: access to VM monitor (kvm)
+	VM.Backup: backup/restore VMs
 	VM.Audit: view VM config
 
 	VM.Config.XXX: modify VM config
@@ -97,6 +98,7 @@ privileges:
 
 	Datastore.Allocate: create/remove/modify a data store.
 	Datastore.AllocateSpace: allocate space on a datastore
+	Datastore.AllocateTemplate: allocate/upload templates and iso images 
 	Datastore.Audit: view/browse a datastore
 
 	Permissions.Modify: modify access permissions
