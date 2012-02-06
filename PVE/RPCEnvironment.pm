@@ -282,6 +282,30 @@ sub check_vm_perm {
     return $self->check_full($user, "/vms/$vmid", $privs, $any, $noerr);
 };
 
+sub check_volume_access = sub {
+    my ($self, $user, $storecfg, $vmid, $volid) = @_;
+
+    # test if we have read access to volid
+
+    my $path;
+    if (my ($sid, $volname) = PVE::Storage::parse_volume_id($volid, 1)) {
+	my ($ownervm, $vtype);
+	($path, $ownervm, $vtype) = PVE::Storage::path($storecfg, $volid);
+	if ($vtype eq 'iso' || $vtype eq 'vztmpl') {
+	    # we simply allow access 
+	} elsif (!$ownervm || ($ownervm != $vmid)) {
+	    # allow if we are Datastore administrator
+	    $self->check($user, "/storage/$sid", ['Datastore.Allocate']);
+	}
+    } else {
+	die "Only root can pass arbitrary filesystem paths."
+	    if $user ne 'root@pam';
+
+	$path = abs_path($volid);
+    }
+    return $path;
+}
+
 sub is_group_member {
     my ($self, $group, $user) = @_;
 
