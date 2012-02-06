@@ -282,18 +282,6 @@ sub check_vm_perm {
     return $self->check_full($user, "/vms/$vmid", $privs, $any, $noerr);
 };
 
-sub check_storage_perm {
-    my ($self, $user, $vmid, $pool, $storeid, $privs, $any, $noerr) = @_;
-
-    my $cfg = $self->{user_cfg};
-   
-    if ($pool && $cfg->{pools}->{$pool} && 
-	$cfg->{pools}->{$pool}->{storage}->{$storeid}) {
-	return if $self->check_full($user, "/pool/$pool", $privs, $any, 1);
-    }
-    return $self->check_full($user, "/storage/$storeid", $privs, $any, $noerr);
-};
-
 sub is_group_member {
     my ($self, $group, $user) = @_;
 
