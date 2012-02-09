@@ -282,7 +282,7 @@ sub check_vm_perm {
     return $self->check_full($user, "/vms/$vmid", $privs, $any, $noerr);
 };
 
-sub check_volume_access = sub {
+sub check_volume_access {
     my ($self, $user, $storecfg, $vmid, $volid) = @_;
 
     # test if we have read access to volid
