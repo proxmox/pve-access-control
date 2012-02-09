@@ -260,6 +260,8 @@ __PACKAGE__->register_method ({
 	    } else {
 		# only root may change root password
 		raise_perm_exc() if $userid eq 'root@pam';
+		# do not allow to change system user passwords
+		raise_perm_exc() if $realm eq 'pam';
 	    }
 	}
 
