@@ -51,7 +51,7 @@ __PACKAGE__->register_method ({
 
 	my $usercfg = $rpcenv->{user_cfg};
 	if (!$usercfg || !$usercfg->{acl}) {
-	    return {};
+	    return $res;
 	}
 
 	my $audit = $rpcenv->check($authuser, '/access', ['Sys.Audit'], 1);
