@@ -1,3 +1,9 @@
+libpve-access-control (1.0-9) unstable; urgency=low
+
+  * fix bug in check_volume_access (fixes vzrestore)
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 13 Feb 2012 09:56:37 +0100
+
 libpve-access-control (1.0-8) unstable; urgency=low
 
   * fix return value for empty ACL list.

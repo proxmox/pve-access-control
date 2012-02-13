@@ -14,6 +14,7 @@ use PVE::INotify;
 use PVE::Cluster;
 use PVE::ProcFSTools;
 use PVE::AccessControl;
+use Cwd 'abs_path';
 use CGI;
 
 # we use this singleton class to pass RPC related environment values
@@ -288,7 +289,8 @@ sub check_volume_access {
     # test if we have read access to volid
 
     my $path;
-    if (my ($sid, $volname) = PVE::Storage::parse_volume_id($volid, 1)) {
+    my ($sid, $volname) = PVE::Storage::parse_volume_id($volid, 1);
+    if ($sid) {
 	my ($ownervm, $vtype);
 	($path, $ownervm, $vtype) = PVE::Storage::path($storecfg, $volid);
 	if ($vtype eq 'iso' || $vtype eq 'vztmpl') {
