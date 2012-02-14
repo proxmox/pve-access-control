@@ -72,8 +72,8 @@ my $cmddef = {
     rolemod => [ 'PVE::API2::Role', 'update_role', ['roleid'] ],
     roledel => [ 'PVE::API2::Role', 'delete_role', ['roleid'] ],
 
-    aclmod => [ 'PVE::API2::ACL', 'update_acl', ['path', 'roles'], { delete => 0 }],
-    acldel => [ 'PVE::API2::ACL', 'update_acl', ['path', 'roles'], { delete => 1 }],
+    aclmod => [ 'PVE::API2::ACL', 'update_acl', ['path'], { delete => 0 }],
+    acldel => [ 'PVE::API2::ACL', 'update_acl', ['path'], { delete => 1 }],
 };
 
 my $cmd = shift;
