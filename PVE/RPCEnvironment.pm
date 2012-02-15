@@ -423,7 +423,7 @@ sub exec_api2_perm_check {
 	}
 	return 1;
     } elsif ($test eq 'userid-param') {
-	my ($userid, undef, $realm) = verify_username($param->{userid});
+	my ($userid, undef, $realm) = PVE::AccessControl::verify_username($param->{userid});
 	return if !$self->check_user_exist($userid, $noerr);
 	my ($t, $subtest) = @$check;
 	die "missing parameters" if !$subtest;
