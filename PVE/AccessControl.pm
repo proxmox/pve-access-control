@@ -705,6 +705,7 @@ sub normalize_path {
 
 my $realm_regex = qr/[A-Za-z][A-Za-z0-9\.\-_]+/;
 
+PVE::JSONSchema::register_format('pve-realm', \&pve_verify_realm);
 sub pve_verify_realm {
     my ($realm, $noerr) = @_;
  
@@ -748,7 +749,7 @@ PVE::JSONSchema::register_standard_option('userid', {
 
 PVE::JSONSchema::register_standard_option('realm', {
     description => "Authentication domain ID",
-    type => 'string', format => 'pve-configid',
+    type => 'string', format => 'pve-realm',
     maxLength => 32,
 });
 
