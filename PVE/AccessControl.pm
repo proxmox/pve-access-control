@@ -549,7 +549,6 @@ my $privgroups = {
 	root => [],
 	admin => [	     
 	    'VM.Config.Disk', 
-	    'VM.Config.CDROM', # change CDROM media
 	    'VM.Config.CPU', 
 	    'VM.Config.Memory', 
 	    'VM.Config.Network', 
@@ -560,6 +559,7 @@ my $privgroups = {
 	    'VM.Monitor', 
 	],
 	user => [
+	    'VM.Config.CDROM', # change CDROM media
 	    'VM.Console', 
 	    'VM.Backup',
 	    'VM.PowerMgmt',
