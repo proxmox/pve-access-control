@@ -663,7 +663,7 @@ my $valid_attributes = {
     ldap => {
 	server1 => '[\w\d]+(.[\w\d]+)*',
 	server2 => '[\w\d]+(.[\w\d]+)*',
-	base_dn => '\w+=[\w\s]+(,\s*\w+=[\w\s]+)*',
+	base_dn => '\w+=[^,]+(,\s*\w+=[^,]+)*',
 	user_attr => '\S{2,}',
 	secure => '',
 	port => '\d+',
