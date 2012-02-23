@@ -60,6 +60,9 @@ my $cmddef = {
 		    my ($res) = @_;
 		    print "$res->{ticket}\n";
 		}],
+
+    passwd => [ 'PVE::API2::AccessControl', 'change_passsword', ['userid'] ],
+
     useradd => [ 'PVE::API2::User', 'create_user', ['userid'] ],
     usermod => [ 'PVE::API2::User', 'update_user', ['userid'] ],
     userdel => [ 'PVE::API2::User', 'delete_user', ['userid'] ],

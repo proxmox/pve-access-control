@@ -1,3 +1,9 @@
+libpve-access-control (1.0-16) unstable; urgency=low
+
+  * add 'pveum passwd' method
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 23 Feb 2012 12:05:25 +0100
+
 libpve-access-control (1.0-15) unstable; urgency=low
 
   * Add VM.Config.CDROM privilege to PVEVMUser rule
