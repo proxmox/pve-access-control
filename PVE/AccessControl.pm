@@ -463,14 +463,14 @@ sub encrypt_pw {
 sub store_pam_password {
     my ($userid, $password) = @_;
 
-    my $cmd = ['/usr/sbin/usermod'];
+    my $cmd = ['usermod'];
 
     my $epw = encrypt_pw($password);
     push @$cmd, '-p', $epw;
 
     push @$cmd, $userid;
 
-    run_command($cmd);
+    run_command($cmd, errmsg => 'change password failed');
 }
 
 sub domain_set_password {

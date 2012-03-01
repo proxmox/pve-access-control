@@ -1,3 +1,9 @@
+libpve-access-control (1.0-17) unstable; urgency=low
+
+  * set propagate flag by default
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 01 Mar 2012 12:40:19 +0100
+
 libpve-access-control (1.0-16) unstable; urgency=low
 
   * add 'pveum passwd' method
