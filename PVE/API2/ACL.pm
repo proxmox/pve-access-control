@@ -114,6 +114,7 @@ __PACKAGE__->register_method ({
 		description => "Allow to propagate (inherit) permissions.",
 		type => 'boolean', 
 		optional => 1,
+		default => 1,
 	    },
 	    delete => {
 		description => "Remove permissions (instead of adding it).",
@@ -140,7 +141,11 @@ __PACKAGE__->register_method ({
 			
 		my $cfg = cfs_read_file("user.cfg");
 
-		my $propagate = $param->{propagate} ? 1 : 0;
+		my $propagate = 1;
+		
+		if (defined($param->{propagate})) {
+		    $propagate = $param->{propagate} ? 1 : 0;
+		}
 
 		foreach my $role (split_list($param->{roles})) {
 		    die "role '$role' does not exist\n" 
