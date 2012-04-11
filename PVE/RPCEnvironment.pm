@@ -428,7 +428,7 @@ sub exec_api2_perm_check {
 	die "missing parameters" if !$subtest;
 	if ($subtest eq 'self') {
 	    return 0 if !$self->check_user_exist($userid, $noerr);
-	    return 1 if $username eq 'userid';
+	    return 1 if $username eq $userid;
 	    return 0 if $noerr;
 	    raise_perm_exc();
 	} elsif ($subtest eq 'Realm.AllocateUser') {

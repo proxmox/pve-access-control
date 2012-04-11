@@ -1,3 +1,9 @@
+libpve-access-control (1.0-18) unstable; urgency=low
+
+  * allow user to change his own password
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 11 Apr 2012 09:40:15 +0200
+
 libpve-access-control (1.0-17) unstable; urgency=low
 
   * set propagate flag by default
