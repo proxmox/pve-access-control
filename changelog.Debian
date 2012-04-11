@@ -1,6 +1,8 @@
 libpve-access-control (1.0-18) unstable; urgency=low
 
-  * allow user to change his own password
+  * fix bug #151: corretly parse username inside ticket
+  
+  * fix bug #152: allow user to change his own password
 
  -- Proxmox Support Team <support@proxmox.com>  Wed, 11 Apr 2012 09:40:15 +0200
 

@@ -156,14 +156,15 @@ sub verify_ticket {
 
 	my $rsa_pub = get_pubkey();
 	if ($rsa_pub->verify($plain, decode_base64($sig))) {
-	    if ($plain =~ m/^PVE:(([A-Za-z0-9\.\-_]+)(\@([A-Za-z0-9\.\-_]+))?):([A-Z0-9]{8})$/) {
+	    if ($plain =~ m/^PVE:(\S+):([A-Z0-9]{8})$/) {
 		my $username = $1;
-		my $timestamp = $5;
+		my $timestamp = $2;
 		my $ttime = hex($timestamp);
 
 		my $age = time() - $ttime;
 
-		if (($age > -300) && ($age < $ticket_lifetime)) {
+		if (verify_username($username, 1) &&
+		    ($age > -300) && ($age < $ticket_lifetime)) {
 		    return wantarray ? ($username, $age) : $username;
 		}
 	    }
