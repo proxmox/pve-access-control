@@ -131,6 +131,71 @@ my $create_ticket = sub {
     };
 };
 
+my $compute_api_permission = sub {
+    my ($rpcenv, $authuser) = @_;
+
+    my $usercfg = $rpcenv->{user_cfg};
+
+    my $nodelist = PVE::Cluster::get_nodelist();
+    my $vmlist = PVE::Cluster::get_vmlist() || {};
+    my $idlist = $vmlist->{ids} || {};
+
+    my $cfg = PVE::Storage::config();
+    my @sids =  PVE::Storage::storage_ids ($cfg);
+
+    my $res = {
+	vms => {},
+	storage => {},
+	access => {},
+	nodes => {},
+	dc => {},
+    };
+
+    foreach my $vmid (keys %$idlist, '__phantom__') {
+	my $perm = $rpcenv->permissions($authuser, "/vms/$vmid");
+	foreach my $priv (keys %$perm) {
+	    next if !($priv eq 'Permissions.Modify' ||$priv =~ m/^VM\./);
+	    $res->{vms}->{$priv} = 1;	
+	}
+    }
+
+    foreach my $storeid (@sids, '__phantom__') {
+	my $perm = $rpcenv->permissions($authuser, "/storage/$storeid");
+	foreach my $priv (keys %$perm) {
+	    next if !($priv eq 'Permissions.Modify' || $priv =~ m/^Datastore\./);
+	    $res->{storage}->{$priv} = 1;
+	}
+    }
+
+    foreach my $path (('/access/groups')) {
+	my $perm = $rpcenv->permissions($authuser, $path);
+	foreach my $priv (keys %$perm) {
+	    next if $priv !~ m/^(User|Group)\./;
+	    $res->{access}->{$priv} = 1;
+	}
+    }
+
+    foreach my $group (keys %{$usercfg->{users}->{$authuser}->{groups}}, '__phantom__') {
+	my $perm = $rpcenv->permissions($authuser, "/access/groups/$group");
+	if ($perm->{'User.Modify'}) {
+	    $res->{access}->{'User.Modify'} = 1;
+	}
+    }
+
+    foreach my $node (@$nodelist) {
+	my $perm = $rpcenv->permissions($authuser, "/nodes/$node");
+	foreach my $priv (keys %$perm) {
+	    next if $priv !~ m/^Sys\./;
+	    $res->{nodes}->{$priv} = 1;
+	}
+    }
+
+    my $perm = $rpcenv->permissions($authuser, "/");
+    $res->{dc}->{'Sys.Audit'} = 1 if $perm->{'Sys.Audit'};
+
+    return $res;
+};
+
 __PACKAGE__->register_method ({
     name => 'create_ticket', 
     path => 'ticket', 
@@ -206,6 +271,8 @@ __PACKAGE__->register_method ({
 	    syslog('err', "authentication failure; rhost=$clientip user=$username msg=$err");
 	    die $err;
 	}
+
+	$res->{cap} = &$compute_api_permission($rpcenv, $username);
 
 	PVE::Cluster::log_msg('info', 'root@pam', "successful auth for user '$username'");
 

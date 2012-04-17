@@ -1,3 +1,9 @@
+libpve-access-control (1.0-19) unstable; urgency=low
+
+  * return set of privileges on login - can be used to adopt GUI
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 17 Apr 2012 10:25:10 +0200
+
 libpve-access-control (1.0-18) unstable; urgency=low
 
   * fix bug #151: corretly parse username inside ticket
