@@ -732,9 +732,12 @@ sub verify_username {
 	return undef;
     }
 
-    # we only allow a limited set of characters (colon is not allowed,
-    # because we store usernames in colon separated lists)!
-    if ($username =~ m/^([^\s:]+)\@(${realm_regex})$/) {
+    # we only allow a limited set of characters
+    # colon is not allowed, because we store usernames in 
+    # colon separated lists)!
+    # slash is not allowed because it is used as pve API delimiter
+    # also see "man useradd" 
+    if ($username =~ m!^([^\s:/]+)\@(${realm_regex})$!) {
 	return wantarray ? ($username, $1, $2) : $username;
     }
 

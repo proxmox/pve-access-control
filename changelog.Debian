@@ -1,3 +1,15 @@
+libpve-access-control (1.0-21) unstable; urgency=low
+
+  * do not allow user names including slash
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 24 Apr 2012 10:07:47 +0200
+
+libpve-access-control (1.0-20) unstable; urgency=low
+
+  * add ability to fork cli workers in background
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 18 Apr 2012 08:28:20 +0200
+
 libpve-access-control (1.0-19) unstable; urgency=low
 
   * return set of privileges on login - can be used to adopt GUI
