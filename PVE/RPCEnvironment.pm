@@ -820,14 +820,14 @@ sub check_worker {
 # STDOUT,STDERR are redirected to the filename returned by upid_decode
 # NOTE: we simulate running in foreground if ($self->{type} eq 'cli')
 sub fork_worker {
-    my ($self, $dtype, $id, $user, $function) = @_;
+    my ($self, $dtype, $id, $user, $function, $background) = @_;
 
     $dtype = 'unknown' if !defined ($dtype);
     $id = '' if !defined ($id);
 
     $user = 'root@pve' if !defined ($user);
 
-    my $sync = $self->{type} eq 'cli' ? 1 : 0;
+    my $sync = ($self->{type} eq 'cli' && !$background) ? 1 : 0;
 
     local $SIG{INT} = 
 	local $SIG{QUIT} = 
