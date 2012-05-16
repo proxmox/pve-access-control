@@ -330,9 +330,13 @@ __PACKAGE__->register_method ({
 
 		my $usercfg = cfs_read_file("user.cfg");
 
-		delete ($usercfg->{users}->{$userid});
+		my $domain_cfg = cfs_read_file('domains.cfg');
+		if (my $cfg = $domain_cfg->{ids}->{$realm}) {
+		    my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
+		    $plugin->delete_user($cfg, $realm, $ruid);
+		}
 
-		PVE::AccessControl::delete_shadow_password($ruid) if $realm eq 'pve';
+		delete $usercfg->{users}->{$userid};
 
 		PVE::AccessControl::delete_user_group($userid, $usercfg);
 		PVE::AccessControl::delete_user_acl($userid, $usercfg);

@@ -1,3 +1,10 @@
+libpve-access-control (1.0-22) unstable; urgency=low
+
+  * new plugin architecture for Auth modules, minor API change for Auth
+    domains (new 'delete' parameter)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 16 May 2012 07:21:44 +0200
+
 libpve-access-control (1.0-21) unstable; urgency=low
 
   * do not allow user names including slash

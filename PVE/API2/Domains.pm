@@ -2,12 +2,14 @@ package PVE::API2::Domains;
 
 use strict;
 use warnings;
+use PVE::Tools qw(extract_param);
 use PVE::Cluster qw (cfs_read_file cfs_write_file);
 use PVE::AccessControl;
 use PVE::JSONSchema qw(get_standard_option);
 
 use PVE::SafeSyslog;
 use PVE::RESTHandler;
+use PVE::Auth::Plugin;
 
 my $domainconfigfile = "domains.cfg";
 
@@ -43,9 +45,10 @@ __PACKAGE__->register_method ({
 	my $res = [];
 
 	my $cfg = cfs_read_file($domainconfigfile);
- 
-	foreach my $realm (keys %$cfg) {
-	    my $d = $cfg->{$realm};
+	my $ids = $cfg->{ids};
+
+	foreach my $realm (keys %$ids) {
+	    my $d = $ids->{$realm};
 	    my $entry = { realm => $realm, type => $d->{type} };
 	    $entry->{comment} = $d->{comment} if $d->{comment};
 	    $entry->{default} = 1 if $d->{default};
@@ -64,101 +67,39 @@ __PACKAGE__->register_method ({
 	check => ['perm', '/access/realm', ['Realm.Allocate']],
     },
     description => "Add an authentication server.",
-    parameters => {
-   	additionalProperties => 0,
-	properties => {
-	    realm =>  get_standard_option('realm'),
-	    type => {
-		description => "Server type.",
-		type => 'string', 
-		enum => [ 'ad', 'ldap' ],
-	    },
-	    server1 => { 
-		description => "Server IP address (or DNS name)",		
-		type => 'string',
-	    },
-	    server2 => { 
-		description => "Fallback Server IP address (or DNS name)",
-		type => 'string',
-		optional => 1,
-	    },
-	    secure => { 
-		description => "Use secure LDAPS protocol.",
-		type => 'boolean', 
-		optional => 1,
-	    },
-	    default => { 
-		description => "Use this as default realm",
-		type => 'boolean', 
-		optional => 1,
-	    },
-	    comment => { 
-		type => 'string', 
-		optional => 1,
-	    },
-	    port => {
-		description => "Server port. Use '0' if you want to use default settings'",
-		type => 'integer',
-		minimum => 0,
-		maximum => 65535,
-		optional => 1,
-	    },
-	    domain => {
-		description => "AD domain name",
-		type => 'string',
-		optional => 1,
-	    },
-	    base_dn => {
-		description => "LDAP base domain name",
-		type => 'string',
-		optional => 1,
-	    },
-	    user_attr => {
-		description => "LDAP user attribute name",
-		type => 'string',
-		optional => 1,
-	    },
-	},
-    },
+    parameters => PVE::Auth::Plugin->createSchema(),
     returns => { type => 'null' },
     code => sub {
 	my ($param) = @_;
 
-	PVE::AccessControl::lock_domain_config(
+	PVE::Auth::Plugin::lock_domain_config(
 	    sub {
 			
 		my $cfg = cfs_read_file($domainconfigfile);
+		my $ids = $cfg->{ids};
 
-		my $realm = $param->{realm};
+		my $realm = extract_param($param, 'realm');
+		my $type = $param->{type};
 	
 		die "domain '$realm' already exists\n" 
-		    if $cfg->{$realm};
+		    if $ids->{$realm};
 
 		die "unable to use reserved name '$realm'\n"
 		    if ($realm eq 'pam' || $realm eq 'pve');
 
-		if (defined($param->{secure})) {
-		    $cfg->{$realm}->{secure} = $param->{secure} ? 1 : 0;
-		}
+		die "unable to create builtin type '$type'\n"
+		    if ($type eq 'pam' || $type eq 'pve');
 
-		if ($param->{default}) {
-		    foreach my $r (keys %$cfg) {
-			delete $cfg->{$r}->{default};
+		my $plugin = PVE::Auth::Plugin->lookup($type);
+		my $config = $plugin->check_config($realm, $param, 1, 1);
+
+		if ($config->{default}) {
+		    foreach my $r (keys %$ids) {
+			delete $ids->{$r}->{default};
 		    }
 		}
 
-		foreach my $p (keys %$param) {
-		    next if $p eq 'realm';
-		    $cfg->{$realm}->{$p} = $param->{$p} if $param->{$p};
-		}
-
-		# port 0 ==> use default
-		# server2 == '' ===> delete server2
-		for my $p (qw(port server2)) { 
-		    if (defined($param->{$p}) && !$param->{$p}) { 
-			delete $cfg->{$realm}->{$p};
-		    }
-		}
+		$ids->{$realm} = $config;
 
 		cfs_write_file($domainconfigfile, $cfg);
 	    }, "add auth server failed");
@@ -175,92 +116,46 @@ __PACKAGE__->register_method ({
     },
     description => "Update authentication server settings.",
     protected => 1,
-    parameters => {
-   	additionalProperties => 0,
-	properties => {
-	    realm =>  get_standard_option('realm'),
-	    server1 => { 
-		description => "Server IP address (or DNS name)",		
-		type => 'string',
-		optional => 1,
-	    },
-	    server2 => { 
-		description => "Fallback Server IP address (or DNS name)",
-		type => 'string',
-		optional => 1,
-	    },
-	    secure => { 
-		description => "Use secure LDAPS protocol.",
-		type => 'boolean', 
-		optional => 1,
-	    },
-	    default => { 
-		description => "Use this as default realm",
-		type => 'boolean', 
-		optional => 1,
-	    },
-	    comment => { 
-		type => 'string', 
-		optional => 1,
-	    },
-	    port => {
-		description => "Server port. Use '0' if you want to use default settings'",
-		type => 'integer',
-		minimum => 0,
-		maximum => 65535,
-		optional => 1,
-	    },
-	    domain => {
-		description => "AD domain name",
-		type => 'string',
-		optional => 1,
-	    },
-	    base_dn => {
-		description => "LDAP base domain name",
-		type => 'string',
-		optional => 1,
-	    },
-	    user_attr => {
-		description => "LDAP user attribute name",
-		type => 'string',
-		optional => 1,
-	    },
-	},
-    },
+    parameters => PVE::Auth::Plugin->updateSchema(),
     returns => { type => 'null' },
     code => sub {
 	my ($param) = @_;
 
-	PVE::AccessControl::lock_domain_config(
+	PVE::Auth::Plugin::lock_domain_config(
 	    sub {
 			
 		my $cfg = cfs_read_file($domainconfigfile);
+		my $ids = $cfg->{ids};
 
-		my $realm = $param->{realm};
-		delete $param->{realm};
+		my $digest = extract_param($param, 'digest');
+		PVE::SectionConfig::assert_if_modified($cfg, $digest);
+
+		my $realm = extract_param($param, 'realm');
 
 		die "unable to modify bultin domain '$realm'\n"
 		    if ($realm eq 'pam' || $realm eq 'pve');
 
 		die "domain '$realm' does not exist\n" 
-		    if !$cfg->{$realm};
+		    if !$ids->{$realm};
 
-		if (defined($param->{secure})) {
-		    $cfg->{$realm}->{secure} = $param->{secure} ? 1 : 0;
+		my $delete_str = extract_param($param, 'delete');
+		die "no options specified\n" if !$delete_str && !scalar(keys %$param);
+
+		foreach my $opt (PVE::Tools::split_list($delete_str)) {
+		    delete $ids->{$realm}->{$opt};
 		}
+	
+		my $plugin = PVE::Auth::Plugin->lookup($ids->{$realm}->{type});
+		my $config = $plugin->check_config($realm, $param, 0, 1);
 
-		if ($param->{default}) {
-		    foreach my $r (keys %$cfg) {
-			delete $cfg->{$r}->{default};
+		if ($config->{default}) {
+		    foreach my $r (keys %$ids) {
+			delete $ids->{$r}->{default};
 		    }
 		}
 
-		foreach my $p (keys %$param) {
-		    if ($param->{$p}) {
-			$cfg->{$realm}->{$p} = $param->{$p};
-		    } else {
-			delete $cfg->{$realm}->{$p};
-		    }
+		foreach my $p (keys %$config) {
+		    $ids->{$realm}->{$p} = $config->{$p};
 		}
 
 		cfs_write_file($domainconfigfile, $cfg);
@@ -292,8 +187,10 @@ __PACKAGE__->register_method ({
 
 	my $realm = $param->{realm};
 	
-	my $data = $cfg->{$realm};
+	my $data = $cfg->{ids}->{$realm};
 	die "domain '$realm' does not exist\n" if !$data;
+
+	$data->{digest} = $cfg->{digest};
 
 	return $data;
     }});
@@ -318,16 +215,17 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::AccessControl::lock_user_config(
+	PVE::Auth::Plugin::lock_domain_config(
 	    sub {
 
 		my $cfg = cfs_read_file($domainconfigfile);
+		my $ids = $cfg->{ids};
 
 		my $realm = $param->{realm};
 	
-		die "domain '$realm' does not exist\n" if !$cfg->{$realm};
+		die "domain '$realm' does not exist\n" if !$ids->{$realm};
 
-		delete $cfg->{$realm};
+		delete $ids->{$realm};
 
 		cfs_write_file($domainconfigfile, $cfg);
 	    }, "delete auth server failed");
