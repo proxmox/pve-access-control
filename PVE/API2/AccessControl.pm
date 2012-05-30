@@ -151,12 +151,22 @@ my $compute_api_permission = sub {
 	dc => {},
     };
 
-    foreach my $vmid (keys %$idlist, '__phantom__') {
-	my $perm = $rpcenv->permissions($authuser, "/vms/$vmid");
+    my $extract_vm_caps = sub {
+	my ($path) = @_;
+	
+	my $perm = $rpcenv->permissions($authuser, $path);
 	foreach my $priv (keys %$perm) {
-	    next if !($priv eq 'Permissions.Modify' ||$priv =~ m/^VM\./);
+	    next if !($priv eq 'Permissions.Modify' || $priv =~ m/^VM\./);
 	    $res->{vms}->{$priv} = 1;	
 	}
+    };
+
+    foreach my $pool (keys %{$usercfg->{pools}}) {
+	&$extract_vm_caps("/pool/$pool");
+    }
+
+    foreach my $vmid (keys %$idlist, '__phantom__') {
+	&$extract_vm_caps("/vms/$vmid");
     }
 
     foreach my $storeid (@sids, '__phantom__') {
