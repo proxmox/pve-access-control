@@ -304,6 +304,9 @@ sub check_volume_access {
 	    if $user ne 'root@pam';
 
 	$path = abs_path($volid);
+	if ($path =~ m|^(/.+)$|) {
+	    $path = $1; # untaint any path
+	}
     }
     return $path;
 }
