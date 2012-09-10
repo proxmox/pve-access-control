@@ -1,3 +1,9 @@
+libpve-access-control (1.0-25) unstable; urgency=low
+
+  * add VM.Snapshot permission 
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 10 Sep 2012 09:23:32 +0200
+
 libpve-access-control (1.0-24) unstable; urgency=low
 
   * untaint path (allow root to restore arbitrary paths)
