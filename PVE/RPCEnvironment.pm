@@ -295,7 +295,12 @@ sub check_volume_access {
 	($path, $ownervm, $vtype) = PVE::Storage::path($storecfg, $volid);
 	if ($vtype eq 'iso' || $vtype eq 'vztmpl') {
 	    # we simply allow access 
-	} elsif (!$ownervm || ($ownervm != $vmid)) {
+	} elsif (defined($ownervm) && defined($vmid) && ($ownervm == $vmid)) {
+	    # we are owner - allow access 
+	} elsif ($vtype eq 'backup' && $ownervm) {
+	    $self->check($user, "/storage/$sid", ['Datastore.AllocateSpace']);
+	    $self->check($user, "/vms/$ownervm", ['VM.Backup']);
+	} else {
 	    # allow if we are Datastore administrator
 	    $self->check($user, "/storage/$sid", ['Datastore.Allocate']);
 	}
