@@ -1,3 +1,9 @@
+libpve-access-control (3.0-1) unstable; urgency=low
+
+  * bump version for wheezy release
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 15 Mar 2013 08:07:06 +0100
+
 libpve-access-control (1.0-26) unstable; urgency=low
 
   * check_volume_access: fix access permissions for backup files
