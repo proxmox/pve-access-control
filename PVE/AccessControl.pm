@@ -364,6 +364,7 @@ my $privgroups = {
 	    'VM.Config.HWType',
 	    'VM.Config.Options', # covers all other things 
 	    'VM.Allocate', 
+	    'VM.Copy', 
 	    'VM.Migrate',
 	    'VM.Monitor', 
 	    'VM.Snapshot', 
@@ -457,6 +458,8 @@ sub create_roles {
 	    $special_roles->{"PVEAuditor"}->{$p} = 1;
 	}
     }
+
+    $special_roles->{"PVETemplateUser"} = { 'VM.Copy' => 1, 'VM.Audit' => 1 };
 };
 
 create_roles();
