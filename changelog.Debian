@@ -1,3 +1,9 @@
+libpve-access-control (3.0-3) unstable; urgency=low
+
+  * Add new role PVETemplateUser (and VM.Copy priviledge)
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 29 Apr 2013 11:42:15 +0200
+
 libpve-access-control (3.0-2) unstable; urgency=low
 
   * remove CGI.pm related code (pveproxy does not need that)
