@@ -1,6 +1,6 @@
 libpve-access-control (3.0-3) unstable; urgency=low
 
-  * Add new role PVETemplateUser (and VM.Copy priviledge)
+  * Add new role PVETemplateUser (and VM.Clone priviledge)
 
  -- Proxmox Support Team <support@proxmox.com>  Mon, 29 Apr 2013 11:42:15 +0200
 

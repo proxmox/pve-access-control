@@ -82,7 +82,7 @@ privileges:
 	VM.Console: console access to VM
 	VM.Monitor: access to VM monitor (kvm)
 	VM.Backup: backup/restore VMs
-	VM.Copy: Copy/Clone VM or VM template
+	VM.Clone: Clone VM or VM template
 	VM.Audit: view VM config
 
 	VM.Config.XXX: modify VM config
