@@ -1,3 +1,9 @@
+libpve-access-control (3.0-4) unstable; urgency=low
+
+  * moved add_vm_to_pool/remove_vm_from_pool from qemu-server
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 14 May 2013 11:56:54 +0200
+
 libpve-access-control (3.0-3) unstable; urgency=low
 
   * Add new role PVETemplateUser (and VM.Clone priviledge)
