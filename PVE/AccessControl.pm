@@ -959,4 +959,36 @@ sub check_permissions {
     return 1;
 }
 
+sub add_vm_to_pool {
+    my ($vmid, $pool) = @_;
+
+    my $addVMtoPoolFn = sub {
+	my $usercfg = cfs_read_file("user.cfg");
+	if (my $data = $usercfg->{pools}->{$pool}) {
+	    $data->{vms}->{$vmid} = 1;
+	    $usercfg->{vms}->{$vmid} = $pool;
+	    cfs_write_file("user.cfg", $usercfg);
+	}
+    };
+
+    lock_user_config($addVMtoPoolFn, "can't add VM $vmid to pool '$pool'");
+}
+
+sub remove_vm_from_pool {
+    my ($vmid) = @_;
+    
+    my $delVMfromPoolFn = sub {
+	my $usercfg = cfs_read_file("user.cfg");
+	if (my $pool = $usercfg->{vms}->{$vmid}) {
+	    if (my $data = $usercfg->{pools}->{$pool}) {
+		delete $data->{vms}->{$vmid};
+		delete $usercfg->{vms}->{$vmid};
+		cfs_write_file("user.cfg", $usercfg);
+	    }
+	}
+    };
+
+    lock_user_config($delVMfromPoolFn, "pool cleanup for VM $vmid failed");
+}
+
 1;
