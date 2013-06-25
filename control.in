@@ -3,7 +3,7 @@ Version: @@VERSION@@-@@PKGRELEASE@@
 Section: perl
 Priority: optional
 Architecture: @@ARCH@@
-Depends: libc6 (>= 2.3), perl (>= 5.6.0-16), libcrypt-openssl-rsa-perl, libcrypt-openssl-random-perl, libjson-xs-perl, libjson-perl, libterm-readline-gnu-perl,libnet-ldap-perl, libpve-common-perl, pve-cluster, libauthen-pam-perl 
+Depends: libc6 (>= 2.3), perl (>= 5.6.0-16), libcrypt-openssl-rsa-perl, libcrypt-openssl-random-perl, libjson-xs-perl, libjson-perl, libterm-readline-gnu-perl,libnet-ldap-perl, libpve-common-perl, pve-cluster, libauthen-pam-perl , libmime-base32-perl
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Description: Proxmox VE access control library
  This package contains the role based user management and access
