@@ -5,7 +5,6 @@ use Encode;
 use Crypt::OpenSSL::Random;
 use Crypt::OpenSSL::RSA;
 use MIME::Base64;
-use MIME::Base32 qw( RFC );
 use Digest::SHA;
 use PVE::Tools qw(run_command lock_file file_get_contents split_list safe_print);
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_write_file cfs_lock_file);
@@ -228,7 +227,8 @@ sub assemble_spice_ticket {
     my $full = "$plain:$path";
 
     my $ticket = $plain . "::" . encode_base64($rsa_priv->sign($full), '');
-    return MIME::Base32::encode($ticket."::".$full);
+
+    return $ticket;
 }
 
 sub check_user_exist {
