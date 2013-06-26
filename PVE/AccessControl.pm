@@ -214,21 +214,62 @@ sub verify_vnc_ticket {
 }
 
 sub assemble_spice_ticket {
-    my ($username, $path) = @_;
+    my ($username, $vmid, $node) = @_;
 
     my $rsa_priv = get_privkey();
 
-    my $timestamp = sprintf("%08X", time());
+    my $timestamp = sprintf("%08x", time());
 
-    my $plain = "PVESPICE:$timestamp";
+    my $randomstr = "PVESPICE:$timestamp:$vmid:$node:" . rand(10);
 
-    $path = normalize_path($path);
+    # this should be uses as one-time password
+    # max length is 60 chars (spice limit)
+    # we pass this to qemu set_pasword and limit lifetime there
+    # keep this secret
+    my $ticket = Digest::SHA::sha1_hex($rsa_priv->sign($randomstr));
 
-    my $full = "$plain:$path";
+    # Note: spice proxy connects with HTTP, so $proxyticket is exposed to public
+    # we use a signature/timestamp to make sure nobody can fake such ticket
+    # an attacker can use this $proxyticket, but he will fail because $ticket is
+    # private.
+    # The proxy need to be able to extract/verify the ticket
+    # Note: data needs to be lower case only, because virt-viewer needs that
+    my $plain = "pvespiceproxy:$timestamp:$vmid:$node";
+    my $sig =  unpack("H*", $rsa_priv->sign($plain));
 
-    my $ticket = $plain . "::" . encode_base64($rsa_priv->sign($full), '');
+    my $proxyticket = $plain . "::" . $sig;
 
-    return $ticket;
+    return ($ticket, $proxyticket);
+}
+
+sub verify_spice_connect_url {
+    my ($connect_str) = @_;
+
+    # Note: we pass the spice ticket as 'host', so the
+    # spice viewer connects with "$ticket:$port"
+
+    return undef if !$connect_str;
+
+    if ($connect_str =~m/^pvespiceproxy:([a-z0-9]{8}):(\d+):(\S+)::([a-z0-9]{512}):(\d+)$/) {
+	my ($timestamp, $vmid, $node, $hexsig, $port) = ($1, $2, $3, $4, $5, $6);
+	my $ttime = hex($timestamp);
+	my $age = time() - $ttime;
+
+	# use very limited lifetime - is this enough?
+	return undef if !(($age > -20) && ($age < 40));
+
+	my $sig = pack("H*", $hexsig);
+
+	my $rsa_pub = get_pubkey();
+
+	my $plain = "pvespiceproxy:$timestamp:$vmid:$node";
+
+	if ($rsa_pub->verify($plain, $sig)) {
+	    return ($vmid, $node, $port);
+	} 
+    }
+
+    return undef;
 }
 
 sub check_user_exist {
