@@ -234,8 +234,15 @@ sub assemble_spice_ticket {
     # private.
     # The proxy need to be able to extract/verify the ticket
     # Note: data needs to be lower case only, because virt-viewer needs that
+    # Note: RSA signature are too long (>=256 charaters) and makes problems with remote-viewer
+
+    my $secret = &$get_csrfr_secret();
     my $plain = "pvespiceproxy:$timestamp:$vmid:$node";
-    my $sig =  unpack("H*", $rsa_priv->sign($plain));
+
+    # produces 40 characters
+    my $sig = unpack("H*", Digest::SHA::sha1($plain, &$get_csrfr_secret()));
+
+    #my $sig =  unpack("H*", $rsa_priv->sign($plain)); # this produce too long strings (512)
 
     my $proxyticket = $plain . "::" . $sig;
 
@@ -250,7 +257,7 @@ sub verify_spice_connect_url {
 
     return undef if !$connect_str;
 
-    if ($connect_str =~m/^pvespiceproxy:([a-z0-9]{8}):(\d+):(\S+)::([a-z0-9]{512}):(\d+)$/) {
+    if ($connect_str =~m/^pvespiceproxy:([a-z0-9]{8}):(\d+):(\S+)::([a-z0-9]{40}):(\d+)$/) {
 	my ($timestamp, $vmid, $node, $hexsig, $port) = ($1, $2, $3, $4, $5, $6);
 	my $ttime = hex($timestamp);
 	my $age = time() - $ttime;
@@ -258,13 +265,10 @@ sub verify_spice_connect_url {
 	# use very limited lifetime - is this enough?
 	return undef if !(($age > -20) && ($age < 40));
 
-	my $sig = pack("H*", $hexsig);
-
-	my $rsa_pub = get_pubkey();
-
 	my $plain = "pvespiceproxy:$timestamp:$vmid:$node";
+	my $sig = unpack("H*", Digest::SHA::sha1($plain, &$get_csrfr_secret()));
 
-	if ($rsa_pub->verify($plain, $sig)) {
+	if ($sig eq $hexsig) {
 	    return ($vmid, $node, $port);
 	} 
     }
