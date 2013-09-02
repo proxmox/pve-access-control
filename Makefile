@@ -15,6 +15,8 @@ MAN1DIR=${MANDIR}/man1/
 export PERLDIR=${PREFIX}/share/perl5
 
 ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
+GITVERSION:=$(shell cat .git/refs/heads/master)
+
 DEB=${PACKAGE}_${VERSION}-${PKGREL}_${ARCH}.deb
 
 all: ${DEB}
@@ -51,6 +53,7 @@ deb ${DEB}:
 	make DESTDIR=`pwd`/build install
 	install -d -m 0755 build/DEBIAN
 	sed -e s/@@VERSION@@/${VERSION}/ -e s/@@PKGRELEASE@@/${PKGREL}/ -e s/@@ARCH@@/${ARCH}/ <control.in >build/DEBIAN/control
+	echo "git clone git://git.proxmox.com/git/pve-access-control.git\\ngit checkout ${GITVERSION}" >  build/${DOCDIR}/SOURCE
 	install -D -m 0644 copyright build/${DOCDIR}/copyright
 	install -m 0644 changelog.Debian build/${DOCDIR}/
 	gzip -9 build/${DOCDIR}/changelog.Debian
