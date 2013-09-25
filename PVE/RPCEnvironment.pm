@@ -290,8 +290,7 @@ sub check_volume_access {
     my $path;
     my ($sid, $volname) = PVE::Storage::parse_volume_id($volid, 1);
     if ($sid) {
-	my ($ownervm, $vtype);
-	($path, $ownervm, $vtype) = PVE::Storage::path($storecfg, $volid);
+	my ($vtype, undef, $ownervm) = PVE::Storage::parse_volname($storecfg, $volid);
 	if ($vtype eq 'iso' || $vtype eq 'vztmpl') {
 	    # we simply allow access 
 	} elsif (defined($ownervm) && defined($vmid) && ($ownervm == $vmid)) {
