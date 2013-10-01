@@ -1,6 +1,8 @@
 package PVE::Auth::PAM;
 
 use strict;
+use warnings;
+
 use PVE::Tools qw(run_command);
 use PVE::Auth::Plugin;
 use Authen::PAM qw(:constants);

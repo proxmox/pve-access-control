@@ -1,6 +1,8 @@
 package PVE::Auth::LDAP;
 
 use strict;
+use warnings;
+
 use PVE::Auth::Plugin;
 use Net::LDAP;
 use base qw(PVE::Auth::Plugin);

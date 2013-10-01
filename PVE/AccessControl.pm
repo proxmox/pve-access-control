@@ -1,6 +1,7 @@
 package PVE::AccessControl;
 
 use strict;
+use warnings;
 use Encode;
 use Crypt::OpenSSL::Random;
 use Crypt::OpenSSL::RSA;

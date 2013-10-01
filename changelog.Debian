@@ -2,6 +2,8 @@ libpve-access-control (3.0-7) unstable; urgency=low
 
   * check_volume_access : use parse_volname instead of path, and remove 
     path related code.
+  
+  * use warnings instead of global -w flag.
 
  -- Proxmox Support Team <support@proxmox.com>  Tue, 01 Oct 2013 12:35:53 +0200
 

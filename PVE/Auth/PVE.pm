@@ -1,6 +1,8 @@
 package PVE::Auth::PVE;
 
 use strict;
+use warnings;
+
 use PVE::Auth::Plugin;
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_write_file cfs_lock_file);
 
