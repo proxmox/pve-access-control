@@ -14,7 +14,6 @@ use PVE::INotify;
 use PVE::Cluster;
 use PVE::ProcFSTools;
 use PVE::AccessControl;
-use Cwd 'abs_path';
 
 # we use this singleton class to pass RPC related environment values
 
@@ -287,7 +286,6 @@ sub check_volume_access {
 
     # test if we have read access to volid
 
-    my $path;
     my ($sid, $volname) = PVE::Storage::parse_volume_id($volid, 1);
     if ($sid) {
 	my ($vtype, undef, $ownervm) = PVE::Storage::parse_volname($storecfg, $volid);
@@ -305,13 +303,9 @@ sub check_volume_access {
     } else {
 	die "Only root can pass arbitrary filesystem paths."
 	    if $user ne 'root@pam';
-
-	$path = abs_path($volid);
-	if ($path =~ m|^(/.+)$|) {
-	    $path = $1; # untaint any path
-	}
     }
-    return $path;
+
+    return undef;
 }
 
 sub is_group_member {
