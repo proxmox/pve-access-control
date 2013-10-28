@@ -238,7 +238,7 @@ sub assemble_spice_ticket {
     # Note: RSA signature are too long (>=256 charaters) and makes problems with remote-viewer
 
     my $secret = &$get_csrfr_secret();
-    my $plain = "pvespiceproxy:$timestamp:$vmid:$node";
+    my $plain = "pvespiceproxy:$timestamp:$vmid:" . lc($node);
 
     # produces 40 characters
     my $sig = unpack("H*", Digest::SHA::sha1($plain, &$get_csrfr_secret()));
