@@ -1,3 +1,9 @@
+libpve-access-control (3.0-8) unstable; urgency=low
+
+  * spice: use lowercase hostname in ticktet signature
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 28 Oct 2013 08:11:57 +0100
+
 libpve-access-control (3.0-7) unstable; urgency=low
 
   * check_volume_access : use parse_volname instead of path, and remove 
