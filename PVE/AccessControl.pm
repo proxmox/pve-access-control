@@ -306,6 +306,7 @@ sub check_user_enabled {
 }
 
 # password should be utf8 encoded
+# Note: some pluging delay/sleep if auth fails
 sub authenticate_user {
     my ($username, $password) = @_;
 
@@ -317,32 +318,19 @@ sub authenticate_user {
 
     my $usercfg = cfs_read_file('user.cfg');
 
-    eval { check_user_enabled($usercfg, $username); };
-    if (my $err = $@) {
-	sleep(2);
-	die $err;
-    }
+    check_user_enabled($usercfg, $username);
 
     my $ctime = time();
     my $expire = $usercfg->{users}->{$username}->{expire};
 
-    if ($expire && ($expire < $ctime)) {
-	sleep(2);
-	die "account expired\n"
-    }
+    die "account expired\n" if $expire && ($expire < $ctime);
 
     my $domain_cfg = cfs_read_file('domains.cfg');
 
-    eval {
-	my $cfg = $domain_cfg->{ids}->{$realm};
-	die "auth domain '$realm' does not exists\n" if !$cfg;
-	my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
-	$plugin->authenticate_user($cfg, $realm, $ruid, $password);
-    };
-    if (my $err = $@) {
-	sleep(2); # timeout after failed auth
-	die $err;
-    }
+    my $cfg = $domain_cfg->{ids}->{$realm};
+    die "auth domain '$realm' does not exists\n" if !$cfg;
+    my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
+    $plugin->authenticate_user($cfg, $realm, $ruid, $password);
 
     return $username;
 }
