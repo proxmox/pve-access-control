@@ -2,7 +2,6 @@ package PVE::API2::AccessControl;
 
 use strict;
 use warnings;
-use Time::HiRes qw(usleep gettimeofday tv_interval);
 
 use PVE::Exception qw(raise raise_perm_exc);
 use PVE::SafeSyslog;
@@ -265,9 +264,6 @@ __PACKAGE__->register_method ({
 	my $rpcenv = PVE::RPCEnvironment::get();
 
 	my $res;
-
-	my $starttime = [gettimeofday];
-
 	eval {
 	    # test if user exists and is enabled
 	    $rpcenv->check_user_enabled($username);
@@ -283,12 +279,7 @@ __PACKAGE__->register_method ({
 	    my $clientip = $rpcenv->get_client_ip() || '';
 	    syslog('err', "authentication failure; rhost=$clientip user=$username msg=$err");
 	    # do not return any info to prevent user enumeration attacks
-	    # always try to delay exactly 3 seconds to prevent timing attacks
-	    my $elapsed;
-	    while (($elapsed = tv_interval($starttime)) < 3) {
-		usleep(int((3 - $elapsed)*1000000));
-	    }
-	    die "authentication failure\n"; 
+	    die PVE::Exception->new("authentication failure\n", code => 401);
 	}
 
 	$res->{cap} = &$compute_api_permission($rpcenv, $username);
