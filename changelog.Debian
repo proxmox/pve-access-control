@@ -1,3 +1,9 @@
+libpve-access-control (3.0-9) unstable; urgency=low
+
+  * prevent user enumeration attacks
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 18 Nov 2013 09:06:38 +0100
+
 libpve-access-control (3.0-8) unstable; urgency=low
 
   * spice: use lowercase hostname in ticktet signature
