@@ -1,6 +1,8 @@
 libpve-access-control (3.0-9) unstable; urgency=low
 
   * prevent user enumeration attacks
+  
+  * allow dots in access paths
 
  -- Proxmox Support Team <support@proxmox.com>  Mon, 18 Nov 2013 09:06:38 +0100
 

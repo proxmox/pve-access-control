@@ -543,7 +543,7 @@ sub normalize_path {
 
     $path = "/$path" if $path !~ m|^/|;
 
-    return undef if $path !~ m|^[[:alnum:]\-\_\/]+$|;
+    return undef if $path !~ m|^[[:alnum:]\.\-\_\/]+$|;
 
     return $path;
 } 
