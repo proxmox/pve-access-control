@@ -5,6 +5,7 @@ use warnings;
 use Encode;
 use Crypt::OpenSSL::Random;
 use Crypt::OpenSSL::RSA;
+use Net::SSLeay;
 use MIME::Base64;
 use Digest::SHA;
 use PVE::Tools qw(run_command lock_file file_get_contents split_list safe_print);
@@ -275,6 +276,57 @@ sub verify_spice_connect_url {
     }
 
     return undef;
+}
+
+sub read_x509_subject_spice {
+    my ($filename) = @_;
+
+    # read x509 subject
+    my $bio = Net::SSLeay::BIO_new_file($filename, 'r');
+    my $x509 = Net::SSLeay::PEM_read_bio_X509($bio);
+    Net::SSLeay::BIO_free($bio);
+    my $nameobj = Net::SSLeay::X509_get_subject_name($x509);
+    my $subject = Net::SSLeay::X509_NAME_oneline($nameobj);
+    Net::SSLeay::X509_free($x509);
+  
+    # remote-viewer wants comma as seperator (not '/')
+    $subject =~ s!^/!!;
+    $subject =~ s!/(\w+=)!,$1!g;
+
+    return $subject;
+}
+
+# helper to generate SPICE remote-viewer configuration
+sub remote_viewer_config {
+    my ($authuser, $vmid, $node, $proxy, $title, $port) = @_;
+
+    if (!$proxy) {
+	my $host = `hostname -f` || PVE::INotify::nodename();
+	chomp $host;
+	$proxy = $host;
+    }
+
+    my ($ticket, $proxyticket) = assemble_spice_ticket($authuser, $vmid, $node);
+
+    my $filename = "/etc/pve/local/pve-ssl.pem";
+    my $subject = read_x509_subject_spice($filename);
+
+    my $cacert = PVE::Tools::file_get_contents("/etc/pve/pve-root-ca.pem", 8192);
+    $cacert =~ s/\n/\\n/g;
+
+    my $config = {
+	type => 'spice',
+	title => $title,
+	host => $proxyticket, # this break tls hostname verification, so we need to use 'host-subject'
+	proxy => "http://$proxy:3128",
+	'tls-port' => $port,
+	'host-subject' => $subject,
+	ca => $cacert,
+	password => $ticket,
+	'delete-this-file' => 1,
+    };
+
+    return ($ticket, $proxyticket, $config);
 }
 
 sub check_user_exist {
