@@ -313,8 +313,11 @@ sub remote_viewer_config {
 
     my $cacert = PVE::Tools::file_get_contents("/etc/pve/pve-root-ca.pem", 8192);
     $cacert =~ s/\n/\\n/g;
-
+    
     my $config = {
+    'secure-attention' => "Ctrl+Alt+Ins",
+    'toggle-fullscreen' => "Shift+F11",
+    'release-cursor' => "Ctrl+Alt+R",
 	type => 'spice',
 	title => $title,
 	host => $proxyticket, # this break tls hostname verification, so we need to use 'host-subject'
