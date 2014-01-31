@@ -1,3 +1,9 @@
+libpve-access-control (3.0-11) unstable; urgency=low
+
+  * Sets common hot keys for spice client
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 31 Jan 2014 10:24:28 +0100
+
 libpve-access-control (3.0-10) unstable; urgency=low
 
   * implement helper to generate SPICE remote-viewer configuration
