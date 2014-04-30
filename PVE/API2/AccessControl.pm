@@ -207,6 +207,18 @@ my $compute_api_permission = sub {
 };
 
 __PACKAGE__->register_method ({
+    name => 'get_ticket', 
+    path => 'ticket', 
+    method => 'GET',
+    permissions => { user => 'world' },
+    description => "Dummy. Useful for formaters which want to priovde a login page.",
+    parameters => {
+	additionalProperties => 0,
+    },
+    returns => { type => "null" },
+    code => sub { return undef; }});
+  
+__PACKAGE__->register_method ({
     name => 'create_ticket', 
     path => 'ticket', 
     method => 'POST',
