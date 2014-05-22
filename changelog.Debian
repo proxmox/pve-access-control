@@ -1,3 +1,9 @@
+libpve-access-control (3.0-13) unstable; urgency=low
+
+  * use correct connection string for AD auth
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 22 May 2014 07:16:09 +0200
+
 libpve-access-control (3.0-12) unstable; urgency=low
 
   * add dummy API for GET /access/ticket (useful to generate login pages)

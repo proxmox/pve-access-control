@@ -2,7 +2,7 @@ RELEASE=3.2
 
 VERSION=3.0
 PACKAGE=libpve-access-control
-PKGREL=12
+PKGREL=13
 
 DESTDIR=
 PREFIX=/usr
