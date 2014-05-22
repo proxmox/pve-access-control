@@ -80,7 +80,7 @@ my $authenticate_user_ad = sub {
     my $scheme = $config->{secure} ? 'ldaps' : 'ldap';
     my $conn_string = "$scheme://${server}:$port";
     
-    my $ldap = Net::LDAP->new($server) || die "$@\n";
+    my $ldap = Net::LDAP->new($conn_string) || die "$@\n";
 
     $username = "$username\@$config->{domain}" 
 	if $username !~ m/@/ && $config->{domain};
