@@ -8,6 +8,9 @@ use Crypt::OpenSSL::RSA;
 use Net::SSLeay;
 use MIME::Base64;
 use Digest::SHA;
+use Digest::HMAC_SHA1;
+use URI::Escape;
+use LWP::UserAgent;
 use PVE::Tools qw(run_command lock_file file_get_contents split_list safe_print);
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_write_file cfs_lock_file);
 use PVE::JSONSchema;
@@ -1096,6 +1099,89 @@ sub remove_vm_from_pool {
     };
 
     lock_user_config($delVMfromPoolFn, "pool cleanup for VM $vmid failed");
+}
+
+# experimental code for yubico OTP verification
+
+sub yubico_compute_param_sig {
+    my ($param, $api_key) = @_;
+
+    my $paramstr = '';
+    foreach my $key (sort keys %$param) {
+	$paramstr .= '&' if $paramstr;
+	$paramstr .= "$key=$param->{$key}";
+    }
+
+    my $sig = uri_escape(encode_base64(Digest::HMAC_SHA1::hmac_sha1($paramstr, decode_base64($api_key || '')), ''));
+
+    return ($paramstr, $sig);
+}
+
+sub yubico_verify_otp {
+    my ($otp, $api_id, $api_key, $proxy) = @_;
+
+    die "yubicloud: wrong OTP lenght\n" if (length($otp) < 32) || (length($otp) > 48);
+
+    # we always use http, because https cert verification always make problem, and
+    # some proxies does not work with https.
+
+    my $url = 'http://api2.yubico.com/wsapi/2.0/verify';
+    
+    my $params = {
+	nonce =>  Digest::HMAC_SHA1::hmac_sha1_hex(time(), rand()),
+	id => $api_id,
+	otp => uri_escape($otp),
+	timestamp => 1,
+    };
+
+    my ($paramstr, $sig) = yubico_compute_param_sig($params, $api_key);
+
+    $paramstr .= "&h=$sig" if $api_key;
+
+    my $req = HTTP::Request->new('GET' => "$url?$paramstr");
+
+    my $ua = LWP::UserAgent->new(protocols_allowed => ['http'], timeout => 30);
+
+    if ($proxy) {
+	$ua->proxy(['http'], $proxy);
+    } else {
+	$ua->env_proxy;
+    }
+
+    my $response = $ua->request($req);
+    my $code = $response->code;
+
+    if ($code != 200) {
+	my $msg = $response->message || 'unknown';
+	die "Invalid response from server: $code $msg\n";
+    }
+
+    my $raw = $response->decoded_content;
+
+    my $result = {};
+    foreach my $kvpair (split(/\n/, $raw)) {
+	chomp $kvpair;
+	if($kvpair =~ /^\S+=/) {
+	    my ($k, $v) = split(/=/, $kvpair, 2);
+	    $v =~ s/\s//g;
+	    $result->{$k} = $v;
+        }
+    }
+
+    my $rsig = $result->{h};
+    delete $result->{h};
+
+    if ($api_key) {
+	my ($datastr, $vsig) = yubico_compute_param_sig($result, $api_key);
+	$vsig = uri_unescape($vsig);
+	die "yubicloud: result signature verification failed\n" if $rsig ne $vsig;
+    }
+
+    die "yubicloud auth failed: $result->{status}\n" if $result->{status} ne 'OK';
+
+    $result->{publicid} = substr(lc($result->{otp}), 0, 12);
+
+    return $result;
 }
 
 1;
