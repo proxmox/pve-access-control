@@ -83,6 +83,49 @@ PVE::JSONSchema::register_standard_option('userid', {
     maxLength => 64,
 });
 
+PVE::JSONSchema::register_format('pve-tfa-config', \&verify_tfa_config);
+sub verify_tfa_config {
+    my ($value, $noerr) = @_;
+
+    return $value if parse_tfa_config($value);
+
+    return undef if $noerr;
+
+    die "unable to parse tfa option\n";
+}
+
+PVE::JSONSchema::register_standard_option('tfa', {
+    description => "Use Two-factor authentication.",
+    type => 'string', format => 'pve-tfa-config',
+    optional => 1,
+    maxLength => 128,
+});
+
+sub parse_tfa_config {
+    my ($data) = @_;
+
+    my $res = {};
+
+    foreach my $kvp (split(/,/, $data)) {
+
+	if ($kvp =~ m/^type=(yubico)$/) {
+	    $res->{type} = $1;
+	} elsif ($kvp =~ m/^id=(\S+)$/) {
+	    $res->{id} = $1;
+	} elsif ($kvp =~ m/^key=(\S+)$/) {
+	    $res->{key} = $1;
+	} elsif ($kvp =~ m/^url=(\S+)$/) {
+	    $res->{url} = $1;
+	} else {
+	    return undef;
+	}	    
+    }
+
+    return undef if !$res->{type};
+
+    return $res;
+}
+
 sub encrypt_pw {
     my ($pw) = @_;
 
@@ -140,16 +183,14 @@ sub parse_config {
 
     # add default domains
 
-    $cfg->{ids}->{pve} = {
-	type => 'pve',
-	comment => "Proxmox VE authentication server", 
-    };
+    $cfg->{ids}->{pve}->{type} = 'pve'; # force type
+    $cfg->{ids}->{pve}->{comment} = "Proxmox VE authentication server"
+	if !$cfg->{ids}->{pve}->{comment};
 
-    $cfg->{ids}->{pam} = {
-	type => 'pam',
-	plugin => 'PVE::Auth::PAM',
-	comment => "Linux PAM standard authentication", 
-    };
+    $cfg->{ids}->{pam}->{type} = 'pam'; # force type
+    $cfg->{ids}->{pam}->{plugin} =  'PVE::Auth::PAM';
+    $cfg->{ids}->{pam}->{comment} = "Linux PAM standard authentication"
+	if !$cfg->{ids}->{pam}->{comment};
 
     return $cfg;
 };

@@ -57,6 +57,7 @@ sub properties {
 	    optional => 1,
 	    maxLength => 256,
 	},
+	tfa => PVE::JSONSchema::get_standard_option('tfa'), 
     };
 }
 
@@ -69,6 +70,7 @@ sub options {
 	secure => { optional => 1 },
 	default => { optional => 1 },,
 	comment => { optional => 1 },
+	tfa => { optional => 1 },
     };
 }
 

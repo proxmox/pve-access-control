@@ -21,7 +21,7 @@ my $extract_user_data = sub {
 
     my $res = {};
 
-    foreach my $prop (qw(enable expire firstname lastname email comment)) {
+    foreach my $prop (qw(enable expire firstname lastname email comment keys)) {
 	$res->{$prop} = $data->{$prop} if defined($data->{$prop});
     }
 
@@ -124,6 +124,11 @@ __PACKAGE__->register_method ({
 	    lastname => { type => 'string', optional => 1 },
 	    email => { type => 'string', optional => 1, format => 'email-opt' },
 	    comment => { type => 'string', optional => 1 },
+	    keys => {
+		description => "Keys for two factor auth (yubico).",
+		type => 'string', 
+		optional => 1,
+	    },
 	    expire => { 
 		description => "Account expiration date (seconds since epoch). '0' means no expiration date.",
 		type => 'integer', 
@@ -173,6 +178,7 @@ __PACKAGE__->register_method ({
 		$usercfg->{users}->{$username}->{lastname} = $param->{lastname} if $param->{lastname};
 		$usercfg->{users}->{$username}->{email} = $param->{email} if $param->{email};
 		$usercfg->{users}->{$username}->{comment} = $param->{comment} if $param->{comment};
+		$usercfg->{users}->{$username}->{keys} = $param->{keys} if $param->{keys};
 
 		cfs_write_file("user.cfg", $usercfg);
 	    }, "create user failed");
@@ -203,6 +209,7 @@ __PACKAGE__->register_method ({
 	    lastname => { type => 'string', optional => 1 },
 	    email => { type => 'string', optional => 1 },
 	    comment => { type => 'string', optional => 1 },    
+	    keys => { type => 'string', optional => 1 },    
 	    groups => { type => 'array' },
 	}
     },
@@ -247,6 +254,11 @@ __PACKAGE__->register_method ({
 	    lastname => { type => 'string', optional => 1 },
 	    email => { type => 'string', optional => 1, format => 'email-opt' },
 	    comment => { type => 'string', optional => 1 },
+	    keys => {
+		description => "Keys for two factor auth (yubico).",
+		type => 'string', 
+		optional => 1,
+	    },
 	    expire => { 
 		description => "Account expiration date (seconds since epoch). '0' means no expiration date.",
 		type => 'integer', 
@@ -290,6 +302,7 @@ __PACKAGE__->register_method ({
 		$usercfg->{users}->{$username}->{lastname} = $param->{lastname} if defined($param->{lastname});
 		$usercfg->{users}->{$username}->{email} = $param->{email} if defined($param->{email});
 		$usercfg->{users}->{$username}->{comment} = $param->{comment} if defined($param->{comment});
+		$usercfg->{users}->{$username}->{keys} = $param->{keys} if defined($param->{keys});
 
 		cfs_write_file("user.cfg", $usercfg);
 	    }, "update user failed");

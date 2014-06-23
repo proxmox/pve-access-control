@@ -34,6 +34,13 @@ __PACKAGE__->register_method ({
 	    type => "object",
 	    properties => {
 		realm => { type => 'string' },
+		tfa => {
+		    description => "Two-factor authentication provider.",
+		    type => 'string',
+		    enum => [ 'yubico' ],
+		    optional => 1,
+		},
+		comment => { type => 'string', optional => 1 },
 		comment => { type => 'string', optional => 1 },
 	    },
 	},
@@ -52,6 +59,9 @@ __PACKAGE__->register_method ({
 	    my $entry = { realm => $realm, type => $d->{type} };
 	    $entry->{comment} = $d->{comment} if $d->{comment};
 	    $entry->{default} = 1 if $d->{default};
+	    if ($d->{tfa} && (my $tfa_cfg = PVE::Auth::Plugin::parse_tfa_config($d->{tfa}))) {
+		$entry->{tfa} = $tfa_cfg->{type};
+	    }
 	    push @$res, $entry;
 	}
 

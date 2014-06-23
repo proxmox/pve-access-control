@@ -363,10 +363,30 @@ sub check_user_enabled {
     return undef;
 }
 
+sub verify_one_time_pw {
+    my ($usercfg, $username, $tfa_cfg, $otp) = @_;
+
+    my $type = $tfa_cfg->{type};
+
+    die "missing one time password for Factor-two authentication '$type'\n" if !$otp;
+
+    # fixme: proxy support?
+    my $proxy;
+
+    if ($type eq 'yubico') {
+	my $keys = $usercfg->{users}->{$username}->{keys};
+	yubico_verify_otp($otp, $keys, $tfa_cfg->{url}, $tfa_cfg->{id}, $tfa_cfg->{key}, $proxy);
+    } else {
+	die "unknown tfa type '$type'\n";
+    }
+
+    die "implement me";
+}
+
 # password should be utf8 encoded
 # Note: some pluging delay/sleep if auth fails
 sub authenticate_user {
-    my ($username, $password) = @_;
+    my ($username, $password, $otp) = @_;
 
     die "no username specified\n" if !$username;
  
@@ -389,6 +409,11 @@ sub authenticate_user {
     die "auth domain '$realm' does not exists\n" if !$cfg;
     my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
     $plugin->authenticate_user($cfg, $realm, $ruid, $password);
+
+    if ($cfg->{tfa}) {
+	my $tfa_cfg = PVE::Auth::Plugin::parse_tfa_config($cfg->{tfa});
+	verify_one_time_pw($usercfg, $username, $tfa_cfg, $otp);
+    }
 
     return $username;
 }
@@ -698,7 +723,7 @@ sub parse_user_config {
 	my $et = shift @data;
 
 	if ($et eq 'user') {
-	    my ($user, $enable, $expire, $firstname, $lastname, $email, $comment) = @data;
+	    my ($user, $enable, $expire, $firstname, $lastname, $email, $comment, $keys) = @data;
 
 	    my (undef, undef, $realm) = PVE::Auth::Plugin::verify_username($user, 1);
 	    if (!$realm) {
@@ -730,6 +755,7 @@ sub parse_user_config {
 	    $cfg->{users}->{$user}->{email} = $email;
 	    $cfg->{users}->{$user}->{comment} = PVE::Tools::decode_text($comment) if $comment;
 	    $cfg->{users}->{$user}->{expire} = $expire;
+	    $cfg->{users}->{$user}->{keys} = $keys if $keys; # allowed yubico key ids
 
 	    #$cfg->{users}->{$user}->{groups}->{$group} = 1;
 	    #$cfg->{groups}->{$group}->{$user} = 1;
@@ -875,7 +901,8 @@ sub write_user_config {
 	my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';
 	my $expire = int($d->{expire} || 0);
 	my $enable = $d->{enable} ? 1 : 0;
-	$data .= "user:$user:$enable:$expire:$firstname:$lastname:$email:$comment:\n";
+	my $keys = $d->{keys} ? $d->{keys} : '';
+	$data .= "user:$user:$enable:$expire:$firstname:$lastname:$email:$comment:$keys:\n";
     }
 
     $data .= "\n";
@@ -1118,14 +1145,19 @@ sub yubico_compute_param_sig {
 }
 
 sub yubico_verify_otp {
-    my ($otp, $api_id, $api_key, $proxy) = @_;
+    my ($otp, $keys, $url, $api_id, $api_key, $proxy) = @_;
 
-    die "yubicloud: wrong OTP lenght\n" if (length($otp) < 32) || (length($otp) > 48);
+    die "yubico: missing password\n" if !defined($otp);
+    die "yubico: missing API ID\n" if !defined($api_id);
+    die "yubico: missing API KEY\n" if !defined($api_key);
+    die "yubico: no associated yubico keys\n" if $keys =~ m/^\s+$/; 
+
+    die "yubico: wrong OTP lenght\n" if (length($otp) < 32) || (length($otp) > 48);
 
     # we always use http, because https cert verification always make problem, and
     # some proxies does not work with https.
 
-    my $url = 'http://api2.yubico.com/wsapi/2.0/verify';
+    $url = 'http://api2.yubico.com/wsapi/2.0/verify' if !defined($url);
     
     my $params = {
 	nonce =>  Digest::HMAC_SHA1::hmac_sha1_hex(time(), rand()),
@@ -1174,12 +1206,22 @@ sub yubico_verify_otp {
     if ($api_key) {
 	my ($datastr, $vsig) = yubico_compute_param_sig($result, $api_key);
 	$vsig = uri_unescape($vsig);
-	die "yubicloud: result signature verification failed\n" if $rsig ne $vsig;
+	die "yubico: result signature verification failed\n" if $rsig ne $vsig;
     }
 
-    die "yubicloud auth failed: $result->{status}\n" if $result->{status} ne 'OK';
+    die "yubico auth failed: $result->{status}\n" if $result->{status} ne 'OK';
 
-    $result->{publicid} = substr(lc($result->{otp}), 0, 12);
+    my $publicid = $result->{publicid} = substr(lc($result->{otp}), 0, 12);
+
+    my $found;
+    foreach my $k (PVE::Tools::split_list($keys)) {
+	if ($k eq $publicid) {
+	    $found = 1;
+	    last;
+	}
+    }
+
+    die "yubico auth failed: key does not belong to user\n" if !$found;
 
     return $result;
 }

@@ -62,10 +62,11 @@ sub type {
     return 'pve';
 }
 
-sub defaults {
+sub options {
     return {
 	default => { optional => 1 },
 	comment => { optional => 1 },
+	tfa => { optional => 1 },
     };
 }
 

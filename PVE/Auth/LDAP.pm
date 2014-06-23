@@ -40,6 +40,7 @@ sub options {
 	secure => { optional => 1 },
 	default => { optional => 1 },
 	comment => { optional => 1 },
+	tfa => { optional => 1 },
     };
 }
 

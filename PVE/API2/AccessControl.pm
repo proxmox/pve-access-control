@@ -88,7 +88,7 @@ __PACKAGE__->register_method ({
 
 
 my $verify_auth = sub {
-    my ($rpcenv, $username, $pw_or_ticket, $path, $privs) = @_;
+    my ($rpcenv, $username, $pw_or_ticket, $otp, $path, $privs) = @_;
 
     my $normpath = PVE::AccessControl::normalize_path($path);
 
@@ -99,7 +99,7 @@ my $verify_auth = sub {
     } elsif (PVE::AccessControl::verify_vnc_ticket($pw_or_ticket, $username, $normpath, 1)) {
 	# valid vnc ticket
     } else {
-	$username = PVE::AccessControl::authenticate_user($username, $pw_or_ticket);
+	$username = PVE::AccessControl::authenticate_user($username, $pw_or_ticket, $otp);
     }
 
     my $privlist = [ PVE::Tools::split_list($privs) ];
@@ -111,14 +111,14 @@ my $verify_auth = sub {
 };
 
 my $create_ticket = sub {
-    my ($rpcenv, $username, $pw_or_ticket) = @_;
+    my ($rpcenv, $username, $pw_or_ticket, $otp) = @_;
 
     my $ticketuser;
     if (($ticketuser = PVE::AccessControl::verify_ticket($pw_or_ticket, 1)) &&
 	($ticketuser eq 'root@pam' || $ticketuser eq $username)) {
 	# valid ticket. Note: root@pam can create tickets for other users
     } else {
-	$username = PVE::AccessControl::authenticate_user($username, $pw_or_ticket);
+	$username = PVE::AccessControl::authenticate_user($username, $pw_or_ticket, $otp);
     }
 
     my $ticket = PVE::AccessControl::assemble_ticket($username);
@@ -243,6 +243,11 @@ __PACKAGE__->register_method ({
 		description => "The secret password. This can also be a valid ticket.",
 		type => 'string',
 	    },
+	    otp => {
+		description => "One-time password for Two-factor authentication.",
+		type => 'string',
+		optional => 1,
+	    },
 	    path => {
 		description => "Verify ticket, and check if user have access 'privs' on 'path'",
 		type => 'string',
@@ -281,10 +286,10 @@ __PACKAGE__->register_method ({
 	    $rpcenv->check_user_enabled($username);
 
 	    if ($param->{path} && $param->{privs}) {
-		$res = &$verify_auth($rpcenv, $username, $param->{password},
+		$res = &$verify_auth($rpcenv, $username, $param->{password}, $param->{otp},
 				     $param->{path}, $param->{privs});
 	    } else {
-		$res = &$create_ticket($rpcenv, $username, $param->{password});
+		$res = &$create_ticket($rpcenv, $username, $param->{password}, $param->{otp});
 	    }
 	};
 	if (my $err = $@) {

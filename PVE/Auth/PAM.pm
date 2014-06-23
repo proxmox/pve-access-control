@@ -17,6 +17,7 @@ sub options {
     return {
 	default => { optional => 1 },
 	comment => { optional => 1 },
+	tfa => { optional => 1 },
     };
 }
 
