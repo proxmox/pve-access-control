@@ -379,8 +379,6 @@ sub verify_one_time_pw {
     } else {
 	die "unknown tfa type '$type'\n";
     }
-
-    die "implement me";
 }
 
 # password should be utf8 encoded
