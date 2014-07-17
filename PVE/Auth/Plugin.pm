@@ -108,7 +108,7 @@ sub parse_tfa_config {
 
     foreach my $kvp (split(/,/, $data)) {
 
-	if ($kvp =~ m/^type=(yubico)$/) {
+	if ($kvp =~ m/^type=(yubico|oath)$/) {
 	    $res->{type} = $1;
 	} elsif ($kvp =~ m/^id=(\S+)$/) {
 	    $res->{id} = $1;

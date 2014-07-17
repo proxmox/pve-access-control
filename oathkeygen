@@ -1,0 +1,11 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use MIME::Base32 qw(RFC); #libmime-base32-perl
+
+my $test;
+open(RND, "/dev/urandom");
+sysread(RND, $test, 10) == 10 || die "read randon data failed\n";
+print MIME::Base32::encode($test) . "\n";
+

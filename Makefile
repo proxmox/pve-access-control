@@ -2,7 +2,7 @@ RELEASE=3.2
 
 VERSION=3.0
 PACKAGE=libpve-access-control
-PKGREL=13
+PKGREL=14
 
 DESTDIR=
 PREFIX=/usr
@@ -35,10 +35,11 @@ pveum.1.pod: pveum
 	mv $@.tmp $@
 
 .PHONY: install
-install: pveum.1.pod pveum.1.gz
+install: pveum.1.pod pveum.1.gz oathkeygen
 	install -d ${DESTDIR}${BINDIR}
 	install -d ${DESTDIR}${SBINDIR}
 	install -m 0755 pveum ${DESTDIR}${SBINDIR}
+	install -m 0755 oathkeygen ${DESTDIR}${BINDIR}
 	make -C PVE install
 	perl -I. ./pveum verifyapi 
 	install -d ${DESTDIR}/usr/share/man/man1

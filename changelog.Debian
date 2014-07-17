@@ -1,3 +1,17 @@
+libpve-access-control (3.0-14) unstable; urgency=low
+  
+  * add oath two factor auth
+
+  * add oathkeygen binary to generate keys for oath
+  
+  * add yubico two factor auth
+
+  * dedend on oathtool
+  
+  * depend on libmime-base32-perl
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 17 Jul 2014 13:09:56 +0200
+
 libpve-access-control (3.0-13) unstable; urgency=low
 
   * use correct connection string for AD auth

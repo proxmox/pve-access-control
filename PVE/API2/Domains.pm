@@ -37,7 +37,7 @@ __PACKAGE__->register_method ({
 		tfa => {
 		    description => "Two-factor authentication provider.",
 		    type => 'string',
-		    enum => [ 'yubico' ],
+		    enum => [ 'yubico', 'oath' ],
 		    optional => 1,
 		},
 		comment => { type => 'string', optional => 1 },

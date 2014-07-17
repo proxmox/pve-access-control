@@ -376,6 +376,9 @@ sub verify_one_time_pw {
     if ($type eq 'yubico') {
 	my $keys = $usercfg->{users}->{$username}->{keys};
 	yubico_verify_otp($otp, $keys, $tfa_cfg->{url}, $tfa_cfg->{id}, $tfa_cfg->{key}, $proxy);
+    } elsif ($type eq 'oath') {
+	my $keys = $usercfg->{users}->{$username}->{keys};
+	oath_verify_otp($otp, $keys);
     } else {
 	die "unknown tfa type '$type'\n";
     }
@@ -753,7 +756,8 @@ sub parse_user_config {
 	    $cfg->{users}->{$user}->{email} = $email;
 	    $cfg->{users}->{$user}->{comment} = PVE::Tools::decode_text($comment) if $comment;
 	    $cfg->{users}->{$user}->{expire} = $expire;
-	    $cfg->{users}->{$user}->{keys} = $keys if $keys; # allowed yubico key ids
+	    # keys: allowed yubico key ids or oath secrets (base32 encoded)
+	    $cfg->{users}->{$user}->{keys} = $keys if $keys; 
 
 	    #$cfg->{users}->{$user}->{groups}->{$group} = 1;
 	    #$cfg->{groups}->{$group}->{$user} = 1;
@@ -1222,6 +1226,36 @@ sub yubico_verify_otp {
     die "yubico auth failed: key does not belong to user\n" if !$found;
 
     return $result;
+}
+
+sub oath_verify_otp {
+    my ($otp, $keys) = @_;
+
+    die "oath: missing password\n" if !defined($otp);
+    die "oath: no associated oath keys\n" if $keys =~ m/^\s+$/; 
+
+    my $step = 30;
+
+    my $found;
+
+    my $parser = sub {
+	my $line = shift;
+
+	if ($line =~ m/^\d{6}$/) {
+	    print "GOT:$line\n";
+	    $found = 1 if $otp eq $line;
+	}
+    };
+
+    foreach my $k (PVE::Tools::split_list($keys)) {
+	# Note: we generate 3 values to allow small time drift
+	my $now = localtime(time() - $step);
+	my $cmd = ['oathtool', '--totp', '-N', $now, '-s', $step, '-w', '2', '-b', $k];
+	eval { run_command($cmd, outfunc => $parser, errfunc => sub {}); };
+	last if $found;
+    }
+
+    die "oath auth failed\n" if !$found;
 }
 
 1;
