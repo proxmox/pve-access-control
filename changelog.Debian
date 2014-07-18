@@ -9,6 +9,8 @@ libpve-access-control (3.0-14) unstable; urgency=low
   * dedend on oathtool
   
   * depend on libmime-base32-perl
+  
+  * allow to write builtin auth domains config (comment/tfa/default)
 
  -- Proxmox Support Team <support@proxmox.com>  Thu, 17 Jul 2014 13:09:56 +0200
 

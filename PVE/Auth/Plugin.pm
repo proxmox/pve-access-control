@@ -198,9 +198,6 @@ sub parse_config {
 sub write_config {
     my ($class, $filename, $cfg) = @_;
 
-    delete $cfg->{ids}->{pve};
-    delete $cfg->{ids}->{pam};
-
     foreach my $realm (keys %{$cfg->{ids}}) {
 	my $data = $cfg->{ids}->{$realm};
 	if ($data->{comment}) {

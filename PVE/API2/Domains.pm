@@ -142,9 +142,6 @@ __PACKAGE__->register_method ({
 
 		my $realm = extract_param($param, 'realm');
 
-		die "unable to modify bultin domain '$realm'\n"
-		    if ($realm eq 'pam' || $realm eq 'pve');
-
 		die "domain '$realm' does not exist\n" 
 		    if !$ids->{$realm};
 
