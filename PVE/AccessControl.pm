@@ -378,7 +378,7 @@ sub verify_one_time_pw {
 	yubico_verify_otp($otp, $keys, $tfa_cfg->{url}, $tfa_cfg->{id}, $tfa_cfg->{key}, $proxy);
     } elsif ($type eq 'oath') {
 	my $keys = $usercfg->{users}->{$username}->{keys};
-	oath_verify_otp($otp, $keys);
+	oath_verify_otp($otp, $keys, $tfa_cfg->{step}, $tfa_cfg->{digits});
     } else {
 	die "unknown tfa type '$type'\n";
     }
@@ -1229,12 +1229,13 @@ sub yubico_verify_otp {
 }
 
 sub oath_verify_otp {
-    my ($otp, $keys) = @_;
+    my ($otp, $keys, $step, $digits) = @_;
 
     die "oath: missing password\n" if !defined($otp);
     die "oath: no associated oath keys\n" if $keys =~ m/^\s+$/; 
 
-    my $step = 30;
+    $step = 30 if !$step;
+    $digits = 6 if !$digits;
 
     my $found;
 
@@ -1250,7 +1251,7 @@ sub oath_verify_otp {
     foreach my $k (PVE::Tools::split_list($keys)) {
 	# Note: we generate 3 values to allow small time drift
 	my $now = localtime(time() - $step);
-	my $cmd = ['oathtool', '--totp', '-N', $now, '-s', $step, '-w', '2', '-b', $k];
+	my $cmd = ['oathtool', '--totp', '--digits', $digits, '-N', $now, '-s', $step, '-w', '2', '-b', $k];
 	eval { run_command($cmd, outfunc => $parser, errfunc => sub {}); };
 	last if $found;
     }

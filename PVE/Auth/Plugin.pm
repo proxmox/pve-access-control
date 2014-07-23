@@ -116,6 +116,10 @@ sub parse_tfa_config {
 	    $res->{key} = $1;
 	} elsif ($kvp =~ m/^url=(\S+)$/) {
 	    $res->{url} = $1;
+	} elsif ($kvp =~ m/^digits=([6|7|8])$/) {
+	    $res->{digits} = $1;
+	} elsif ($kvp =~ m/^step=([1-9]\d+)$/) {
+	    $res->{step} = $1;
 	} else {
 	    return undef;
 	}	    
