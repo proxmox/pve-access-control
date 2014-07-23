@@ -1243,7 +1243,6 @@ sub oath_verify_otp {
 	my $line = shift;
 
 	if ($line =~ m/^\d{6}$/) {
-	    print "GOT:$line\n";
 	    $found = 1 if $otp eq $line;
 	}
     };
