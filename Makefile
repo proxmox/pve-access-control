@@ -55,6 +55,7 @@ deb ${DEB}:
 	install -d -m 0755 build/DEBIAN
 	sed -e s/@@VERSION@@/${VERSION}/ -e s/@@PKGRELEASE@@/${PKGREL}/ -e s/@@ARCH@@/${ARCH}/ <control.in >build/DEBIAN/control
 	echo "git clone git://git.proxmox.com/git/pve-access-control.git\\ngit checkout ${GITVERSION}" >  build/${DOCDIR}/SOURCE
+	install -m 0644 triggers build/DEBIAN
 	install -D -m 0644 copyright build/${DOCDIR}/copyright
 	install -m 0644 changelog.Debian build/${DOCDIR}/
 	gzip -9 build/${DOCDIR}/changelog.Debian
