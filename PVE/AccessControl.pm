@@ -6,6 +6,7 @@ use Encode;
 use Crypt::OpenSSL::Random;
 use Crypt::OpenSSL::RSA;
 use Net::SSLeay;
+use Net::IP;
 use MIME::Base64;
 use Digest::SHA;
 use Digest::HMAC_SHA1;
@@ -317,6 +318,7 @@ sub remote_viewer_config {
     my $cacert = PVE::Tools::file_get_contents("/etc/pve/pve-root-ca.pem", 8192);
     $cacert =~ s/\n/\\n/g;
 
+    $proxy = "[$proxy]" if Net::IP::ip_is_ipv6($proxy);
     my $config = {
 	'secure-attention' => "Ctrl+Alt+Ins",
 	'toggle-fullscreen' => "Shift+F11",
