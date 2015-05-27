@@ -29,19 +29,6 @@ initlog('pveum');
 
 #fixme: logging?
 
-die "please run as root\n" if $> != 0;
-
-PVE::INotify::inotify_init();
-
-my $rpcenv = PVE::RPCEnvironment->init('cli');
-
-$rpcenv->init_request();
-$rpcenv->set_language($ENV{LANG});
-$rpcenv->set_user('root@pam'); 
-
-# autmatically generate the private key if it does not already exists
-PVE::Cluster::gen_auth_key();
-
 my $read_password = sub {
 
     # return $ENV{PVE_PW_TICKET} if defined($ENV{PVE_PW_TICKET});
@@ -81,6 +68,21 @@ my $cmddef = {
 };
 
 my $cmd = shift;
+
+if ($cmd ne 'verifyapi' && $cmd ne 'printmanpod') {
+    die "please run as root\n" if $> != 0;
+
+    PVE::INotify::inotify_init();
+
+    my $rpcenv = PVE::RPCEnvironment->init('cli');
+
+    $rpcenv->init_request();
+    $rpcenv->set_language($ENV{LANG});
+    $rpcenv->set_user('root@pam'); 
+
+# autmatically generate the private key if it does not already exists
+    PVE::Cluster::gen_auth_key();
+}
 
 PVE::CLIHandler::handle_cmd($cmddef, "pveum", $cmd, \@ARGV, $read_password, $0);
 
