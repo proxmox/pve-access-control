@@ -1,3 +1,11 @@
+libpve-access-control (4.0-3) unstable; urgency=medium
+
+  * IPv6 fixes
+
+  * non-root buildfix
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 27 May 2015 11:15:44 +0200
+
 libpve-access-control (4.0-2) unstable; urgency=medium
 
   * trigger pve-api-updates event
