@@ -1,3 +1,9 @@
+libpve-access-control (4.0-4) unstable; urgency=medium
+
+  * use activate-noawait triggers
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 01 Jun 2015 12:25:31 +0200
+
 libpve-access-control (4.0-3) unstable; urgency=medium
 
   * IPv6 fixes
