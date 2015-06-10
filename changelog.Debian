@@ -1,3 +1,9 @@
+libpve-access-control (4.0-5) unstable; urgency=medium
+
+  * pveum: check for $cmd being defined
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 10 Jun 2015 10:40:15 +0200
+
 libpve-access-control (4.0-4) unstable; urgency=medium
 
   * use activate-noawait triggers
