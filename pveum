@@ -69,7 +69,7 @@ my $cmddef = {
 
 my $cmd = shift;
 
-if ($cmd ne 'verifyapi' && $cmd ne 'printmanpod') {
+if (defined($cmd) && $cmd ne 'verifyapi' && $cmd ne 'printmanpod') {
     die "please run as root\n" if $> != 0;
 
     PVE::INotify::inotify_init();
