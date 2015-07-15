@@ -19,10 +19,8 @@ sub parse_shadow_passwd {
 
     my $shadow = {};
 
-    while ($raw && $raw =~ s/^(.*?)(\n|$)//) {
+    while ($raw =~ /^\s*(.+?)\s*$/gm) {
 	my $line = $1;
-
-	next if $line =~ m/^\s*$/; # skip empty lines
 
 	if ($line !~ m/^\S+:\S+:$/) {
 	    warn "pve shadow password: ignore invalid line $.\n";

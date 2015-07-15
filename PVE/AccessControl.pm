@@ -708,11 +708,8 @@ sub parse_user_config {
 
     userconfig_force_defaults($cfg);
 
-    while ($raw && $raw =~ s/^(.*?)(\n|$)//) {
+    while ($raw =~ /^\s*(.+?)\s*$/gm) {
 	my $line = $1;
-
-	next if $line =~ m/^\s*$/; # skip empty lines
-
 	my @data;
 
 	foreach my $d (split (/:/, $line)) {
