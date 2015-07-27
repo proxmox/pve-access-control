@@ -1,3 +1,9 @@
+libpve-access-control (4.0-6) unstable; urgency=medium
+
+  * improve parse_user_config, parse_shadow_config
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 27 Jul 2015 13:14:33 +0200
+
 libpve-access-control (4.0-5) unstable; urgency=medium
 
   * pveum: check for $cmd being defined
