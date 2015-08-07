@@ -708,6 +708,7 @@ sub parse_user_config {
 
     userconfig_force_defaults($cfg);
 
+    $raw = '' if !defined($raw);
     while ($raw =~ /^\s*(.+?)\s*$/gm) {
 	my $line = $1;
 	my @data;
