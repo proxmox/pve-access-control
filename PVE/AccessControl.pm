@@ -478,10 +478,7 @@ sub delete_pool_acl {
 
     my $path = "/pool/$pool";
 
-    foreach my $aclpath (keys %{$usercfg->{acl}}) {
-	delete ($usercfg->{acl}->{$aclpath})
-	    if $usercfg->{acl}->{$aclpath} eq 'path';
-    }
+    delete ($usercfg->{acl}->{$path})
 }
 
 # we automatically create some predefined roles by splitting privs
@@ -1094,6 +1091,27 @@ sub check_permissions {
     };
 
     return 1;
+}
+
+sub remove_vm_access {
+    my ($vmid) = @_;
+    my $delVMaccessFn = sub {
+        my $usercfg = cfs_read_file("user.cfg");
+
+        if (my $acl = $usercfg->{acl}->{'/vms/'.$vmid}) {
+            delete $usercfg->{acl}->{'/vms/'.$vmid};
+            cfs_write_file("user.cfg", $usercfg);
+        }
+        if (my $pool = $usercfg->{vms}->{$vmid}) {
+            if (my $data = $usercfg->{pools}->{$pool}) {
+                delete $data->{vms}->{$vmid};
+                delete $usercfg->{vms}->{$vmid};
+                cfs_write_file("user.cfg", $usercfg);
+            }
+        }
+    };
+
+    lock_user_config($delVMaccessFn, "access permissions cleanup for VM $vmid failed");
 }
 
 sub add_vm_to_pool {
