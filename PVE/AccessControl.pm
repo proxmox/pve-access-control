@@ -1093,18 +1093,20 @@ sub remove_vm_access {
     my ($vmid) = @_;
     my $delVMaccessFn = sub {
         my $usercfg = cfs_read_file("user.cfg");
+	my $modified;
 
-        if (my $acl = $usercfg->{acl}->{'/vms/'.$vmid}) {
-            delete $usercfg->{acl}->{'/vms/'.$vmid};
-            cfs_write_file("user.cfg", $usercfg);
+        if (my $acl = $usercfg->{acl}->{"/vms/$vmid"}) {
+            delete $usercfg->{acl}->{"/vms/$vmid"};
+	    $modified = 1;
         }
         if (my $pool = $usercfg->{vms}->{$vmid}) {
             if (my $data = $usercfg->{pools}->{$pool}) {
                 delete $data->{vms}->{$vmid};
                 delete $usercfg->{vms}->{$vmid};
-                cfs_write_file("user.cfg", $usercfg);
+		$modified = 1;
             }
         }
+	cfs_write_file("user.cfg", $usercfg) if $modified;
     };
 
     lock_user_config($delVMaccessFn, "access permissions cleanup for VM $vmid failed");
