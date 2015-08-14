@@ -43,8 +43,8 @@ my $ticket_lifetime = 3600*2; # 2 hours
 
 Crypt::OpenSSL::RSA->import_random_seed();
 
-cfs_register_file('user.cfg', 
-		  \&parse_user_config,  
+cfs_register_file('user.cfg',
+		  \&parse_user_config,
 		  \&write_user_config);
 
 
@@ -66,11 +66,11 @@ sub lock_user_config {
 }
 
 my $pve_auth_pub_key;
-sub get_pubkey {    
+sub get_pubkey {
 
     return $pve_auth_pub_key if $pve_auth_pub_key;
 
-    my $input = PVE::Tools::file_get_contents($authpubkeyfn); 
+    my $input = PVE::Tools::file_get_contents($authpubkeyfn);
 
     $pve_auth_pub_key = Crypt::OpenSSL::RSA->new_public_key($input);
 
@@ -80,7 +80,7 @@ sub get_pubkey {
 my $csrf_prevention_secret;
 my $get_csrfr_secret = sub {
     if (!$csrf_prevention_secret) {
-	my $input = PVE::Tools::file_get_contents($pve_www_key_fn); 
+	my $input = PVE::Tools::file_get_contents($pve_www_key_fn);
 	$csrf_prevention_secret = Digest::SHA::sha1_base64($input);
     }
     return $csrf_prevention_secret;
@@ -93,7 +93,7 @@ sub assemble_csrf_prevention_token {
 
     my $digest = Digest::SHA::sha1_base64("$timestamp:$username", &$get_csrfr_secret());
 
-    return "$timestamp:$digest"; 
+    return "$timestamp:$digest";
 }
 
 sub verify_csrf_prevention_token {
@@ -120,7 +120,7 @@ sub get_privkey {
 
     return $pve_auth_priv_key if $pve_auth_priv_key;
 
-    my $input = PVE::Tools::file_get_contents($authprivkeyfn); 
+    my $input = PVE::Tools::file_get_contents($authprivkeyfn);
 
     $pve_auth_priv_key = Crypt::OpenSSL::RSA->new_private_key($input);
 
@@ -276,7 +276,7 @@ sub verify_spice_connect_url {
 
 	if ($sig eq $hexsig) {
 	    return ($vmid, $node, $port);
-	} 
+	}
     }
 
     return undef;
@@ -292,7 +292,7 @@ sub read_x509_subject_spice {
     my $nameobj = Net::SSLeay::X509_get_subject_name($x509);
     my $subject = Net::SSLeay::X509_NAME_oneline($nameobj);
     Net::SSLeay::X509_free($x509);
-  
+
     # remote-viewer wants comma as seperator (not '/')
     $subject =~ s!^/!!;
     $subject =~ s!/(\w+=)!,$1!g;
@@ -342,11 +342,11 @@ sub check_user_exist {
 
     $username = PVE::Auth::Plugin::verify_username($username, $noerr);
     return undef if !$username;
- 
+
     return $usercfg->{users}->{$username} if $usercfg && $usercfg->{users}->{$username};
 
     die "no such user ('$username')\n" if !$noerr;
- 
+
     return undef;
 }
 
@@ -359,7 +359,7 @@ sub check_user_enabled {
     return 1 if $data->{enable};
 
     die "user '$username' is disabled\n" if !$noerr;
- 
+
     return undef;
 }
 
@@ -390,7 +390,7 @@ sub authenticate_user {
     my ($username, $password, $otp) = @_;
 
     die "no username specified\n" if !$username;
- 
+
     my ($ruid, $realm);
 
     ($username, $ruid, $realm) = PVE::Auth::Plugin::verify_username($username);
@@ -433,47 +433,43 @@ sub domain_set_password {
 }
 
 sub add_user_group {
-
     my ($username, $usercfg, $group) = @_;
+
     $usercfg->{users}->{$username}->{groups}->{$group} = 1;
     $usercfg->{groups}->{$group}->{users}->{$username} = 1;
 }
 
 sub delete_user_group {
-
     my ($username, $usercfg) = @_;
-    
+
     foreach my $group (keys %{$usercfg->{groups}}) {
 
-	delete ($usercfg->{groups}->{$group}->{users}->{$username}) 
+	delete ($usercfg->{groups}->{$group}->{users}->{$username})
 	    if $usercfg->{groups}->{$group}->{users}->{$username};
     }
 }
 
 sub delete_user_acl {
-
     my ($username, $usercfg) = @_;
 
     foreach my $acl (keys %{$usercfg->{acl}}) {
 
-	delete ($usercfg->{acl}->{$acl}->{users}->{$username}) 
+	delete ($usercfg->{acl}->{$acl}->{users}->{$username})
 	    if $usercfg->{acl}->{$acl}->{users}->{$username};
     }
 }
 
 sub delete_group_acl {
-
     my ($group, $usercfg) = @_;
 
     foreach my $acl (keys %{$usercfg->{acl}}) {
 
-	delete ($usercfg->{acl}->{$acl}->{groups}->{$group}) 
+	delete ($usercfg->{acl}->{$acl}->{groups}->{$group})
 	    if $usercfg->{acl}->{$acl}->{groups}->{$group};
     }
 }
 
 sub delete_pool_acl {
-
     my ($pool, $usercfg) = @_;
 
     my $path = "/pool/$pool";
@@ -489,37 +485,37 @@ sub delete_pool_acl {
 my $privgroups = {
     VM => {
 	root => [],
-	admin => [	     
-	    'VM.Config.Disk', 
-	    'VM.Config.CPU', 
-	    'VM.Config.Memory', 
-	    'VM.Config.Network', 
+	admin => [
+	    'VM.Config.Disk',
+	    'VM.Config.CPU',
+	    'VM.Config.Memory',
+	    'VM.Config.Network',
 	    'VM.Config.HWType',
-	    'VM.Config.Options', # covers all other things 
-	    'VM.Allocate', 
-	    'VM.Clone', 
+	    'VM.Config.Options', # covers all other things
+	    'VM.Allocate',
+	    'VM.Clone',
 	    'VM.Migrate',
-	    'VM.Monitor', 
-	    'VM.Snapshot', 
+	    'VM.Monitor',
+	    'VM.Snapshot',
 	],
 	user => [
 	    'VM.Config.CDROM', # change CDROM media
-	    'VM.Console', 
+	    'VM.Console',
 	    'VM.Backup',
 	    'VM.PowerMgmt',
 	],
-	audit => [ 
+	audit => [
 	    'VM.Audit',
 	],
     },
     Sys => {
 	root => [
-	    'Sys.PowerMgmt',	 
+	    'Sys.PowerMgmt',
 	    'Sys.Modify', # edit/change node settings
 	],
 	admin => [
 	    'Permissions.Modify',
-	    'Sys.Console',    
+	    'Sys.Console',
 	    'Sys.Syslog',
 	],
 	user => [],
@@ -547,7 +543,7 @@ my $privgroups = {
 	admin => [
 	    'User.Modify',
 	    'Group.Allocate', # edit/change group settings
-	    'Realm.AllocateUser', 
+	    'Realm.AllocateUser',
 	],
 	user => [],
 	audit => [],
@@ -573,7 +569,7 @@ sub create_roles {
 
     foreach my $cat (keys %$privgroups) {
 	my $cd = $privgroups->{$cat};
-	foreach my $p (@{$cd->{root}}, @{$cd->{admin}}, 
+	foreach my $p (@{$cd->{root}}, @{$cd->{admin}},
 		       @{$cd->{user}}, @{$cd->{audit}}) {
 	    $valid_privs->{$p} = 1;
 	}
@@ -609,8 +605,8 @@ sub add_role_privs {
 	    $usercfg->{roles}->{$role}->{$priv} = 1;
 	} else {
 	    die "invalid priviledge '$priv'\n";
-	} 
-    }	
+	}
+    }
 }
 
 sub normalize_path {
@@ -627,7 +623,7 @@ sub normalize_path {
     return undef if $path !~ m|^[[:alnum:]\.\-\_\/]+$|;
 
     return $path;
-} 
+}
 
 
 PVE::JSONSchema::register_format('pve-groupid', \&verify_groupname);
@@ -640,7 +636,7 @@ sub verify_groupname {
 
 	return undef;
     }
-    
+
     return $groupname;
 }
 
@@ -654,7 +650,7 @@ sub verify_rolename {
 
 	return undef;
     }
-    
+
     return $rolename;
 }
 
@@ -668,7 +664,7 @@ sub verify_poolname {
 
 	return undef;
     }
-    
+
     return $poolname;
 }
 
@@ -681,7 +677,7 @@ sub verify_privname {
 
 	return undef;
     }
-    
+
     return $priv;
 }
 
@@ -694,7 +690,7 @@ sub userconfig_force_defaults {
 
     # add root user if not exists
     if (!$cfg->{users}->{'root@pam'}) {
-	$cfg->{users}->{'root@pam'}->{enable} = 1; 
+	$cfg->{users}->{'root@pam'}->{enable} = 1;
     }
 }
 
@@ -711,7 +707,7 @@ sub parse_user_config {
 	my @data;
 
 	foreach my $d (split (/:/, $line)) {
-	    $d =~ s/^\s+//; 
+	    $d =~ s/^\s+//;
 	    $d =~ s/\s+$//;
 	    push @data, $d
 	}
@@ -752,7 +748,7 @@ sub parse_user_config {
 	    $cfg->{users}->{$user}->{comment} = PVE::Tools::decode_text($comment) if $comment;
 	    $cfg->{users}->{$user}->{expire} = $expire;
 	    # keys: allowed yubico key ids or oath secrets (base32 encoded)
-	    $cfg->{users}->{$user}->{keys} = $keys if $keys; 
+	    $cfg->{users}->{$user}->{keys} = $keys if $keys;
 
 	    #$cfg->{users}->{$user}->{groups}->{$group} = 1;
 	    #$cfg->{groups}->{$group}->{$user} = 1;
@@ -777,7 +773,7 @@ sub parse_user_config {
 		    next;
 		}
 
-		if ($cfg->{users}->{$user}) { # user exists 
+		if ($cfg->{users}->{$user}) { # user exists
 		    $cfg->{users}->{$user}->{groups}->{$group} = 1;
 		    $cfg->{groups}->{$group}->{users}->{$user} = 1;
 		} else {
@@ -787,7 +783,7 @@ sub parse_user_config {
 
 	} elsif ($et eq 'role') {
 	    my ($role, $privlist) = @data;
-		
+
 	    if (!verify_rolename($role, 1)) {
 		warn "user config - ignore role '$role' - invalid characters in role name\n";
 		next;
@@ -801,15 +797,15 @@ sub parse_user_config {
 		    $cfg->{roles}->{$role}->{$priv} = 1;
 		} else {
 		    warn "user config - ignore invalid priviledge '$priv'\n";
-		} 
+		}
 	    }
-	    
+
 	} elsif ($et eq 'acl') {
 	    my ($propagate, $pathtxt, $uglist, $rolelist) = @data;
 
 	    if (my $path = normalize_path($pathtxt)) {
 		foreach my $role (split_list($rolelist)) {
-			
+
 		    if (!verify_rolename($role, 1)) {
 			warn "user config - ignore invalid role name '$role' in acl\n";
 			next;
@@ -818,13 +814,13 @@ sub parse_user_config {
 		    foreach my $ug (split_list($uglist)) {
 			if ($ug =~ m/^@(\S+)$/) {
 			    my $group = $1;
-			    if ($cfg->{groups}->{$group}) { # group exists 
+			    if ($cfg->{groups}->{$group}) { # group exists
 				$cfg->{acl}->{$path}->{groups}->{$group}->{$role} = $propagate;
 			    } else {
 				warn "user config - ignore invalid acl group '$group'\n";
 			    }
 			} elsif (PVE::Auth::Plugin::verify_username($ug, 1)) {
-			    if ($cfg->{users}->{$ug}) { # user exists 
+			    if ($cfg->{users}->{$ug}) { # user exists
 				$cfg->{acl}->{$path}->{users}->{$ug}->{$role} = $propagate;
 			    } else {
 				warn "user config - ignore invalid acl member '$ug'\n";
@@ -863,7 +859,7 @@ sub parse_user_config {
 		}
 
 		$cfg->{pools}->{$pool}->{vms}->{$vmid} = 1;
-		    
+
 		# record vmid ==> pool relation
 		$cfg->{vms}->{$vmid} = $pool;
 	    }
@@ -907,7 +903,7 @@ sub write_user_config {
     foreach my $group (keys %{$cfg->{groups}}) {
 	my $d = $cfg->{groups}->{$group};
 	my $list = join (',', keys %{$d->{users}});
-	my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';	
+	my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';
 	$data .= "group:$group:$list:$comment:\n";
     }
 
@@ -917,7 +913,7 @@ sub write_user_config {
 	my $d = $cfg->{pools}->{$pool};
 	my $vmlist = join (',', keys %{$d->{vms}});
 	my $storelist = join (',', keys %{$d->{storage}});
-	my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';	
+	my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';
 	$data .= "pool:$pool:$comment:$vmlist:$storelist:\n";
     }
 
@@ -957,7 +953,7 @@ sub write_user_config {
 
 	foreach my $user (keys %{$d->{users}}) {
 	    # no need to save, because root is always 'Administartor'
-	    next if $user eq 'root@pam'; 
+	    next if $user eq 'root@pam';
 
 	    my $l0 = '';
 	    my $l1 = '';
@@ -991,7 +987,7 @@ sub write_user_config {
 sub roles {
     my ($cfg, $user, $path) = @_;
 
-    # NOTE: we do not consider pools here. 
+    # NOTE: we do not consider pools here.
     # You need to use $rpcenv->roles() instead if you want that.
 
     return 'Administrator' if $user eq 'root@pam'; # root can do anything
@@ -1046,7 +1042,7 @@ sub roles {
 
     return ('NoAccess') if defined ($perm->{NoAccess});
     #return () if defined ($perm->{NoAccess});
-   
+
     #print "permission $user $path = " . Dumper ($perm);
 
     my @ra = keys %$perm;
@@ -1055,7 +1051,7 @@ sub roles {
 
     return @ra;
 }
-    
+
 sub permission {
     my ($cfg, $user, $path) = @_;
 
@@ -1063,7 +1059,7 @@ sub permission {
     return {} if !$user;
 
     my @ra = roles($cfg, $user, $path);
-    
+
     my $privs = {};
 
     foreach my $role (@ra) {
@@ -1131,7 +1127,7 @@ sub add_vm_to_pool {
 
 sub remove_vm_from_pool {
     my ($vmid) = @_;
-    
+
     my $delVMfromPoolFn = sub {
 	my $usercfg = cfs_read_file("user.cfg");
 	if (my $pool = $usercfg->{vms}->{$vmid}) {
@@ -1168,7 +1164,7 @@ sub yubico_verify_otp {
     die "yubico: missing password\n" if !defined($otp);
     die "yubico: missing API ID\n" if !defined($api_id);
     die "yubico: missing API KEY\n" if !defined($api_key);
-    die "yubico: no associated yubico keys\n" if $keys =~ m/^\s+$/; 
+    die "yubico: no associated yubico keys\n" if $keys =~ m/^\s+$/;
 
     die "yubico: wrong OTP lenght\n" if (length($otp) < 32) || (length($otp) > 48);
 
@@ -1176,7 +1172,7 @@ sub yubico_verify_otp {
     # some proxies does not work with https.
 
     $url = 'http://api2.yubico.com/wsapi/2.0/verify' if !defined($url);
-    
+
     my $params = {
 	nonce =>  Digest::HMAC_SHA1::hmac_sha1_hex(time(), rand()),
 	id => $api_id,
@@ -1248,7 +1244,7 @@ sub oath_verify_otp {
     my ($otp, $keys, $step, $digits) = @_;
 
     die "oath: missing password\n" if !defined($otp);
-    die "oath: no associated oath keys\n" if $keys =~ m/^\s+$/; 
+    die "oath: no associated oath keys\n" if $keys =~ m/^\s+$/;
 
     $step = 30 if !$step;
     $digits = 6 if !$digits;
