@@ -1112,6 +1112,28 @@ sub remove_vm_access {
     lock_user_config($delVMaccessFn, "access permissions cleanup for VM $vmid failed");
 }
 
+sub remove_storage_access {
+    my ($storeid) = @_;
+
+    my $deleteStorageAccessFn = sub {
+        my $usercfg = cfs_read_file("user.cfg");
+	my $modified;
+
+        if (my $storage = $usercfg->{acl}->{"/storage/$storeid"}) {
+            delete $usercfg->{acl}->{"/storage/$storeid"};
+            $modified = 1;
+        }
+	foreach my $pool (keys %{$usercfg->{pools}}) {
+	    delete $usercfg->{pools}->{$pool}->{storage}->{$storeid};
+	    $modified = 1;
+	}
+        cfs_write_file("user.cfg", $usercfg) if $modified;
+    };
+
+    lock_user_config($deleteStorageAccessFn,
+		     "access permissions cleanup for storage $storeid failed");
+}
+
 sub add_vm_to_pool {
     my ($vmid, $pool) = @_;
 
