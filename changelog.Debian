@@ -1,3 +1,9 @@
+libpve-access-control (4.0-9) unstable; urgency=medium
+
+  * pveum: implement bash completion
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 01 Oct 2015 17:22:52 +0200
+
 libpve-access-control (4.0-8) unstable; urgency=medium
 
   * remove_storage_access: cleanup of access permissions for removed storage
