@@ -12,6 +12,8 @@ MANDIR=${PREFIX}/share/man
 DOCDIR=${PREFIX}/share/doc/${PACKAGE}
 PODDIR=${DOCDIR}/pod
 MAN1DIR=${MANDIR}/man1/
+BASHCOMPLDIR=${PREFIX}/share/bash-completion/completions/
+
 export PERLDIR=${PREFIX}/share/perl5
 
 ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
@@ -34,8 +36,12 @@ pveum.1.pod: PVE/CLI/pveum.pm
 	perl -I. -T -e "use PVE::CLI::pveum; PVE::CLI::pveum->generate_pod_manpage();" >$@.tmp
 	mv $@.tmp $@
 
+pveum.bash-completion: PVE/CLI/pveum.pm
+	perl -I. -T -e "use PVE::CLI::pveum; PVE::CLI::pveum->generate_bash_completions();" >$@.tmp
+	mv $@.tmp $@
+
 .PHONY: install
-install: pveum.1.pod pveum.1.gz oathkeygen
+install: pveum.1.pod pveum.1.gz oathkeygen pveum.bash-completion
 	install -d ${DESTDIR}${BINDIR}
 	install -d ${DESTDIR}${SBINDIR}
 	install -m 0755 pveum ${DESTDIR}${SBINDIR}
@@ -47,6 +53,7 @@ install: pveum.1.pod pveum.1.gz oathkeygen
 	install -d ${DESTDIR}${PODDIR}
 	install -m 0644 pveum.1.gz ${DESTDIR}/usr/share/man/man1/
 	install -m 0644 pveum.1.pod ${DESTDIR}/${PODDIR}
+	install -m 0644 -D pveum.bash-completion ${DESTDIR}${BASHCOMPLDIR}/pveum
 
 .PHONY: deb ${DEB}
 deb ${DEB}:
