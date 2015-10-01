@@ -107,7 +107,10 @@ __PACKAGE__->register_method ({
     parameters => {
    	additionalProperties => 0,
 	properties => {
-	    groupid => { type => 'string', format => 'pve-groupid' },
+	    groupid => {
+		type => 'string', format => 'pve-groupid',
+		completion => \&PVE::AccessControl::complete_group,
+	    },
 	    comment => { type => 'string', optional => 1 },
 	},
     },
@@ -195,7 +198,10 @@ __PACKAGE__->register_method ({
     parameters => {
    	additionalProperties => 0,
 	properties => {
-	    groupid => { type => 'string' , format => 'pve-groupid' },
+	    groupid => {
+		type => 'string' , format => 'pve-groupid',
+		completion => \&PVE::AccessControl::complete_group,
+	    },
 	}
     },
     returns => { type => 'null' },

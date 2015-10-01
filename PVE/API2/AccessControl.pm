@@ -235,10 +235,13 @@ __PACKAGE__->register_method ({
 		description => "User name",
 		type => 'string',
 		maxLength => 64,
+		completion => \&PVE::AccessControl::complete_username,
 	    },
 	    realm =>  get_standard_option('realm', {
 		description => "You can optionally pass the realm using this parameter. Normally the realm is simply added to the username <username>\@<relam>.",
-		optional => 1}),
+		optional => 1,
+		completion => \&PVE::AccessControl::complete_realm,
+	    }),
 	    password => { 
 		description => "The secret password. This can also be a valid ticket.",
 		type => 'string',
@@ -325,7 +328,9 @@ __PACKAGE__->register_method ({
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    userid => get_standard_option('userid'),
+	    userid => get_standard_option('userid', {
+		completion => \&PVE::AccessControl::complete_username,
+	    }),
 	    password => { 
 		description => "The new password.",
 		type => 'string',

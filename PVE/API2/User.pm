@@ -119,7 +119,11 @@ __PACKAGE__->register_method ({
 		minLength => 5, 
 		maxLength => 64 
 	    },
-	    groups => { type => 'string', optional => 1, format => 'pve-groupid-list'},
+	    groups => {
+		type => 'string', format => 'pve-groupid-list',
+		optional => 1,
+		completion => \&PVE::AccessControl::complete_group,
+	    },
 	    firstname => { type => 'string', optional => 1 },
 	    lastname => { type => 'string', optional => 1 },
 	    email => { type => 'string', optional => 1, format => 'email-opt' },
@@ -238,8 +242,14 @@ __PACKAGE__->register_method ({
     parameters => {
    	additionalProperties => 0,
 	properties => {
-	    userid => get_standard_option('userid'),
-	    groups => { type => 'string', optional => 1,  format => 'pve-groupid-list'  },
+	    userid => get_standard_option('userid', {
+		completion => \&PVE::AccessControl::complete_username,
+	    }),
+	    groups => {
+		type => 'string', format => 'pve-groupid-list',
+		optional => 1,
+		completion => \&PVE::AccessControl::complete_group,
+	    },
 	    append => { 
 		type => 'boolean', 
 		optional => 1,
@@ -325,7 +335,9 @@ __PACKAGE__->register_method ({
     parameters => {
    	additionalProperties => 0,
 	properties => {
-	    userid => get_standard_option('userid'),
+	    userid => get_standard_option('userid', {
+		completion => \&PVE::AccessControl::complete_username,
+	    }),
 	}
     },
     returns => { type => 'null' },

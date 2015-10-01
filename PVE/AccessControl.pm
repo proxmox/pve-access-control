@@ -1294,4 +1294,27 @@ sub oath_verify_otp {
     die "oath auth failed\n" if !$found;
 }
 
+# bash completion helpers
+
+sub complete_username {
+
+    my $user_cfg = cfs_read_file('user.cfg');
+
+    return [ keys %{$user_cfg->{users}} ];
+}
+
+sub complete_group {
+
+    my $user_cfg = cfs_read_file('user.cfg');
+
+    return [ keys %{$user_cfg->{groups}} ];
+}
+
+sub complete_realm {
+
+    my $domain_cfg = cfs_read_file('domains.cfg');
+
+    return [ keys %{$domain_cfg->{ids}} ];
+}
+
 1;
