@@ -30,8 +30,8 @@ dinstall: deb
 	cat $<|pod2man -n $* -s 1 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@.tmp
 	mv $@.tmp $@
 
-pveum.1.pod: pveum
-	perl -I. ./pveum printmanpod >$@.tmp
+pveum.1.pod: PVE/CLI/pveum.pm
+	perl -I. -T -e "use PVE::CLI::pveum; PVE::CLI::pveum->generate_pod_manpage();" >$@.tmp
 	mv $@.tmp $@
 
 .PHONY: install
@@ -41,7 +41,8 @@ install: pveum.1.pod pveum.1.gz oathkeygen
 	install -m 0755 pveum ${DESTDIR}${SBINDIR}
 	install -m 0755 oathkeygen ${DESTDIR}${BINDIR}
 	make -C PVE install
-	perl -I. ./pveum verifyapi 
+	perl -I. ./pveum verifyapi
+	perl -I. -T -e "use PVE::CLI::pveum; PVE::CLI::pveum->verify_api();"
 	install -d ${DESTDIR}/usr/share/man/man1
 	install -d ${DESTDIR}${PODDIR}
 	install -m 0644 pveum.1.gz ${DESTDIR}/usr/share/man/man1/
