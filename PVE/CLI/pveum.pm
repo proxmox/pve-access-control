@@ -66,12 +66,12 @@ __END__
 
 pveum - PVE User Manager
 
+=head1 DESCRIPTION
+
+Tools to manage PVE users, groups, roles and permissions. Modifying roles and permissions is complex and usually easier to handle using the GUI. So the command line interface is mainly provided for scripting purposes. 
+
 =head1 SYNOPSIS
 
 =include synopsis
-
-=head1 DESCRIPTION
-
-No description available.
 
 =include pve_copyright
