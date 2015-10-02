@@ -5,22 +5,9 @@ use warnings;
 
 use PVE::CLI::pveum;
 
-my $read_password = sub {
-
-    # return $ENV{PVE_PW_TICKET} if defined($ENV{PVE_PW_TICKET});
-
-    my $term = new Term::ReadLine ('pveum');
-    my $attribs = $term->Attribs;
-    $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-    my $input = $term->readline('Enter new password: ');
-    my $conf = $term->readline('Retype new password: ');
-    die "Passwords do not match.\n" if ($input ne $conf);
-    return $input;
-};
-
 my $prepare = sub {
     # autmatically generate the private key if it does not already exists
     PVE::Cluster::gen_auth_key();
 };
 
-PVE::CLI::pveum->run_cli($read_password, undef, $prepare);
+PVE::CLI::pveum->run_cli_handler(prepare => $prepare);

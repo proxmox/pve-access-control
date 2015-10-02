@@ -21,6 +21,18 @@ use PVE::CLIHandler;
 
 use base qw(PVE::CLIHandler);
 
+sub read_password {
+    # return $ENV{PVE_PW_TICKET} if defined($ENV{PVE_PW_TICKET});
+
+    my $term = new Term::ReadLine ('pveum');
+    my $attribs = $term->Attribs;
+    $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
+    my $input = $term->readline('Enter new password: ');
+    my $conf = $term->readline('Retype new password: ');
+    die "Passwords do not match.\n" if ($input ne $conf);
+    return $input;
+}
+
 our $cmddef = {
     ticket => [ 'PVE::API2::AccessControl', 'create_ticket', ['username'], undef,
 		sub {
