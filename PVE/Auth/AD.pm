@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use PVE::Auth::Plugin;
 use Net::LDAP;
+use Net::IP;
 
 use base qw(PVE::Auth::Plugin);
 
@@ -16,14 +17,14 @@ sub properties {
 	server1 => { 
 	    description => "Server IP address (or DNS name)",		
 	    type => 'string',
-	    pattern => '[\w\d]+(.[\w\d]+)*',
+	    format => 'address',
 	    maxLength => 256,
 	},
 	server2 => { 
 	    description => "Fallback Server IP address (or DNS name)",
 	    type => 'string',
 	    optional => 1,
-	    pattern => '[\w\d]+(.[\w\d]+)*',
+	    format => 'address',
 	    maxLength => 256,
 	},
 	secure => { 
@@ -80,6 +81,7 @@ my $authenticate_user_ad = sub {
     my $default_port = $config->{secure} ? 636: 389;
     my $port = $config->{port} ? $config->{port} : $default_port;
     my $scheme = $config->{secure} ? 'ldaps' : 'ldap';
+    $server = "[$server]" if Net::IP::ip_is_ipv6($server);
     my $conn_string = "$scheme://${server}:$port";
     
     my $ldap = Net::LDAP->new($conn_string) || die "$@\n";
