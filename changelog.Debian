@@ -1,3 +1,9 @@
+libpve-access-control (4.0-10) unstable; urgency=medium
+
+  *  Auth::LDAP, Auth::AD: ipv6 support
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 03 Dec 2015 12:09:32 +0100
+
 libpve-access-control (4.0-9) unstable; urgency=medium
 
   * pveum: implement bash completion
