@@ -676,7 +676,7 @@ sub active_workers  {
 	my @arlist = ();
 	foreach my $task (@ta) {
 	    if (!$task->{saved}) {
-		$archive .= sprintf("$task->{upid} %08X $task->{status}\n", $task->{endtime});
+		$archive .= sprintf("%s %08X %s\n", $task->{upid}, $task->{endtime}, $task->{status});
 		$save = 1;
 		push @arlist, $task;
 		$task->{saved} = 1;
