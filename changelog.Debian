@@ -1,3 +1,9 @@
+libpve-access-control (4.0-11) unstable; urgency=medium
+
+  * Fix #861: use safer sprintf formatting
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 08 Jan 2016 12:52:39 +0100
+
 libpve-access-control (4.0-10) unstable; urgency=medium
 
   *  Auth::LDAP, Auth::AD: ipv6 support
