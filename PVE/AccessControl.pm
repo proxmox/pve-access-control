@@ -287,8 +287,15 @@ sub read_x509_subject_spice {
 
     # read x509 subject
     my $bio = Net::SSLeay::BIO_new_file($filename, 'r');
+    die "Could not open $filename using OpenSSL\n"
+	if !$bio;
+
     my $x509 = Net::SSLeay::PEM_read_bio_X509($bio);
     Net::SSLeay::BIO_free($bio);
+
+    die "Could not parse X509 certificate in $filename\n"
+	if !$x509;
+
     my $nameobj = Net::SSLeay::X509_get_subject_name($x509);
     my $subject = Net::SSLeay::X509_NAME_oneline($nameobj);
     Net::SSLeay::X509_free($x509);
