@@ -1199,8 +1199,6 @@ sub yubico_verify_otp {
 
     die "yubico: wrong OTP lenght\n" if (length($otp) < 32) || (length($otp) > 48);
 
-    # we always use http, because https cert verification always make problem, and
-    # some proxies does not work with https.
 
     $url = 'http://api2.yubico.com/wsapi/2.0/verify' if !defined($url);
 
@@ -1217,10 +1215,10 @@ sub yubico_verify_otp {
 
     my $req = HTTP::Request->new('GET' => "$url?$paramstr");
 
-    my $ua = LWP::UserAgent->new(protocols_allowed => ['http'], timeout => 30);
+    my $ua = LWP::UserAgent->new(protocols_allowed => ['http', 'https'], timeout => 30);
 
     if ($proxy) {
-	$ua->proxy(['http'], $proxy);
+	$ua->proxy(['http', 'https'], $proxy);
     } else {
 	$ua->env_proxy;
     }
