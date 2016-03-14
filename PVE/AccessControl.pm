@@ -228,19 +228,19 @@ sub assemble_spice_ticket {
 
     my $randomstr = "PVESPICE:$timestamp:$vmid:$node:" . rand(10);
 
-    # this should be uses as one-time password
+    # this should be used as one-time password
     # max length is 60 chars (spice limit)
     # we pass this to qemu set_pasword and limit lifetime there
     # keep this secret
     my $ticket = Digest::SHA::sha1_hex($rsa_priv->sign($randomstr));
 
     # Note: spice proxy connects with HTTP, so $proxyticket is exposed to public
-    # we use a signature/timestamp to make sure nobody can fake such ticket
+    # we use a signature/timestamp to make sure nobody can fake such a ticket
     # an attacker can use this $proxyticket, but he will fail because $ticket is
     # private.
-    # The proxy need to be able to extract/verify the ticket
+    # The proxy needs to be able to extract/verify the ticket
     # Note: data needs to be lower case only, because virt-viewer needs that
-    # Note: RSA signature are too long (>=256 charaters) and makes problems with remote-viewer
+    # Note: RSA signature are too long (>=256 charaters) and make problems with remote-viewer
 
     my $secret = &$get_csrfr_secret();
     my $plain = "pvespiceproxy:$timestamp:$vmid:" . lc($node);
@@ -332,7 +332,7 @@ sub remote_viewer_config {
 	'release-cursor' => "Ctrl+Alt+R",
 	type => 'spice',
 	title => $title,
-	host => $proxyticket, # this break tls hostname verification, so we need to use 'host-subject'
+	host => $proxyticket, # this breaks tls hostname verification, so we need to use 'host-subject'
 	proxy => "http://$proxy:3128",
 	'tls-port' => $port,
 	'host-subject' => $subject,
@@ -375,7 +375,7 @@ sub verify_one_time_pw {
 
     my $type = $tfa_cfg->{type};
 
-    die "missing one time password for Factor-two authentication '$type'\n" if !$otp;
+    die "missing one time password for two-factor authentication '$type'\n" if !$otp;
 
     # fixme: proxy support?
     my $proxy;
@@ -392,7 +392,7 @@ sub verify_one_time_pw {
 }
 
 # password should be utf8 encoded
-# Note: some pluging delay/sleep if auth fails
+# Note: some plugins delay/sleep if auth fails
 sub authenticate_user {
     my ($username, $password, $otp) = @_;
 
@@ -434,7 +434,7 @@ sub domain_set_password {
     my $domain_cfg = cfs_read_file('domains.cfg');
 
     my $cfg = $domain_cfg->{ids}->{$realm};
-    die "auth domain '$realm' does not exists\n" if !$cfg;
+    die "auth domain '$realm' does not exist\n" if !$cfg;
     my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
     $plugin->store_password($cfg, $realm, $username, $password);
 }
@@ -488,7 +488,7 @@ sub delete_pool_acl {
 # into 3 groups (per category)
 # root: only root is allowed to do that
 # admin: an administrator can to that
-# user: a normak user/customer can to that
+# user: a normal user/customer can to that
 my $privgroups = {
     VM => {
 	root => [],
@@ -568,8 +568,8 @@ my $privgroups = {
 my $valid_privs = {};
 
 my $special_roles = {
-    'NoAccess' => {}, # no priviledges
-    'Administrator' => $valid_privs, # all priviledges
+    'NoAccess' => {}, # no privileges
+    'Administrator' => $valid_privs, # all privileges
 };
 
 sub create_roles {
@@ -611,7 +611,7 @@ sub add_role_privs {
 	if (defined ($valid_privs->{$priv})) {
 	    $usercfg->{roles}->{$role}->{$priv} = 1;
 	} else {
-	    die "invalid priviledge '$priv'\n";
+	    die "invalid privilege '$priv'\n";
 	}
     }
 }
@@ -680,7 +680,7 @@ sub verify_privname {
     my ($priv, $noerr) = @_;
 
     if (!$valid_privs->{$priv}) {
-	die "invalid priviledge '$priv'\n" if !$noerr;
+	die "invalid privilege '$priv'\n" if !$noerr;
 
 	return undef;
     }
@@ -959,7 +959,7 @@ sub write_user_config {
 	}
 
 	foreach my $user (keys %{$d->{users}}) {
-	    # no need to save, because root is always 'Administartor'
+	    # no need to save, because root is always 'Administrator'
 	    next if $user eq 'root@pam';
 
 	    my $l0 = '';
@@ -1197,8 +1197,7 @@ sub yubico_verify_otp {
     die "yubico: missing API KEY\n" if !defined($api_key);
     die "yubico: no associated yubico keys\n" if $keys =~ m/^\s+$/;
 
-    die "yubico: wrong OTP lenght\n" if (length($otp) < 32) || (length($otp) > 48);
-
+    die "yubico: wrong OTP length\n" if (length($otp) < 32) || (length($otp) > 48);
 
     $url = 'http://api2.yubico.com/wsapi/2.0/verify' if !defined($url);
 
