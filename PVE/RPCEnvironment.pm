@@ -28,6 +28,7 @@ my $pve_env;
 # that (also see perlipc)
 
 my $WORKER_PIDS;
+my $WORKER_FLAG = 0;
 
 my $log_task_result = sub {
     my ($upid, $user, $status) = @_;
@@ -614,6 +615,10 @@ sub get_user {
     return $self->{user};
 }
 
+sub is_worker {
+    return $WORKER_FLAG;
+}
+
 # read/update list of active workers 
 # we move all finished tasks to the archive index,
 # but keep aktive and most recent task in the active file.
@@ -808,6 +813,7 @@ sub fork_worker {
     if (!$cpid) { # child
 
 	$0 = "task $upid";
+	$WORKER_FLAG = 1;
 
 	$SIG{INT} = $SIG{QUIT} = $SIG{TERM} = sub { die "received interrupt\n"; };
 
