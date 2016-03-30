@@ -19,6 +19,8 @@ sub parse_shadow_passwd {
 
     my $shadow = {};
 
+    return $shadow if !defined($raw);
+
     while ($raw =~ /^\s*(.+?)\s*$/gm) {
 	my $line = $1;
 
