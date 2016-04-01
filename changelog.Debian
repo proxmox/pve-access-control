@@ -1,3 +1,9 @@
+libpve-access-control (4.0-15) unstable; urgency=medium
+
+  * Fix uninitialized warning when shadow.cfg does not exist
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 01 Apr 2016 07:10:57 +0200
+
 libpve-access-control (4.0-14) unstable; urgency=medium
 
   * Add is_worker to RPCEnvironment
