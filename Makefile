@@ -2,7 +2,7 @@ RELEASE=4.1
 
 VERSION=4.0
 PACKAGE=libpve-access-control
-PKGREL=15
+PKGREL=16
 
 DESTDIR=
 PREFIX=/usr
@@ -10,7 +10,6 @@ BINDIR=${PREFIX}/bin
 SBINDIR=${PREFIX}/sbin
 MANDIR=${PREFIX}/share/man
 DOCDIR=${PREFIX}/share/doc/${PACKAGE}
-PODDIR=${DOCDIR}/pod
 MAN1DIR=${MANDIR}/man1/
 BASHCOMPLDIR=${PREFIX}/share/bash-completion/completions/
 
@@ -21,27 +20,22 @@ GITVERSION:=$(shell cat .git/refs/heads/master)
 
 DEB=${PACKAGE}_${VERSION}-${PKGREL}_${ARCH}.deb
 
+# this requires package pve-doc-generator
+export NOVIEW=1
+include /usr/share/pve-doc-generator/pve-doc-generator.mk
+
 all: ${DEB}
 
 .PHONY: dinstall
 dinstall: deb
 	dpkg -i ${DEB}
 
-%.1.gz: %.1.pod
-	rm -f $@
-	cat $<|pod2man -n $* -s 1 -r ${VERSION} -c "Proxmox Documentation"|gzip -c9 >$@.tmp
-	mv $@.tmp $@
-
-pveum.1.pod: PVE/CLI/pveum.pm
-	perl -I. -T -e "use PVE::CLI::pveum; PVE::CLI::pveum->generate_pod_manpage();" >$@.tmp
-	mv $@.tmp $@
-
 pveum.bash-completion: PVE/CLI/pveum.pm
 	perl -I. -T -e "use PVE::CLI::pveum; PVE::CLI::pveum->generate_bash_completions();" >$@.tmp
 	mv $@.tmp $@
 
 .PHONY: install
-install: pveum.1.pod pveum.1.gz oathkeygen pveum.bash-completion
+install: pveum.1 oathkeygen pveum.bash-completion
 	install -d ${DESTDIR}${BINDIR}
 	install -d ${DESTDIR}${SBINDIR}
 	install -m 0755 pveum ${DESTDIR}${SBINDIR}
@@ -49,10 +43,10 @@ install: pveum.1.pod pveum.1.gz oathkeygen pveum.bash-completion
 	make -C PVE install
 	perl -I. ./pveum verifyapi
 	perl -I. -T -e "use PVE::CLI::pveum; PVE::CLI::pveum->verify_api();"
-	install -d ${DESTDIR}/usr/share/man/man1
-	install -d ${DESTDIR}${PODDIR}
-	install -m 0644 pveum.1.gz ${DESTDIR}/usr/share/man/man1/
-	install -m 0644 pveum.1.pod ${DESTDIR}/${PODDIR}
+	install -d ${DESTDIR}/${MAN1DIR}
+	install -d ${DESTDIR}/${DOCDIR}
+	install -m 0644 pveum.1 ${DESTDIR}/${MAN1DIR}
+	gzip -9 ${DESTDIR}/${MAN1DIR}/pveum.1
 	install -m 0644 -D pveum.bash-completion ${DESTDIR}${BASHCOMPLDIR}/pveum
 
 .PHONY: deb ${DEB}
@@ -83,8 +77,9 @@ upload: ${DEB}
 	umount /pve/${RELEASE}; mount /pve/${RELEASE} -o ro
 
 .PHONY: clean
-clean: 	
-	rm -rf build *~ *.deb ${PACKAGE}-*.tar.gz pveum.1.pod pveum.1.gz
+clean:
+	make cleanup-docgen
+	rm -rf build *~ *.deb ${PACKAGE}-*.tar.gz pveum.1
 	find . -name '*~' -exec rm {} ';'
 
 .PHONY: distclean

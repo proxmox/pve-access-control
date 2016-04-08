@@ -1,3 +1,9 @@
+libpve-access-control (4.0-16) unstable; urgency=medium
+
+  * use pve-doc-generator to generate man pages
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 08 Apr 2016 07:06:05 +0200
+
 libpve-access-control (4.0-15) unstable; urgency=medium
 
   * Fix uninitialized warning when shadow.cfg does not exist
