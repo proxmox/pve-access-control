@@ -59,19 +59,3 @@ our $cmddef = {
 };
 
 1;
-
-__END__
-
-=head1 NAME
-
-pveum - PVE User Manager
-
-=head1 DESCRIPTION
-
-Tools to manage PVE users, groups, roles and permissions. Modifying roles and permissions is complex and usually easier to handle using the GUI. So the command line interface is mainly provided for scripting purposes. 
-
-=head1 SYNOPSIS
-
-=include synopsis
-
-=include pve_copyright
