@@ -8,6 +8,7 @@ use Crypt::OpenSSL::RSA;
 use Net::SSLeay;
 use Net::IP;
 use MIME::Base64;
+use MIME::Base32 qw(RFC); #libmime-base32-perl
 use Digest::SHA;
 use URI::Escape;
 use LWP::UserAgent;
@@ -1172,6 +1173,23 @@ sub remove_vm_from_pool {
     lock_user_config($delVMfromPoolFn, "pool cleanup for VM $vmid failed");
 }
 
+# hotp/totp code
+
+sub hotp($$;$) {
+	my ($binsecret, $number, $digits) = @_;
+
+	$digits = 6 if !defined($digits);
+
+	my $bincounter = pack('Q>', $number);
+	my $hmac = Digest::SHA::hmac_sha1($bincounter, $binsecret);
+
+	my $offset = unpack('C', substr($hmac,19) & pack('C', 0x0F));
+	my $part = substr($hmac, $offset, 4);
+	my $otp = unpack('N', $part);
+	my $value = ($otp & 0x7fffffff) % (10**$digits);
+	return sprintf("%0${digits}d", $value);
+}
+
 # experimental code for yubico OTP verification
 
 sub yubico_compute_param_sig {
@@ -1278,20 +1296,23 @@ sub oath_verify_otp {
     $digits = 6 if !$digits;
 
     my $found;
-
-    my $parser = sub {
-	my $line = shift;
-
-	if ($line =~ m/^\d{6}$/) {
-	    $found = 1 if $otp eq $line;
-	}
-    };
-
     foreach my $k (PVE::Tools::split_list($keys)) {
 	# Note: we generate 3 values to allow small time drift
-	my $now = localtime(time() - $step);
-	my $cmd = ['oathtool', '--totp', '--digits', $digits, '-N', $now, '-s', $step, '-w', '2', '-b', $k];
-	eval { run_command($cmd, outfunc => $parser, errfunc => sub {}); };
+	my $binkey;
+	if ($k =~ /^[A-Z2-7=]{32}$/) {
+	    $binkey = MIME::Base32::decode_rfc3548($k);
+	} elsif ($k =~ /^[A-Fa-f0-9]{40}$/) {
+	    $binkey = pack('H*', $k);
+	} else {
+	    die "unrecognized key format, must be hex or base32 encoded\n";
+	}
+
+	# force integer division for time/step
+	use integer;
+	my $now = time()/$step - 1;
+	$found = 1 if $otp eq hotp($binkey, $now+0, $digits);
+	$found = 1 if $otp eq hotp($binkey, $now+1, $digits);
+	$found = 1 if $otp eq hotp($binkey, $now+2, $digits);
 	last if $found;
     }
 
