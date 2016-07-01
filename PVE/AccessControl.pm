@@ -9,7 +9,6 @@ use Net::SSLeay;
 use Net::IP;
 use MIME::Base64;
 use Digest::SHA;
-use Digest::HMAC_SHA1;
 use URI::Escape;
 use LWP::UserAgent;
 use PVE::Tools qw(run_command lock_file file_get_contents split_list safe_print);
@@ -1184,7 +1183,8 @@ sub yubico_compute_param_sig {
 	$paramstr .= "$key=$param->{$key}";
     }
 
-    my $sig = uri_escape(encode_base64(Digest::HMAC_SHA1::hmac_sha1($paramstr, decode_base64($api_key || '')), ''));
+    # hmac_sha1_base64 does not add '=' padding characters, so we use encode_base64
+    my $sig = uri_escape(encode_base64(Digest::SHA::hmac_sha1($paramstr, decode_base64($api_key || '')), ''));
 
     return ($paramstr, $sig);
 }
@@ -1202,7 +1202,7 @@ sub yubico_verify_otp {
     $url = 'http://api2.yubico.com/wsapi/2.0/verify' if !defined($url);
 
     my $params = {
-	nonce =>  Digest::HMAC_SHA1::hmac_sha1_hex(time(), rand()),
+	nonce =>  Digest::SHA::hmac_sha1_hex(time(), rand()),
 	id => $api_id,
 	otp => uri_escape($otp),
 	timestamp => 1,
