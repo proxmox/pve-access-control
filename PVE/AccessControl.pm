@@ -1299,7 +1299,7 @@ sub oath_verify_otp {
     foreach my $k (PVE::Tools::split_list($keys)) {
 	# Note: we generate 3 values to allow small time drift
 	my $binkey;
-	if ($k =~ /^[A-Z2-7=]{32}$/) {
+	if ($k =~ /^[A-Z2-7=]{16}$/) {
 	    $binkey = MIME::Base32::decode_rfc3548($k);
 	} elsif ($k =~ /^[A-Fa-f0-9]{40}$/) {
 	    $binkey = pack('H*', $k);
