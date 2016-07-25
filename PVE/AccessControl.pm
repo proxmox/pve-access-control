@@ -8,7 +8,7 @@ use Crypt::OpenSSL::RSA;
 use Net::SSLeay;
 use Net::IP;
 use MIME::Base64;
-use MIME::Base32 qw(RFC); #libmime-base32-perl
+use MIME::Base32; #libmime-base32-perl
 use Digest::SHA;
 use URI::Escape;
 use LWP::UserAgent;
