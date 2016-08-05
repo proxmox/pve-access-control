@@ -1,3 +1,11 @@
+libpve-access-control (4.0-19) unstable; urgency=medium
+
+  * Close #833: ldap: non-anonymous bind support
+
+  * don't import 'RFC' from MIME::Base32
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 05 Aug 2016 13:09:08 +0200
+
 libpve-access-control (4.0-18) unstable; urgency=medium
 
   * fix #1062: recognize base32 otp keys again
