@@ -40,8 +40,11 @@ __PACKAGE__->register_method ({
 		    enum => [ 'yubico', 'oath' ],
 		    optional => 1,
 		},
-		comment => { type => 'string', optional => 1 },
-		comment => { type => 'string', optional => 1 },
+		comment => {
+		    description => "A comment. The GUI use this text when you select a domain (Realm) on the login window.",
+		    type => 'string',
+		    optional => 1,
+		},
 	    },
 	},
 	links => [ { rel => 'child', href => "{realm}" } ],
