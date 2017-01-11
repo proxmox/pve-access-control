@@ -1,3 +1,13 @@
+libpve-access-control (4.0-20) unstable; urgency=medium
+
+  * PVE/RPCEnvironment.pm: new function setup_default_cli_env
+
+  * PVE/API2/Domains.pm: fix property description
+
+  * use new repoman for upload target
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 11 Jan 2017 12:13:26 +0100
+
 libpve-access-control (4.0-19) unstable; urgency=medium
 
   * Close #833: ldap: non-anonymous bind support
