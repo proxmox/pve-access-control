@@ -513,6 +513,23 @@ sub init {
     return $self;
 }; 
 
+# convenience function for command line tools
+sub setup_default_cli_env {
+    my ($username) = @_;
+
+    $username //= 'root@pam';
+
+    PVE::INotify::inotify_init();
+
+    my $rpcenv = PVE::RPCEnvironment->init('cli');
+    $rpcenv->init_request();
+    $rpcenv->set_language($ENV{LANG});
+    $rpcenv->set_user($username);
+
+    die "please run as root\n"
+	if ($username eq 'root@pam') && ($> != 0);
+}
+
 # get the singleton 
 sub get {
 
