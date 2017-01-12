@@ -515,13 +515,15 @@ sub init {
 
 # convenience function for command line tools
 sub setup_default_cli_env {
-    my ($username) = @_;
+    my ($class, $username) = @_;
+
+    $class = ref($class) || $class;
 
     $username //= 'root@pam';
 
     PVE::INotify::inotify_init();
 
-    my $rpcenv = PVE::RPCEnvironment->init('cli');
+    my $rpcenv = $class->init('cli');
     $rpcenv->init_request();
     $rpcenv->set_language($ENV{LANG});
     $rpcenv->set_user($username);
