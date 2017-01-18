@@ -15,8 +15,6 @@ use PVE::AccessControl;
 
 use base qw(PVE::RESTEnvironment);
 
-# FIXME: remove dependency to PVE::Storage;
-
 # ACL cache
 
 my $compile_acl_path = sub {
@@ -210,33 +208,6 @@ sub check_vm_perm {
     }
     return $self->check_full($user, "/vms/$vmid", $privs, $any, $noerr);
 };
-
-sub check_volume_access {
-    my ($self, $user, $storecfg, $vmid, $volid) = @_;
-
-    # test if we have read access to volid
-
-    my ($sid, $volname) = PVE::Storage::parse_volume_id($volid, 1);
-    if ($sid) {
-	my ($vtype, undef, $ownervm) = PVE::Storage::parse_volname($storecfg, $volid);
-	if ($vtype eq 'iso' || $vtype eq 'vztmpl') {
-	    # we simply allow access
-	} elsif (defined($ownervm) && defined($vmid) && ($ownervm == $vmid)) {
-	    # we are owner - allow access
-	} elsif ($vtype eq 'backup' && $ownervm) {
-	    $self->check($user, "/storage/$sid", ['Datastore.AllocateSpace']);
-	    $self->check($user, "/vms/$ownervm", ['VM.Backup']);
-	} else {
-	    # allow if we are Datastore administrator
-	    $self->check($user, "/storage/$sid", ['Datastore.Allocate']);
-	}
-    } else {
-	die "Only root can pass arbitrary filesystem paths."
-	    if $user ne 'root@pam';
-    }
-
-    return undef;
-}
 
 sub is_group_member {
     my ($self, $group, $user) = @_;
