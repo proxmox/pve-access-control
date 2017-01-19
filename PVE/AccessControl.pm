@@ -10,6 +10,8 @@ use Net::IP;
 use MIME::Base64;
 use MIME::Base32; #libmime-base32-perl
 use Digest::SHA;
+
+use PVE::Ticket;
 use URI::Escape;
 use LWP::UserAgent;
 use PVE::Tools qw(run_command lock_file file_get_contents split_list safe_print);
@@ -89,30 +91,18 @@ my $get_csrfr_secret = sub {
 sub assemble_csrf_prevention_token {
     my ($username) = @_;
 
-    my $timestamp = sprintf("%08X", time());
+    my $secret =  &$get_csrfr_secret();
 
-    my $digest = Digest::SHA::sha1_base64("$timestamp:$username", &$get_csrfr_secret());
-
-    return "$timestamp:$digest";
+    return PVE::Ticket::assemble_csrf_prevention_token ($secret, $username);
 }
 
 sub verify_csrf_prevention_token {
     my ($username, $token, $noerr) = @_;
 
-    if ($token =~ m/^([A-Z0-9]{8}):(\S+)$/) {
-	my $sig = $2;
-	my $timestamp = $1;
-	my $ttime = hex($timestamp);
+    my $secret =  &$get_csrfr_secret();
 
-	my $digest = Digest::SHA::sha1_base64("$timestamp:$username", &$get_csrfr_secret());
-
-	my $age = time() - $ttime;
-	return if ($digest eq $sig) && ($age > -300) && ($age < $ticket_lifetime);
-    }
-
-    die "Permission denied - invalid csrf token\n" if !$noerr;
-
-    return undef;
+    return PVE::Ticket::verify_csrf_prevention_token(
+	$secret, $username, $token, -300, $ticket_lifetime, $noerr);
 }
 
 my $pve_auth_priv_key;
@@ -132,42 +122,22 @@ sub assemble_ticket {
 
     my $rsa_priv = get_privkey();
 
-    my $timestamp = sprintf("%08X", time());
-
-    my $plain = "PVE:$username:$timestamp";
-
-    my $ticket = $plain . "::" . encode_base64($rsa_priv->sign($plain), '');
-
-    return $ticket;
+    return PVE::Ticket::assemble_rsa_ticket($rsa_priv, 'PVE', $username);
 }
 
 sub verify_ticket {
     my ($ticket, $noerr) = @_;
 
-    if ($ticket && $ticket =~ m/^(PVE:\S+)::([^:\s]+)$/) {
-	my $plain = $1;
-	my $sig = $2;
+    my $rsa_pub = get_pubkey();
 
-	my $rsa_pub = get_pubkey();
-	if ($rsa_pub->verify($plain, decode_base64($sig))) {
-	    if ($plain =~ m/^PVE:(\S+):([A-Z0-9]{8})$/) {
-		my $username = $1;
-		my $timestamp = $2;
-		my $ttime = hex($timestamp);
+    my ($username, $age) = PVE::Ticket::verify_rsa_ticket(
+	$rsa_pub, 'PVE', $ticket, undef, -300, $ticket_lifetime, $noerr);
 
-		my $age = time() - $ttime;
+    return undef if $noerr && !defined($username);
 
-		if (PVE::Auth::Plugin::verify_username($username, 1) &&
-		    ($age > -300) && ($age < $ticket_lifetime)) {
-		    return wantarray ? ($username, $age) : $username;
-		}
-	    }
-	}
-    }
+    return undef if !PVE::Auth::Plugin::verify_username($username, $noerr);
 
-    die "permission denied - invalid ticket\n" if !$noerr;
-
-    return undef;
+    return wantarray ? ($username, $age) : $username;
 }
 
 # VNC tickets
@@ -178,108 +148,41 @@ sub assemble_vnc_ticket {
 
     my $rsa_priv = get_privkey();
 
-    my $timestamp = sprintf("%08X", time());
-
-    my $plain = "PVEVNC:$timestamp";
-
     $path = normalize_path($path);
 
-    my $full = "$plain:$username:$path";
+    my $secret_data = "$username:$path";
 
-    my $ticket = $plain . "::" . encode_base64($rsa_priv->sign($full), '');
-
-    return $ticket;
+    return PVE::Ticket::assemble_rsa_ticket(
+	$rsa_priv, 'PVEVNC', undef, $secret_data);
 }
 
 sub verify_vnc_ticket {
     my ($ticket, $username, $path, $noerr) = @_;
 
-    if ($ticket && $ticket =~ m/^(PVEVNC:\S+)::([^:\s]+)$/) {
-	my $plain = $1;
-	my $sig = $2;
-	my $full = "$plain:$username:$path";
+    my $rsa_pub = get_pubkey();
 
-	my $rsa_pub = get_pubkey();
-	# Note: sign only match if $username and  $path is correct
-	if ($rsa_pub->verify($full, decode_base64($sig))) {
-	    if ($plain =~ m/^PVEVNC:([A-Z0-9]{8})$/) {
-		my $ttime = hex($1);
+    my $secret_data = "$username:$path";
 
-		my $age = time() - $ttime;
-
-		if (($age > -20) && ($age < 40)) {
-		    return 1;
-		}
-	    }
-	}
-    }
-
-    die "permission denied - invalid vnc ticket\n" if !$noerr;
-
-    return undef;
+    return PVE::Ticket::verify_rsa_ticket(
+	$rsa_pub, 'PVEVNC', $ticket, $secret_data, -20, 40, $noerr);
 }
 
 sub assemble_spice_ticket {
     my ($username, $vmid, $node) = @_;
 
-    my $rsa_priv = get_privkey();
-
-    my $timestamp = sprintf("%08x", time());
-
-    my $randomstr = "PVESPICE:$timestamp:$vmid:$node:" . rand(10);
-
-    # this should be used as one-time password
-    # max length is 60 chars (spice limit)
-    # we pass this to qemu set_pasword and limit lifetime there
-    # keep this secret
-    my $ticket = Digest::SHA::sha1_hex($rsa_priv->sign($randomstr));
-
-    # Note: spice proxy connects with HTTP, so $proxyticket is exposed to public
-    # we use a signature/timestamp to make sure nobody can fake such a ticket
-    # an attacker can use this $proxyticket, but he will fail because $ticket is
-    # private.
-    # The proxy needs to be able to extract/verify the ticket
-    # Note: data needs to be lower case only, because virt-viewer needs that
-    # Note: RSA signature are too long (>=256 charaters) and make problems with remote-viewer
-
     my $secret = &$get_csrfr_secret();
-    my $plain = "pvespiceproxy:$timestamp:$vmid:" . lc($node);
 
-    # produces 40 characters
-    my $sig = unpack("H*", Digest::SHA::sha1($plain, &$get_csrfr_secret()));
-
-    #my $sig =  unpack("H*", $rsa_priv->sign($plain)); # this produce too long strings (512)
-
-    my $proxyticket = $plain . "::" . $sig;
-
-    return ($ticket, $proxyticket);
+    return PVE::Ticket::assemble_spice_ticket(
+	$secret, $username, $vmid, $node);
 }
+
 
 sub verify_spice_connect_url {
     my ($connect_str) = @_;
 
-    # Note: we pass the spice ticket as 'host', so the
-    # spice viewer connects with "$ticket:$port"
+    my $secret = &$get_csrfr_secret();
 
-    return undef if !$connect_str;
-
-    if ($connect_str =~m/^pvespiceproxy:([a-z0-9]{8}):(\d+):(\S+)::([a-z0-9]{40}):(\d+)$/) {
-	my ($timestamp, $vmid, $node, $hexsig, $port) = ($1, $2, $3, $4, $5, $6);
-	my $ttime = hex($timestamp);
-	my $age = time() - $ttime;
-
-	# use very limited lifetime - is this enough?
-	return undef if !(($age > -20) && ($age < 40));
-
-	my $plain = "pvespiceproxy:$timestamp:$vmid:$node";
-	my $sig = unpack("H*", Digest::SHA::sha1($plain, &$get_csrfr_secret()));
-
-	if ($sig eq $hexsig) {
-	    return ($vmid, $node, $port);
-	}
-    }
-
-    return undef;
+    return PVE::Ticket::verify_spice_connect_url($secret, $connect_str);
 }
 
 sub read_x509_subject_spice {
