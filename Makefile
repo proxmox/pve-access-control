@@ -47,8 +47,9 @@ install: pveum.1 oathkeygen pveum.bash-completion
 	gzip -9 ${DESTDIR}/${MAN1DIR}/pveum.1
 	install -m 0644 -D pveum.bash-completion ${DESTDIR}${BASHCOMPLDIR}/pveum
 
-.PHONY: deb ${DEB}
-deb ${DEB}:
+.PHONY: deb
+deb: ${DEB}
+${DEB}:
 	rm -rf build
 	mkdir build
 	make DESTDIR=`pwd`/build install
