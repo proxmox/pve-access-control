@@ -60,7 +60,7 @@ ${DEB}:
 	install -D -m 0644 copyright build/${DOCDIR}/copyright
 	install -m 0644 changelog.Debian build/${DOCDIR}/
 	gzip -9 -n build/${DOCDIR}/changelog.Debian
-	dpkg-deb --build build
+	fakeroot dpkg-deb --build build
 	mv build.deb ${DEB}
 	#rm -rf build
 	lintian ${DEB}
