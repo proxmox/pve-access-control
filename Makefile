@@ -44,7 +44,7 @@ install: pveum.1 oathkeygen pveum.bash-completion
 	install -d ${DESTDIR}/${MAN1DIR}
 	install -d ${DESTDIR}/${DOCDIR}
 	install -m 0644 pveum.1 ${DESTDIR}/${MAN1DIR}
-	gzip -9 ${DESTDIR}/${MAN1DIR}/pveum.1
+	gzip -9 -n ${DESTDIR}/${MAN1DIR}/pveum.1
 	install -m 0644 -D pveum.bash-completion ${DESTDIR}${BASHCOMPLDIR}/pveum
 
 .PHONY: deb
@@ -59,8 +59,8 @@ ${DEB}:
 	install -m 0644 triggers build/DEBIAN
 	install -D -m 0644 copyright build/${DOCDIR}/copyright
 	install -m 0644 changelog.Debian build/${DOCDIR}/
-	gzip -9 build/${DOCDIR}/changelog.Debian
-	dpkg-deb --build build	
+	gzip -9 -n build/${DOCDIR}/changelog.Debian
+	dpkg-deb --build build
 	mv build.deb ${DEB}
 	#rm -rf build
 	lintian ${DEB}
