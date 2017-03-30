@@ -1,3 +1,11 @@
+libpve-access-control (5.0-3) unstable; urgency=medium
+
+  * use new PVE::OTP class from pve-common
+
+  * use new PVE::Tools::encrypt_pw from pve-common
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 30 Mar 2017 17:45:55 +0200
+
 libpve-access-control (5.0-2) unstable; urgency=medium
 
   * encrypt_pw: avoid '+' for crypt salt

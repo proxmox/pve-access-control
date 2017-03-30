@@ -66,7 +66,7 @@ sub store_password {
 
     my $cmd = ['usermod'];
 
-    my $epw = PVE::Auth::Plugin::encrypt_pw($password);
+    my $epw = PVE::Tools::encrypt_pw($password);
 
     push @$cmd, '-p', $epw, $username;
 

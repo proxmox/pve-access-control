@@ -3,6 +3,7 @@ package PVE::Auth::PVE;
 use strict;
 use warnings;
 
+use PVE::Tools;
 use PVE::Auth::Plugin;
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_write_file cfs_lock_file);
 
@@ -92,7 +93,7 @@ sub store_password {
 
     lock_shadow_config(sub {
 	my $shadow_cfg = cfs_read_file($shadowconfigfile);
-	my $epw = PVE::Auth::Plugin::encrypt_pw($password);
+	my $epw = PVE::Tools::encrypt_pw($password);
 	$shadow_cfg->{users}->{$username}->{shadow} = $epw;
 	cfs_write_file($shadowconfigfile, $shadow_cfg);
     });
