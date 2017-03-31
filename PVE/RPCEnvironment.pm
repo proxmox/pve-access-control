@@ -351,7 +351,7 @@ sub exec_api2_perm_check {
 sub check_api2_permissions {
     my ($self, $perm, $username, $param) = @_;
 
-    return 1 if !$username && $perm->{user} eq 'world';
+    return 1 if !$username && $perm->{user} && $perm->{user} eq 'world';
 
     raise_perm_exc("user != null") if !$username;
 
