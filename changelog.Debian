@@ -1,3 +1,13 @@
+libpve-access-control (5.0-4) unstable; urgency=medium
+
+  * PVE/CLI/pveum.pm: call setup_default_cli_env()
+
+  * PVE/Auth/PVE.pm: encode uft8 password before calling crypt
+
+  * check_api2_permissions: avoid warning about uninitialized value
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 02 May 2017 11:58:15 +0200
+
 libpve-access-control (5.0-3) unstable; urgency=medium
 
   * use new PVE::OTP class from pve-common
