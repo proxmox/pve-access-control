@@ -2,6 +2,7 @@ package PVE::Auth::PVE;
 
 use strict;
 use warnings;
+use Encode;
 
 use PVE::Tools;
 use PVE::Auth::Plugin;
@@ -79,8 +80,9 @@ sub authenticate_user {
     my $shadow_cfg = cfs_read_file($shadowconfigfile);
     
     if ($shadow_cfg->{users}->{$username}) {
-	my $encpw = crypt($password, $shadow_cfg->{users}->{$username}->{shadow});
-        die "invalid credentials\n" if ($encpw ne $shadow_cfg->{users}->{$username}->{shadow});
+	my $encpw = crypt(Encode::encode('utf8', $password),
+			  $shadow_cfg->{users}->{$username}->{shadow});
+       die "invalid credentials\n" if ($encpw ne $shadow_cfg->{users}->{$username}->{shadow});
     } else {
 	die "no password set\n";
     }
