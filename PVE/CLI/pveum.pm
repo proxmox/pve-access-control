@@ -21,6 +21,10 @@ use PVE::CLIHandler;
 
 use base qw(PVE::CLIHandler);
 
+sub setup_environment {
+    PVE::RPCEnvironment->setup_default_cli_env();
+}
+
 sub read_password {
     # return $ENV{PVE_PW_TICKET} if defined($ENV{PVE_PW_TICKET});
 
