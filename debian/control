@@ -2,13 +2,30 @@ Source: libpve-access-control
 Section: perl
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: debhelper (>= 7.0.50~), libpve-common-perl, perl (>= 5.10.0-19), lintian, pve-doc-generator
+Build-Depends: debhelper (>= 7.0.50~),
+               libpve-common-perl,
+               perl (>= 5.10.0-19),
+               lintian,
+               pve-doc-generator
 Standards-Version: 3.9.5
 Homepage: http://www.proxmox.com
 
 Package: libpve-access-control
 Architecture: any
-Depends: libc6 (>= 2.3), perl (>= 5.6.0-16), libcrypt-openssl-rsa-perl, libcrypt-openssl-random-perl, libjson-xs-perl, libjson-perl, libterm-readline-gnu-perl,libnet-ldap-perl, libpve-common-perl, pve-cluster, libauthen-pam-perl, libnet-ssleay-perl, liburi-perl, libwww-perl, libmime-base32-perl
+Depends: libc6 (>= 2.3),
+         perl (>= 5.6.0-16),
+         libcrypt-openssl-rsa-perl,
+         libcrypt-openssl-random-perl,
+         libjson-xs-perl,
+         libjson-perl,
+         libterm-readline-gnu-perl,libnet-ldap-perl,
+         libpve-common-perl,
+         pve-cluster,
+         libauthen-pam-perl,
+         libnet-ssleay-perl,
+         liburi-perl,
+         libwww-perl,
+         libmime-base32-perl
 Description: Proxmox VE access control library
  This package contains the role based user management and access
  control function used by Proxmox VE.
