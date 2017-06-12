@@ -25,7 +25,8 @@ Depends: libc6 (>= 2.3),
          libnet-ssleay-perl,
          liburi-perl,
          libwww-perl,
-         libmime-base32-perl
+         libmime-base32-perl,
+         ${perl:Depends}
 Description: Proxmox VE access control library
  This package contains the role based user management and access
  control function used by Proxmox VE.
