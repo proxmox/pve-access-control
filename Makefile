@@ -58,7 +58,7 @@ ${DEB}:
 	rm -rf build
 	rsync -a * build
 	echo "git clone git://git.proxmox.com/git/pve-access-control.git\\ngit checkout ${GITVERSION}" >build/debian/SOURCE
-	cd build; dpkg-buildpackage -rfakeroot -b -us -uc
+	cd build; dpkg-buildpackage -b -us -uc
 	lintian ${DEB}
 
 .PHONY: upload
