@@ -14,33 +14,33 @@ sub type {
 
 sub properties {
     return {
-	server1 => { 
-	    description => "Server IP address (or DNS name)",		
+	server1 => {
+	    description => "Server IP address (or DNS name)",
 	    type => 'string',
 	    format => 'address',
 	    maxLength => 256,
 	},
-	server2 => { 
+	server2 => {
 	    description => "Fallback Server IP address (or DNS name)",
 	    type => 'string',
 	    optional => 1,
 	    format => 'address',
 	    maxLength => 256,
 	},
-	secure => { 
+	secure => {
 	    description => "Use secure LDAPS protocol.",
-	    type => 'boolean', 
+	    type => 'boolean',
 	    optional => 1,
 
 	},
-	default => { 
+	default => {
 	    description => "Use this as default realm",
-	    type => 'boolean', 
+	    type => 'boolean',
 	    optional => 1,
 	},
-	comment => { 
+	comment => {
 	    description => "Description.",
-	    type => 'string', 
+	    type => 'string',
 	    optional => 1,
 	    maxLength => 4096,
 	},
@@ -58,7 +58,7 @@ sub properties {
 	    optional => 1,
 	    maxLength => 256,
 	},
-	tfa => PVE::JSONSchema::get_standard_option('tfa'), 
+	tfa => PVE::JSONSchema::get_standard_option('tfa'),
     };
 }
 
