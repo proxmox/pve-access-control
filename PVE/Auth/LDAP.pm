@@ -36,6 +36,28 @@ sub properties {
 	    optional => 1,
 	    maxLength => 256,
 	},
+	verify => {
+	    description => "Verify the server's SSL certificate",
+	    type => 'boolean',
+	    optional => 1,
+	    default => 0,
+	},
+	capath => {
+	    description => "Path to the CA certificate store",
+	    type => 'string',
+	    optional => 1,
+	    default => '/etc/ssl/certs',
+	},
+	cert => {
+	    description => "Path to the client certificate",
+	    type => 'string',
+	    optional => 1,
+	},
+	certkey => {
+	    description => "Path to the client certificate key",
+	    type => 'string',
+	    optional => 1,
+	},
     };
 }
 
@@ -51,6 +73,10 @@ sub options {
 	default => { optional => 1 },
 	comment => { optional => 1 },
 	tfa => { optional => 1 },
+	verify => { optional => 1 },
+	capath => { optional => 1 },
+	cert => { optional => 1 },
+	certkey => { optional => 1 },
     };
 }
 
@@ -63,7 +89,27 @@ my $authenticate_user_ldap = sub {
     $server = "[$server]" if Net::IP::ip_is_ipv6($server);
     my $conn_string = "$scheme://${server}:$port";
 
-    my $ldap = Net::LDAP->new($conn_string, verify => 'none') || die "$@\n";
+    my %ldap_args;
+    if ($config->{verify}) {
+	$ldap_args{verify} = 'require';
+	if (defined(my $cert = $config->{cert})) {
+	    $ldap_args{clientcert} = $cert;
+	}
+	if (defined(my $key = $config->{certkey})) {
+	    $ldap_args{clientkey} = $key;
+	}
+	if (defined(my $capath = $config->{capath})) {
+	    if (-d $capath) {
+		$ldap_args{capath} = $capath;
+	    } else {
+		$ldap_args{cafile} = $capath;
+	    }
+	}
+    } else {
+	$ldap_args{verify} = 'none';
+    }
+
+    my $ldap = Net::LDAP->new($conn_string, %ldap_args) || die "$@\n";
 
     if (my $bind_dn = $config->{bind_dn}) {
 	my $bind_pass = PVE::Tools::file_read_firstline("/etc/pve/priv/ldap/${realm}.pw");
