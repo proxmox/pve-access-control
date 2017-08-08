@@ -1,3 +1,14 @@
+libpve-access-control (5.0-6) unstable; urgency=medium
+
+  * Close #1470: Add server ceritifcate verification for AD and LDAP via the
+    'verify' option. For compatibility reasons this defaults to off for now,
+    but that might change with future updates.
+
+  * AD, LDAP: Add ability to specify a CA path or file, and a client
+    certificate via the 'capath', 'cert' and 'certkey' options.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 08 Aug 2017 11:56:38 +0200
+
 libpve-access-control (5.0-5) unstable; urgency=medium
 
   * change from dpkg-deb to dpkg-buildpackage
