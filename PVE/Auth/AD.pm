@@ -72,6 +72,10 @@ sub options {
 	default => { optional => 1 },,
 	comment => { optional => 1 },
 	tfa => { optional => 1 },
+	verify => { optional => 1 },
+	capath => { optional => 1 },
+	cert => { optional => 1 },
+	certkey => { optional => 1 },
     };
 }
 
@@ -83,10 +87,30 @@ my $authenticate_user_ad = sub {
     my $scheme = $config->{secure} ? 'ldaps' : 'ldap';
     $server = "[$server]" if Net::IP::ip_is_ipv6($server);
     my $conn_string = "$scheme://${server}:$port";
-    
-    my $ldap = Net::LDAP->new($conn_string) || die "$@\n";
 
-    $username = "$username\@$config->{domain}" 
+    my %ad_args;
+    if ($config->{verify}) {
+	$ad_args{verify} = 'require';
+	if (defined(my $cert = $config->{cert})) {
+	    $ad_args{clientcert} = $cert;
+	}
+	if (defined(my $key = $config->{certkey})) {
+	    $ad_args{clientkey} = $key;
+	}
+	if (defined(my $capath = $config->{capath})) {
+	    if (-d $capath) {
+		$ad_args{capath} = $capath;
+	    } else {
+		$ad_args{cafile} = $capath;
+	    }
+	}
+    } elsif (defined($config->{verify})) {
+	$ad_args{verify} = 'none';
+    }
+
+    my $ldap = Net::LDAP->new($conn_string, %ad_args) || die "$@\n";
+
+    $username = "$username\@$config->{domain}"
 	if $username !~ m/@/ && $config->{domain};
 
     my $res = $ldap->bind($username, password => $password);
