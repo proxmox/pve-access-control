@@ -402,6 +402,7 @@ my $privgroups = {
 	    'VM.Migrate',
 	    'VM.Monitor',
 	    'VM.Snapshot',
+	    'VM.Snapshot.Rollback',
 	],
 	user => [
 	    'VM.Config.CDROM', # change CDROM media
