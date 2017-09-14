@@ -136,72 +136,45 @@ my $compute_api_permission = sub {
 
     my $usercfg = $rpcenv->{user_cfg};
 
-    my $nodelist = PVE::Cluster::get_nodelist();
-    my $vmlist = PVE::Cluster::get_vmlist() || {};
-    my $idlist = $vmlist->{ids} || {};
-
-    my $cfg = PVE::Storage::config();
-    my @sids =  PVE::Storage::storage_ids ($cfg);
-
-    my $res = {
-	vms => {},
-	storage => {},
-	access => {},
-	nodes => {},
-	dc => {},
+    my $res = {};
+    my $priv_re_map = {
+	vms => qr/VM\.|Permissions\.Modify/,
+	access => qr/(User|Group)\.|Permissions\.Modify/,
+	storage => qr/Datastore\./,
+	nodes => qr/Sys\.|Permissions\.Modify/,
+	dc => qr/Sys\.Audit/,
     };
+    map { $res->{$_} = {} } keys %$priv_re_map;
 
-    my $extract_vm_caps = sub {
-	my ($path) = @_;
-	
-	my $perm = $rpcenv->permissions($authuser, $path);
-	foreach my $priv (keys %$perm) {
-	    next if !($priv eq 'Permissions.Modify' || $priv =~ m/^VM\./);
-	    $res->{vms}->{$priv} = 1;	
-	}
-    };
+    my $required_paths = ['/', '/nodes', '/access/groups', '/vms', '/storage'];
 
-    foreach my $pool (keys %{$usercfg->{pools}}) {
-	&$extract_vm_caps("/pool/$pool");
-    }
+    my $checked_paths = {};
+    foreach my $path (@$required_paths, keys %{$usercfg->{acl}}) {
+	next if $checked_paths->{$path};
+	$checked_paths->{$path} = 1;
 
-    foreach my $vmid (keys %$idlist, '__phantom__') {
-	&$extract_vm_caps("/vms/$vmid");
-    }
+	my $path_perm = $rpcenv->permissions($authuser, $path);
 
-    foreach my $storeid (@sids, '__phantom__') {
-	my $perm = $rpcenv->permissions($authuser, "/storage/$storeid");
-	foreach my $priv (keys %$perm) {
-	    next if !($priv eq 'Permissions.Modify' || $priv =~ m/^Datastore\./);
-	    $res->{storage}->{$priv} = 1;
-	}
-    }
-
-    foreach my $path (('/access/groups')) {
-	my $perm = $rpcenv->permissions($authuser, $path);
-	foreach my $priv (keys %$perm) {
-	    next if $priv !~ m/^(User|Group)\./;
-	    $res->{access}->{$priv} = 1;
+	my $toplevel = ($path =~ /^\/(\w+)/) ? $1 : 'dc';
+	if ($toplevel eq 'pool') {
+	    foreach my $priv (keys %$path_perm) {
+		if ($priv =~ m/^VM\./) {
+		    $res->{vms}->{$priv} = 1;
+		} elsif ($priv =~ m/^Datastore\./) {
+		    $res->{storage}->{$priv} = 1;
+		} elsif ($priv eq 'Permissions.Modify') {
+		    $res->{storage}->{$priv} = 1;
+		    $res->{vms}->{$priv} = 1;
+		}
+	    }
+	} else {
+	    my $priv_regex = $priv_re_map->{$toplevel} // next;
+	    foreach my $priv (keys %$path_perm) {
+		next if $priv !~ m/^($priv_regex)/;
+		$res->{$toplevel}->{$priv} = 1;
+	    }
 	}
     }
-
-    foreach my $group (keys %{$usercfg->{users}->{$authuser}->{groups}}, '__phantom__') {
-	my $perm = $rpcenv->permissions($authuser, "/access/groups/$group");
-	if ($perm->{'User.Modify'}) {
-	    $res->{access}->{'User.Modify'} = 1;
-	}
-    }
-
-    foreach my $node (@$nodelist) {
-	my $perm = $rpcenv->permissions($authuser, "/nodes/$node");
-	foreach my $priv (keys %$perm) {
-	    next if $priv !~ m/^Sys\./;
-	    $res->{nodes}->{$priv} = 1;
-	}
-    }
-
-    my $perm = $rpcenv->permissions($authuser, "/");
-    $res->{dc}->{'Sys.Audit'} = 1 if $perm->{'Sys.Audit'};
 
     return $res;
 };
