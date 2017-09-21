@@ -44,7 +44,8 @@ __PACKAGE__->register_method ({
  
 	foreach my $role (keys %{$usercfg->{roles}}) {
 	    my $privs = join(',', sort keys %{$usercfg->{roles}->{$role}});
-	    push @$res, { roleid => $role, privs => $privs };
+	    push @$res, { roleid => $role, privs => $privs,
+		special => PVE::AccessControl::role_is_special($role) };
 	}
 
 	return $res;
@@ -195,6 +196,9 @@ __PACKAGE__->register_method ({
 		die "role '$role' does not exist\n"
 		    if !$usercfg->{roles}->{$role};
 	
+		die "auto-generated role '$role' can not be deleted\n"
+		    if PVE::AccessControl::role_is_special($role);
+
 		delete ($usercfg->{roles}->{$role});
 
 		# fixme: delete role from acl?

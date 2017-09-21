@@ -502,6 +502,11 @@ sub create_roles {
 
 create_roles();
 
+sub role_is_special {
+    my ($role) = @_;
+    return exists $special_roles->{$role};
+}
+
 sub add_role_privs {
     my ($role, $usercfg, $privs) = @_;
 
