@@ -9,8 +9,6 @@ use PVE::SectionConfig;
 use PVE::JSONSchema qw(get_standard_option);
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_lock_file);
 
-use Data::Dumper;
-
 use base qw(PVE::SectionConfig);
 
 my $domainconfigfile = "domains.cfg";

@@ -10,8 +10,6 @@ use PVE::JSONSchema qw(get_standard_option);
 
 use PVE::SafeSyslog;
 
-use Data::Dumper; # fixme: remove
-
 use PVE::RESTHandler;
 
 use base qw(PVE::RESTHandler);

@@ -9,8 +9,6 @@ use PVE::Exception qw(raise_param_exc);
 
 use PVE::SafeSyslog;
 
-use Data::Dumper; # fixme: remove
-
 use PVE::RESTHandler;
 
 use base qw(PVE::RESTHandler);

@@ -22,8 +22,6 @@ use PVE::Auth::LDAP;
 use PVE::Auth::PVE;
 use PVE::Auth::PAM;
 
-use Data::Dumper; # fixme: remove
-
 # load and initialize all plugins
 
 PVE::Auth::AD->register();
