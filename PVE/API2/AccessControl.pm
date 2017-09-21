@@ -184,7 +184,7 @@ __PACKAGE__->register_method ({
     path => 'ticket', 
     method => 'GET',
     permissions => { user => 'world' },
-    description => "Dummy. Useful for formaters which want to priovde a login page.",
+    description => "Dummy. Useful for formaters which want to provide a login page.",
     parameters => {
 	additionalProperties => 0,
     },
