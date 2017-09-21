@@ -45,7 +45,6 @@ cfs_register_file('user.cfg',
 		  \&parse_user_config,
 		  \&write_user_config);
 
-
 sub verify_username {
     PVE::Auth::Plugin::verify_username(@_);
 }
@@ -171,7 +170,6 @@ sub assemble_spice_ticket {
     return PVE::Ticket::assemble_spice_ticket(
 	$secret, $username, $vmid, $node);
 }
-
 
 sub verify_spice_connect_url {
     my ($connect_str) = @_;
@@ -536,7 +534,6 @@ sub normalize_path {
 
     return $path;
 }
-
 
 PVE::JSONSchema::register_format('pve-groupid', \&verify_groupname);
 sub verify_groupname {

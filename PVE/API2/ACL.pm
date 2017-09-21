@@ -14,11 +14,11 @@ use PVE::RESTHandler;
 use base qw(PVE::RESTHandler);
 
 __PACKAGE__->register_method ({
-    name => 'read_acl', 
-    path => '', 
+    name => 'read_acl',
+    path => '',
     method => 'GET',
     description => "Get Access Control List (ACLs).",
-    permissions => { 
+    permissions => {
 	description => "The returned list is restricted to objects where you have rights to modify permissions.",
 	user => 'all',
     },
@@ -42,7 +42,7 @@ __PACKAGE__->register_method ({
     },
     code => sub {
 	my ($param) = @_;
-    
+
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
 	my $res = [];
@@ -79,44 +79,44 @@ __PACKAGE__->register_method ({
     }});
 
 __PACKAGE__->register_method ({
-    name => 'update_acl', 
+    name => 'update_acl',
     protected => 1,
-    path => '', 
+    path => '',
     method => 'PUT',
-    permissions => { 
+    permissions => {
 	check => ['perm-modify', '{path}'],
     },
     description => "Update Access Control List (add or remove permissions).",
     parameters => {
-   	additionalProperties => 0,
+	additionalProperties => 0,
 	properties => {
 	    path => {
 		description => "Access control path",
 		type => 'string',
 	    },
-	    users => { 
+	    users => {
 		description => "List of users.",
-		type => 'string',  format => 'pve-userid-list',  
+		type => 'string',  format => 'pve-userid-list',
 		optional => 1,
 	    },
-	    groups => { 
+	    groups => {
 		description => "List of groups.",
 		type => 'string', format => 'pve-groupid-list',
-		optional => 1,  
+		optional => 1,
 	    },
-	    roles => { 
+	    roles => {
 		description => "List of roles.",
 		type => 'string', format => 'pve-roleid-list',
 	    },
-	    propagate => { 
+	    propagate => {
 		description => "Allow to propagate (inherit) permissions.",
-		type => 'boolean', 
+		type => 'boolean',
 		optional => 1,
 		default => 1,
 	    },
 	    delete => {
 		description => "Remove permissions (instead of adding it).",
-		type => 'boolean', 
+		type => 'boolean',
 		optional => 1,
 	    },
 	},
@@ -126,8 +126,8 @@ __PACKAGE__->register_method ({
 	my ($param) = @_;
 
 	if (!($param->{users} || $param->{groups})) {
-	    raise_param_exc({ 
-		users => "either 'users' or 'groups' is required.", 
+	    raise_param_exc({
+		users => "either 'users' or 'groups' is required.",
 		groups => "either 'users' or 'groups' is required." });
 	}
 
@@ -136,17 +136,17 @@ __PACKAGE__->register_method ({
 
 	PVE::AccessControl::lock_user_config(
 	    sub {
-			
+
 		my $cfg = cfs_read_file("user.cfg");
 
 		my $propagate = 1;
-		
+
 		if (defined($param->{propagate})) {
 		    $propagate = $param->{propagate} ? 1 : 0;
 		}
 
 		foreach my $role (split_list($param->{roles})) {
-		    die "role '$role' does not exist\n" 
+		    die "role '$role' does not exist\n"
 			if !$cfg->{roles}->{$role};
 
 		    foreach my $group (split_list($param->{groups})) {
@@ -171,7 +171,7 @@ __PACKAGE__->register_method ({
 			    delete($cfg->{acl}->{$path}->{users}->{$username}->{$role});
 			} else {
 			    $cfg->{acl}->{$path}->{users}->{$username}->{$role} = $propagate;
-			} 
+			}
 		    }
 		}
 

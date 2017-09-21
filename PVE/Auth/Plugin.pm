@@ -13,7 +13,7 @@ use base qw(PVE::SectionConfig);
 
 my $domainconfigfile = "domains.cfg";
 
-cfs_register_file($domainconfigfile, 
+cfs_register_file($domainconfigfile,
 		  sub { __PACKAGE__->parse_config(@_); },
 		  sub { __PACKAGE__->write_config(@_); });
 
@@ -32,10 +32,10 @@ my $realm_regex = qr/[A-Za-z][A-Za-z0-9\.\-_]+/;
 PVE::JSONSchema::register_format('pve-realm', \&pve_verify_realm);
 sub pve_verify_realm {
     my ($realm, $noerr) = @_;
- 
+
     if ($realm !~ m/^${realm_regex}$/) {
 	return undef if $noerr;
-	die "value does not look like a valid realm\n"; 
+	die "value does not look like a valid realm\n";
     }
     return $realm;
 }
@@ -62,10 +62,10 @@ sub verify_username {
     }
 
     # we only allow a limited set of characters
-    # colon is not allowed, because we store usernames in 
+    # colon is not allowed, because we store usernames in
     # colon separated lists)!
     # slash is not allowed because it is used as pve API delimiter
-    # also see "man useradd" 
+    # also see "man useradd"
     if ($username =~ m!^([^\s:/]+)\@(${realm_regex})$!) {
 	return wantarray ? ($username, $1, $2) : $username;
     }
@@ -120,7 +120,7 @@ sub parse_tfa_config {
 	    $res->{step} = $1;
 	} else {
 	    return undef;
-	}	    
+	}
     }
 
     return undef if !$res->{type};
@@ -199,7 +199,7 @@ sub write_config {
 	    $data->{comment} = PVE::Tools::encode_text($data->{comment});
 	}
     }
-    
+
     $class->SUPER::write_config($filename, $cfg);
 }
 

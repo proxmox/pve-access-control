@@ -12,11 +12,11 @@ use PVE::RESTHandler;
 use base qw(PVE::RESTHandler);
 
 __PACKAGE__->register_method ({
-    name => 'index', 
-    path => '', 
+    name => 'index',
+    path => '',
     method => 'GET',
     description => "Role index.",
-    permissions => { 
+    permissions => {
 	user => 'all',
     },
     parameters => {
@@ -35,11 +35,11 @@ __PACKAGE__->register_method ({
     },
     code => sub {
 	my ($param) = @_;
-    
+
 	my $res = [];
 
 	my $usercfg = cfs_read_file("user.cfg");
- 
+
 	foreach my $role (keys %{$usercfg->{roles}}) {
 	    my $privs = join(',', sort keys %{$usercfg->{roles}->{$role}});
 	    push @$res, { roleid => $role, privs => $privs,
@@ -47,19 +47,19 @@ __PACKAGE__->register_method ({
 	}
 
 	return $res;
-    }});
+}});
 
 __PACKAGE__->register_method ({
-    name => 'create_role', 
+    name => 'create_role',
     protected => 1,
-    path => '', 
+    path => '',
     method => 'POST',
-    permissions => { 
+    permissions => {
 	check => ['perm', '/access', ['Sys.Modify']],
     },
     description => "Create new role.",
     parameters => {
-   	additionalProperties => 0,
+	additionalProperties => 0,
 	properties => {
 	    roleid => { type => 'string', format => 'pve-roleid' },
 	    privs => { type => 'string' , format => 'pve-priv-list', optional => 1 },
@@ -71,12 +71,12 @@ __PACKAGE__->register_method ({
 
 	PVE::AccessControl::lock_user_config(
 	    sub {
-			
+
 		my $usercfg = cfs_read_file("user.cfg");
 
 		my $role = $param->{roleid};
 
-		die "role '$role' already exists\n" 
+		die "role '$role' already exists\n"
 		    if $usercfg->{roles}->{$role};
 
 		$usercfg->{roles}->{$role} = {};
@@ -87,24 +87,24 @@ __PACKAGE__->register_method ({
 	    }, "create role failed");
 
 	return undef;
-    }});
+}});
 
 __PACKAGE__->register_method ({
-    name => 'update_role', 
+    name => 'update_role',
     protected => 1,
-    path => '{roleid}', 
+    path => '{roleid}',
     method => 'PUT',
-    permissions => { 
+    permissions => {
 	check => ['perm', '/access', ['Sys.Modify']],
     },
     description => "Create new role.",
     parameters => {
-   	additionalProperties => 0,
+	additionalProperties => 0,
 	properties => {
 	    roleid => { type => 'string', format => 'pve-roleid' },
 	    privs => { type => 'string' , format => 'pve-priv-list' },
-	    append => { 
-		type => 'boolean', 
+	    append => {
+		type => 'boolean',
 		optional => 1,
 		requires => 'privs',
 	    },
@@ -116,12 +116,12 @@ __PACKAGE__->register_method ({
 
 	PVE::AccessControl::lock_user_config(
 	    sub {
-			
+
 		my $role = $param->{roleid};
 
 		my $usercfg = cfs_read_file("user.cfg");
-	
-		die "role '$role' does not exist\n" 
+
+		die "role '$role' does not exist\n"
 		    if !$usercfg->{roles}->{$role};
 
 		$usercfg->{roles}->{$role} = {} if !$param->{append};
@@ -132,19 +132,19 @@ __PACKAGE__->register_method ({
 	    }, "update role failed");
 
 	return undef;
-    }});
+}});
 
 # fixme: return format!
 __PACKAGE__->register_method ({
-    name => 'read_role', 
-    path => '{roleid}', 
+    name => 'read_role',
+    path => '{roleid}',
     method => 'GET',
-    permissions => { 
+    permissions => {
 	user => 'all',
     },
     description => "Get role configuration.",
     parameters => {
-   	additionalProperties => 0,
+	additionalProperties => 0,
 	properties => {
 	    roleid => { type => 'string' , format => 'pve-roleid' },
 	},
@@ -162,20 +162,19 @@ __PACKAGE__->register_method ({
 	die "role '$role' does not exist\n" if !$data;
 
 	return $data;
-    }});
-
+}});
 
 __PACKAGE__->register_method ({
-    name => 'delete_role', 
+    name => 'delete_role',
     protected => 1,
-    path => '{roleid}', 
+    path => '{roleid}',
     method => 'DELETE',
-    permissions => { 
+    permissions => {
 	check => ['perm', '/access', ['Sys.Modify']],
     },
     description => "Delete role.",
     parameters => {
-   	additionalProperties => 0,
+	additionalProperties => 0,
 	properties => {
 	    roleid => { type => 'string', format => 'pve-roleid' },
 	}
@@ -193,7 +192,7 @@ __PACKAGE__->register_method ({
 
 		die "role '$role' does not exist\n"
 		    if !$usercfg->{roles}->{$role};
-	
+
 		die "auto-generated role '$role' can not be deleted\n"
 		    if PVE::AccessControl::role_is_special($role);
 
@@ -203,8 +202,8 @@ __PACKAGE__->register_method ({
 
 		cfs_write_file("user.cfg", $usercfg);
 	    }, "delete role failed");
-	
+
 	return undef;
-    }});
+}});
 
 1;
