@@ -42,8 +42,11 @@ __PACKAGE__->register_method ({
 
 	foreach my $role (keys %{$usercfg->{roles}}) {
 	    my $privs = join(',', sort keys %{$usercfg->{roles}->{$role}});
-	    push @$res, { roleid => $role, privs => $privs,
-		special => PVE::AccessControl::role_is_special($role) };
+	    push @$res, {
+		roleid => $role,
+		privs => $privs,
+		special => PVE::AccessControl::role_is_special($role),
+	    };
 	}
 
 	return $res;
