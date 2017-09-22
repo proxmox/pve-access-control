@@ -183,18 +183,17 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	my $role = $param->{roleid};
+
+	die "auto-generated role '$role' cannot be deleted\n"
+	    if PVE::AccessControl::role_is_special($role);
+
 	PVE::AccessControl::lock_user_config(
 	    sub {
-
-		my $role = $param->{roleid};
-
 		my $usercfg = cfs_read_file("user.cfg");
 
 		die "role '$role' does not exist\n"
 		    if !$usercfg->{roles}->{$role};
-
-		die "auto-generated role '$role' can not be deleted\n"
-		    if PVE::AccessControl::role_is_special($role);
 
 		delete ($usercfg->{roles}->{$role});
 
