@@ -1,3 +1,15 @@
+libpve-access-control (5.0-7) unstable; urgency=medium
+
+  * VM.Snapshot.Rollback privilege added
+
+  * api: check for special roles before locking the usercfg
+
+  * fix #1501: pveum: die when deleting special role
+
+  * API/ticket: rework coarse grained permission computation
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 5 Oct 2017 11:27:48 +0200
+
 libpve-access-control (5.0-6) unstable; urgency=medium
 
   * Close #1470: Add server ceritifcate verification for AD and LDAP via the
