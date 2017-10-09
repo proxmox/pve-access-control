@@ -38,6 +38,25 @@ sub read_password {
 }
 
 our $cmddef = {
+    user => {
+	add    => [ 'PVE::API2::User', 'create_user', ['userid'] ],
+	modify => [ 'PVE::API2::User', 'update_user', ['userid'] ],
+	delete => [ 'PVE::API2::User', 'delete_user', ['userid'] ],
+    },
+    group => {
+	add    => [ 'PVE::API2::Group', 'create_group', ['groupid'] ],
+	modify => [ 'PVE::API2::Group', 'update_group', ['groupid'] ],
+	delete => [ 'PVE::API2::Group', 'delete_group', ['groupid'] ],
+    },
+    role => {
+	add    => [ 'PVE::API2::Role', 'create_role', ['roleid'] ],
+	modify => [ 'PVE::API2::Role', 'update_role', ['roleid'] ],
+	delete => [ 'PVE::API2::Role', 'delete_role', ['roleid'] ],
+    },
+    acl => {
+	modify => [ 'PVE::API2::ACL', 'update_acl', ['path'], { delete => 0 }],
+	delete => [ 'PVE::API2::ACL', 'update_acl', ['path'], { delete => 1 }],
+    },
     ticket => [ 'PVE::API2::AccessControl', 'create_ticket', ['username'], undef,
 		sub {
 		    my ($res) = @_;
@@ -46,20 +65,20 @@ our $cmddef = {
 
     passwd => [ 'PVE::API2::AccessControl', 'change_passsword', ['userid'] ],
 
-    useradd => [ 'PVE::API2::User', 'create_user', ['userid'] ],
-    usermod => [ 'PVE::API2::User', 'update_user', ['userid'] ],
-    userdel => [ 'PVE::API2::User', 'delete_user', ['userid'] ],
+    useradd => { alias => 'user add' },
+    usermod => { alias => 'user modify' },
+    userdel => { alias => 'user delete' },
 
-    groupadd => [ 'PVE::API2::Group', 'create_group', ['groupid'] ],
-    groupmod => [ 'PVE::API2::Group', 'update_group', ['groupid'] ],
-    groupdel => [ 'PVE::API2::Group', 'delete_group', ['groupid'] ],
+    groupadd => { alias => 'group add' },
+    groupmod => { alias => 'group modify' },
+    groupdel => { alias => 'group delete' },
 
-    roleadd => [ 'PVE::API2::Role', 'create_role', ['roleid'] ],
-    rolemod => [ 'PVE::API2::Role', 'update_role', ['roleid'] ],
-    roledel => [ 'PVE::API2::Role', 'delete_role', ['roleid'] ],
+    roleadd => { alias => 'role add' },
+    rolemod => { alias => 'role modify' },
+    roledel => { alias => 'role delete' },
 
-    aclmod => [ 'PVE::API2::ACL', 'update_acl', ['path'], { delete => 0 }],
-    acldel => [ 'PVE::API2::ACL', 'update_acl', ['path'], { delete => 1 }],
+    aclmod => { alias => 'acl modify' },
+    acldel => { alias => 'acl delete' },
 };
 
 1;
