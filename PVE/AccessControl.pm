@@ -564,7 +564,7 @@ sub verify_rolename {
     return $rolename;
 }
 
-PVE::JSONSchema::register_format('pve-poolid', \&verify_groupname);
+PVE::JSONSchema::register_format('pve-poolid', \&verify_poolname);
 sub verify_poolname {
     my ($poolname, $noerr) = @_;
 
