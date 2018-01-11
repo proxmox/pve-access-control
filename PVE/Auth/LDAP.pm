@@ -145,7 +145,7 @@ sub authenticate_user {
     my $err = $@;
     return 1 if !$err;
     die $err if !$config->{server2};
-    &$authenticate_user_ldap($config, $config->{server2}, $username, $password); 
+    &$authenticate_user_ldap($config, $config->{server2}, $username, $password, $realm);
 }
 
 1;
