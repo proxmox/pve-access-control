@@ -140,7 +140,7 @@ my $compute_api_permission = sub {
     my $priv_re_map = {
 	vms => qr/VM\.|Permissions\.Modify/,
 	access => qr/(User|Group)\.|Permissions\.Modify/,
-	storage => qr/Datastore\./,
+	storage => qr/Datastore\.|Permissions\.Modify/,
 	nodes => qr/Sys\.|Permissions\.Modify/,
 	dc => qr/Sys\.Audit/,
     };
