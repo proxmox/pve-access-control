@@ -1,3 +1,15 @@
+libpve-access-control (5.0-8) unstable; urgency=medium
+
+  * fix #1612: ldap: make 2nd server work with bind domains again
+
+  * fix an error message where passing a bad pool id to an API function would
+    make it complain about a wrong group name instead
+
+  * fix the API-returned permission list so that the GUI knows to show the
+    'Permissions' tab for a storage to an administrator apart from root@pam
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 18 Jan 2018 13:34:50 +0100
+
 libpve-access-control (5.0-7) unstable; urgency=medium
 
   * VM.Snapshot.Rollback privilege added
