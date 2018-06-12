@@ -283,7 +283,7 @@ __PACKAGE__->register_method ({
     }});
 
 __PACKAGE__->register_method ({
-    name => 'change_passsword', 
+    name => 'change_password',
     path => 'password', 
     method => 'PUT',
     permissions => { 

@@ -63,7 +63,7 @@ our $cmddef = {
 		    print "$res->{ticket}\n";
 		}],
 
-    passwd => [ 'PVE::API2::AccessControl', 'change_passsword', ['userid'] ],
+    passwd => [ 'PVE::API2::AccessControl', 'change_password', ['userid'] ],
 
     useradd => { alias => 'user add' },
     usermod => { alias => 'user modify' },
