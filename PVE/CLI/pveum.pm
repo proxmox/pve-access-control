@@ -8,7 +8,6 @@ use PVE::Cluster;
 use PVE::SafeSyslog;
 use PVE::AccessControl;
 use File::Path qw(make_path remove_tree);
-use Term::ReadLine;
 use PVE::INotify;
 use PVE::RPCEnvironment;
 use PVE::API2::User;
@@ -18,6 +17,7 @@ use PVE::API2::ACL;
 use PVE::API2::AccessControl;
 use PVE::JSONSchema qw(get_standard_option);
 use PVE::CLIHandler;
+use PVE::PTY;
 
 use base qw(PVE::CLIHandler);
 
@@ -25,16 +25,24 @@ sub setup_environment {
     PVE::RPCEnvironment->setup_default_cli_env();
 }
 
-sub read_password {
-    # return $ENV{PVE_PW_TICKET} if defined($ENV{PVE_PW_TICKET});
+sub param_mapping {
+    my ($name) = @_;
 
-    my $term = new Term::ReadLine ('pveum');
-    my $attribs = $term->Attribs;
-    $attribs->{redisplay_function} = $attribs->{shadow_redisplay};
-    my $input = $term->readline('Enter new password: ');
-    my $conf = $term->readline('Retype new password: ');
-    die "Passwords do not match.\n" if ($input ne $conf);
-    return $input;
+    my $mapping = {
+	'change_password' => [
+	    PVE::CLIHandler::get_standard_mapping('pve-password'),
+	],
+	'create_ticket' => [
+	    PVE::CLIHandler::get_standard_mapping('pve-password', {
+		func => sub {
+		    # do not accept values given on cmdline
+		    return PVE::PTY::read_password('Enter password: ');
+		},
+	    }),
+	]
+    };
+
+    return $mapping->{$name};
 }
 
 our $cmddef = {
