@@ -76,7 +76,7 @@ sub verify_username {
 }
 
 PVE::JSONSchema::register_standard_option('userid', {
-    description => "User ID",
+    description => "User ID", title => "User ID",
     type => 'string', format => 'pve-userid',
     maxLength => 64,
 });

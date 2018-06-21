@@ -13,6 +13,7 @@ use base qw(PVE::RESTHandler);
 register_standard_option('group-id', {
     type => 'string',
     format => 'pve-groupid',
+    title => 'Group ID' ,
     completion => \&PVE::AccessControl::complete_group,
 });
 

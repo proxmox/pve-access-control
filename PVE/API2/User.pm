@@ -15,6 +15,7 @@ use PVE::RESTHandler;
 use base qw(PVE::RESTHandler);
 
 register_standard_option('user-enable', {
+    title => "Enable",
     description => "Enable the account (default). You can set this to '0' to disable the account",
     type => 'boolean',
     optional => 1,
