@@ -501,7 +501,7 @@ create_roles();
 
 sub role_is_special {
     my ($role) = @_;
-    return exists $special_roles->{$role};
+    return (exists $special_roles->{$role}) ? 1 : 0;
 }
 
 sub add_role_privs {
