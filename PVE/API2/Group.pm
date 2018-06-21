@@ -6,8 +6,17 @@ use PVE::Cluster qw (cfs_read_file cfs_write_file);
 use PVE::AccessControl;
 use PVE::SafeSyslog;
 use PVE::RESTHandler;
+use PVE::JSONSchema qw(get_standard_option register_standard_option);
 
 use base qw(PVE::RESTHandler);
+
+register_standard_option('group-id', {
+    type => 'string',
+    format => 'pve-groupid',
+    completion => \&PVE::AccessControl::complete_group,
+});
+
+register_standard_option('group-comment', { type => 'string', optional => 1 });
 
 __PACKAGE__->register_method ({
     name => 'index', 
@@ -27,7 +36,8 @@ __PACKAGE__->register_method ({
 	items => {
 	    type => "object",
 	    properties => {
-		groupid => { type => 'string' },
+		groupid => get_standard_option('group-id'),
+		comment => get_standard_option('group-comment'),
 	    },
 	},
 	links => [ { rel => 'child', href => "{groupid}" } ],
@@ -66,8 +76,8 @@ __PACKAGE__->register_method ({
     parameters => {
    	additionalProperties => 0,
 	properties => {
-	    groupid => { type => 'string', format => 'pve-groupid' },
-	    comment => { type => 'string', optional => 1 },
+	    groupid => get_standard_option('group-id'),
+	    comment => get_standard_option('group-comment'),
 	},
     },
     returns => { type => 'null' },
@@ -107,11 +117,8 @@ __PACKAGE__->register_method ({
     parameters => {
    	additionalProperties => 0,
 	properties => {
-	    groupid => {
-		type => 'string', format => 'pve-groupid',
-		completion => \&PVE::AccessControl::complete_group,
-	    },
-	    comment => { type => 'string', optional => 1 },
+	    groupid => get_standard_option('group-id'),
+	    comment => get_standard_option('group-comment'),
 	},
     },
     returns => { type => 'null' },
@@ -149,19 +156,17 @@ __PACKAGE__->register_method ({
     parameters => {
    	additionalProperties => 0,
 	properties => {
-	    groupid => { type => 'string', format => 'pve-groupid' },
+	    groupid => get_standard_option('group-id'),
 	},
     },
     returns => {
 	type => "object",
 	additionalProperties => 0,
 	properties => {
-	    comment => { type => 'string', optional => 1 },
+	    comment => get_standard_option('group-comment'),
 	    members => {
 		type => 'array',
-		items => {
-		    type => "string",
-		},
+		items => get_standard_option('userid-completed')
 	    },
 	},
     },
@@ -198,10 +203,7 @@ __PACKAGE__->register_method ({
     parameters => {
    	additionalProperties => 0,
 	properties => {
-	    groupid => {
-		type => 'string' , format => 'pve-groupid',
-		completion => \&PVE::AccessControl::complete_group,
-	    },
+	    groupid => get_standard_option('group-id'),
 	}
     },
     returns => { type => 'null' },

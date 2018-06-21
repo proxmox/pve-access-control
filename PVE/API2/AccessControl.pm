@@ -205,10 +205,10 @@ __PACKAGE__->register_method ({
 	additionalProperties => 0,
 	properties => {
 	    username => {
-		description => "User name",
-		type => 'string',
-		maxLength => 64,
-		completion => \&PVE::AccessControl::complete_username,
+	        description => "User name",
+	        type => 'string',
+	        maxLength => 64,
+	        completion => \&PVE::AccessControl::complete_username,
 	    },
 	    realm =>  get_standard_option('realm', {
 		description => "You can optionally pass the realm using this parameter. Normally the realm is simply added to the username <username>\@<relam>.",
@@ -301,9 +301,7 @@ __PACKAGE__->register_method ({
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    userid => get_standard_option('userid', {
-		completion => \&PVE::AccessControl::complete_username,
-	    }),
+	    userid => get_standard_option('userid-completed'),
 	    password => { 
 		description => "The new password.",
 		type => 'string',

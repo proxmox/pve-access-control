@@ -4,12 +4,23 @@ use strict;
 use warnings;
 use PVE::Cluster qw (cfs_read_file cfs_write_file);
 use PVE::AccessControl;
+use PVE::JSONSchema qw(get_standard_option register_standard_option);
 
 use PVE::SafeSyslog;
 
 use PVE::RESTHandler;
 
 use base qw(PVE::RESTHandler);
+
+register_standard_option('role-id', {
+    type => 'string',
+    format => 'pve-roleid',
+});
+register_standard_option('role-privs', {
+    type => 'string' ,
+    format => 'pve-priv-list',
+    optional => 1,
+});
 
 __PACKAGE__->register_method ({
     name => 'index',
@@ -28,7 +39,9 @@ __PACKAGE__->register_method ({
 	items => {
 	    type => "object",
 	    properties => {
-		roleid => { type => 'string' },
+		roleid => get_standard_option('role-id'),
+		privs =>  get_standard_option('role-privs'),
+		special => { type => 'boolean', optional => 1, default => 0 },
 	    },
 	},
 	links => [ { rel => 'child', href => "{roleid}" } ],
@@ -64,8 +77,8 @@ __PACKAGE__->register_method ({
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    roleid => { type => 'string', format => 'pve-roleid' },
-	    privs => { type => 'string' , format => 'pve-priv-list', optional => 1 },
+	    roleid => get_standard_option('role-id'),
+	    privs =>  get_standard_option('role-privs'),
 	},
     },
     returns => { type => 'null' },
@@ -100,17 +113,13 @@ __PACKAGE__->register_method ({
     permissions => {
 	check => ['perm', '/access', ['Sys.Modify']],
     },
-    description => "Create new role.",
+    description => "Update an existing role.",
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    roleid => { type => 'string', format => 'pve-roleid' },
-	    privs => { type => 'string' , format => 'pve-priv-list' },
-	    append => {
-		type => 'boolean',
-		optional => 1,
-		requires => 'privs',
-	    },
+	    roleid => get_standard_option('role-id'),
+	    privs =>  get_standard_option('role-privs'),
+	    append => { type => 'boolean', optional => 1, requires => 'privs' },
 	},
     },
     returns => { type => 'null' },
@@ -137,7 +146,6 @@ __PACKAGE__->register_method ({
 	return undef;
 }});
 
-# fixme: return format!
 __PACKAGE__->register_method ({
     name => 'read_role',
     path => '{roleid}',
@@ -149,10 +157,16 @@ __PACKAGE__->register_method ({
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    roleid => { type => 'string' , format => 'pve-roleid' },
+	    roleid => get_standard_option('role-id'),
 	},
     },
-    returns => {},
+    returns => {
+	type => "object",
+	additionalProperties => 0,
+	properties => {
+	    privs =>  get_standard_option('role-privs'),
+	},
+    },
     code => sub {
 	my ($param) = @_;
 
@@ -165,7 +179,8 @@ __PACKAGE__->register_method ({
 	die "role '$role' does not exist\n" if !$data;
 
 	return $data;
-}});
+    }
+});
 
 __PACKAGE__->register_method ({
     name => 'delete_role',
@@ -179,8 +194,8 @@ __PACKAGE__->register_method ({
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    roleid => { type => 'string', format => 'pve-roleid' },
-	}
+	    roleid => get_standard_option('role-id'),
+	},
     },
     returns => { type => 'null' },
     code => sub {
@@ -206,6 +221,7 @@ __PACKAGE__->register_method ({
 	    }, "delete role failed");
 
 	return undef;
-}});
+    }
+});
 
 1;

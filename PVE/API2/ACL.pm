@@ -6,12 +6,24 @@ use PVE::Cluster qw (cfs_read_file cfs_write_file);
 use PVE::Tools qw(split_list);
 use PVE::AccessControl;
 use PVE::Exception qw(raise_param_exc);
+use PVE::JSONSchema qw(get_standard_option register_standard_option);
 
 use PVE::SafeSyslog;
 
 use PVE::RESTHandler;
 
 use base qw(PVE::RESTHandler);
+
+register_standard_option('acl-propagate', {
+    description => "Allow to propagate (inherit) permissions.",
+    type => 'boolean',
+    optional => 1,
+    default => 1,
+});
+register_standard_option('acl-path', {
+    description => "Access control path",
+    type => 'string',
+});
 
 __PACKAGE__->register_method ({
     name => 'read_acl',
@@ -32,11 +44,11 @@ __PACKAGE__->register_method ({
 	    type => "object",
 	    additionalProperties => 0,
 	    properties => {
-		path => { type => 'string' },
+		propagate => get_standard_option('acl-propagate'),
+		path => get_standard_option('acl-path'),
 		type => { type => 'string', enum => ['user', 'group'] },
 		ugid => { type => 'string' },
 		roleid => { type => 'string' },
-		propagate => { type => 'boolean' },
 	    },
 	},
     },
@@ -90,10 +102,8 @@ __PACKAGE__->register_method ({
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    path => {
-		description => "Access control path",
-		type => 'string',
-	    },
+	    propagate => get_standard_option('acl-propagate'),
+	    path => get_standard_option('acl-path'),
 	    users => {
 		description => "List of users.",
 		type => 'string',  format => 'pve-userid-list',
@@ -107,12 +117,6 @@ __PACKAGE__->register_method ({
 	    roles => {
 		description => "List of roles.",
 		type => 'string', format => 'pve-roleid-list',
-	    },
-	    propagate => {
-		description => "Allow to propagate (inherit) permissions.",
-		type => 'boolean',
-		optional => 1,
-		default => 1,
 	    },
 	    delete => {
 		description => "Remove permissions (instead of adding it).",

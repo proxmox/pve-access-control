@@ -6,13 +6,40 @@ use PVE::Exception qw(raise raise_perm_exc);
 use PVE::Cluster qw (cfs_read_file cfs_write_file);
 use PVE::Tools qw(split_list);
 use PVE::AccessControl;
-use PVE::JSONSchema qw(get_standard_option);
+use PVE::JSONSchema qw(get_standard_option register_standard_option);
 
 use PVE::SafeSyslog;
 
 use PVE::RESTHandler;
 
 use base qw(PVE::RESTHandler);
+
+register_standard_option('user-enable', {
+    description => "Enable the account (default). You can set this to '0' to disable the account",
+    type => 'boolean',
+    optional => 1,
+    default => 1,
+});
+register_standard_option('user-expire', {
+    description => "Account expiration date (seconds since epoch). '0' means no expiration date.",
+    type => 'integer',
+    minimum => 0,
+    optional => 1,
+});
+register_standard_option('user-firstname', { type => 'string', optional => 1 });
+register_standard_option('user-lastname', { type => 'string', optional => 1 });
+register_standard_option('user-email', { type => 'string', optional => 1, format => 'email-opt' });
+register_standard_option('user-comment', { type => 'string', optional => 1 });
+register_standard_option('user-keys', {
+    description => "Keys for two factor auth (yubico).",
+    type => 'string',
+    optional => 1,
+});
+register_standard_option('group-list', {
+    type => 'string', format => 'pve-groupid-list',
+    optional => 1,
+    completion => \&PVE::AccessControl::complete_group,
+});
 
 my $extract_user_data = sub {
     my ($data, $full) = @_;
@@ -54,7 +81,14 @@ __PACKAGE__->register_method ({
 	items => {
 	    type => "object",
 	    properties => {
-		userid => { type => 'string' },
+	        userid => get_standard_option('userid-completed'),
+	        enable => get_standard_option('user-enable'),
+	        expire => get_standard_option('user-expire'),
+	        firstname => get_standard_option('user-firstname'),
+	        lastname => get_standard_option('user-lastname'),
+	        email => get_standard_option('user-email'),
+	        comment => get_standard_option('user-comment'),
+	        keys => get_standard_option('user-keys'),
 	    },
 	},
 	links => [ { rel => 'child', href => "{userid}" } ],
@@ -109,7 +143,14 @@ __PACKAGE__->register_method ({
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    userid => get_standard_option('userid'),
+	    userid => get_standard_option('userid-completed'),
+	    enable => get_standard_option('user-enable'),
+	    expire => get_standard_option('user-expire'),
+	    firstname => get_standard_option('user-firstname'),
+	    lastname => get_standard_option('user-lastname'),
+	    email => get_standard_option('user-email'),
+	    comment => get_standard_option('user-comment'),
+	    keys => get_standard_option('user-keys'),
 	    password => {
 		description => "Initial password.",
 		type => 'string',
@@ -117,32 +158,7 @@ __PACKAGE__->register_method ({
 		minLength => 5,
 		maxLength => 64
 	    },
-	    groups => {
-		type => 'string', format => 'pve-groupid-list',
-		optional => 1,
-		completion => \&PVE::AccessControl::complete_group,
-	    },
-	    firstname => { type => 'string', optional => 1 },
-	    lastname => { type => 'string', optional => 1 },
-	    email => { type => 'string', optional => 1, format => 'email-opt' },
-	    comment => { type => 'string', optional => 1 },
-	    keys => {
-		description => "Keys for two factor auth (yubico).",
-		type => 'string',
-		optional => 1,
-	    },
-	    expire => {
-		description => "Account expiration date (seconds since epoch). '0' means no expiration date.",
-		type => 'integer',
-		minimum => 0,
-		optional => 1,
-	    },
-	    enable => {
-		description => "Enable the account (default). You can set this to '0' to disable the accout",
-		type => 'boolean',
-		optional => 1,
-		default => 1,
-	    },
+	    groups => get_standard_option('group-list'),
 	},
     },
     returns => { type => 'null' },
@@ -199,21 +215,22 @@ __PACKAGE__->register_method ({
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    userid => get_standard_option('userid'),
+	    userid => get_standard_option('userid-completed'),
 	},
     },
     returns => {
 	additionalProperties => 0,
 	properties => {
-	    enable => { type => 'boolean' },
-	    expire => { type => 'integer', optional => 1 },
-	    firstname => { type => 'string', optional => 1 },
-	    lastname => { type => 'string', optional => 1 },
-	    email => { type => 'string', optional => 1 },
-	    comment => { type => 'string', optional => 1 },
-	    keys => { type => 'string', optional => 1 },
+	    enable => get_standard_option('user-enable'),
+	    expire => get_standard_option('user-expire'),
+	    firstname => get_standard_option('user-firstname'),
+	    lastname => get_standard_option('user-lastname'),
+	    email => get_standard_option('user-email'),
+	    comment => get_standard_option('user-comment'),
+	    keys => get_standard_option('user-keys'),
 	    groups => { type => 'array' },
-	}
+	},
+	type => "object"
     },
     code => sub {
 	my ($param) = @_;
@@ -240,38 +257,19 @@ __PACKAGE__->register_method ({
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    userid => get_standard_option('userid', {
-		completion => \&PVE::AccessControl::complete_username,
-	    }),
-	    groups => {
-		type => 'string', format => 'pve-groupid-list',
-		optional => 1,
-		completion => \&PVE::AccessControl::complete_group,
-	    },
+	    userid => get_standard_option('userid-completed'),
+	    enable => get_standard_option('user-enable'),
+	    expire => get_standard_option('user-expire'),
+	    firstname => get_standard_option('user-firstname'),
+	    lastname => get_standard_option('user-lastname'),
+	    email => get_standard_option('user-email'),
+	    comment => get_standard_option('user-comment'),
+	    keys => get_standard_option('user-keys'),
+	    groups => get_standard_option('group-list'),
 	    append => {
 		type => 'boolean',
 		optional => 1,
 		requires => 'groups',
-	    },
-	    enable => {
-		description => "Enable/disable the account.",
-		type => 'boolean',
-		optional => 1,
-	    },
-	    firstname => { type => 'string', optional => 1 },
-	    lastname => { type => 'string', optional => 1 },
-	    email => { type => 'string', optional => 1, format => 'email-opt' },
-	    comment => { type => 'string', optional => 1 },
-	    keys => {
-		description => "Keys for two factor auth (yubico).",
-		type => 'string',
-		optional => 1,
-	    },
-	    expire => {
-		description => "Account expiration date (seconds since epoch). '0' means no expiration date.",
-		type => 'integer',
-		minimum => 0,
-		optional => 1
 	    },
 	},
     },
@@ -333,9 +331,7 @@ __PACKAGE__->register_method ({
     parameters => {
 	additionalProperties => 0,
 	properties => {
-	    userid => get_standard_option('userid', {
-		completion => \&PVE::AccessControl::complete_username,
-	    }),
+	    userid => get_standard_option('userid-completed'),
 	}
     },
     returns => { type => 'null' },
