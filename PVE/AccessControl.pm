@@ -14,7 +14,7 @@ use PVE::OTP;
 use PVE::Ticket;
 use PVE::Tools qw(run_command lock_file file_get_contents split_list safe_print);
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_write_file cfs_lock_file);
-use PVE::JSONSchema;
+use PVE::JSONSchema qw(register_standard_option get_standard_option);
 
 use PVE::Auth::Plugin;
 use PVE::Auth::AD;
@@ -1077,6 +1077,10 @@ sub remove_vm_from_pool {
 }
 
 # bash completion helpers
+
+register_standard_option('userid-completed',
+    get_standard_option('userid', { completion => \&complete_username}),
+);
 
 sub complete_username {
 
