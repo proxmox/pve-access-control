@@ -17,13 +17,11 @@ use base qw(PVE::RESTHandler);
 register_standard_option('acl-propagate', {
     description => "Allow to propagate (inherit) permissions.",
     type => 'boolean',
-    title => 'Propagate',
     optional => 1,
     default => 1,
 });
 register_standard_option('acl-path', {
     description => "Access control path",
-    title => 'Path',
     type => 'string',
 });
 
@@ -48,9 +46,9 @@ __PACKAGE__->register_method ({
 	    properties => {
 		propagate => get_standard_option('acl-propagate'),
 		path => get_standard_option('acl-path'),
-		type => { type => 'string', title => 'Type', enum => ['user', 'group'] },
-		ugid => { type => 'string', title => 'ID' },
-		roleid => { type => 'string', title => 'Role' },
+		type => { type => 'string', enum => ['user', 'group'] },
+		ugid => { type => 'string' },
+		roleid => { type => 'string' },
 	    },
 	},
     },

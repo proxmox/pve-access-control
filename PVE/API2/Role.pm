@@ -15,13 +15,11 @@ use base qw(PVE::RESTHandler);
 register_standard_option('role-id', {
     type => 'string',
     format => 'pve-roleid',
-    title => 'Role ID',
-    print_width => 30
 });
 register_standard_option('role-privs', {
     type => 'string' ,
     format => 'pve-priv-list',
-    optional => 1, title => 'Privileges',
+    optional => 1,
 });
 
 __PACKAGE__->register_method ({
@@ -43,7 +41,7 @@ __PACKAGE__->register_method ({
 	    properties => {
 		roleid => get_standard_option('role-id'),
 		privs =>  get_standard_option('role-privs'),
-		special => { type => 'boolean', optional => 1, default => 0, title => 'Built-In' },
+		special => { type => 'boolean', optional => 1, default => 0 },
 	    },
 	},
 	links => [ { rel => 'child', href => "{roleid}" } ],
