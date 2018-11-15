@@ -1,3 +1,13 @@
+libpve-access-control (5.1-1) unstable; urgency=medium
+
+  * pveum: introduce sub-commands
+
+  * register userid with completion
+
+  * fix #233: return cluster name on successful login
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 15 Nov 2018 09:34:47 +0100
+
 libpve-access-control (5.0-8) unstable; urgency=medium
 
   * fix #1612: ldap: make 2nd server work with bind domains again
