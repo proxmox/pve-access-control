@@ -1,3 +1,9 @@
+libpve-access-control (5.1-2) unstable; urgency=medium
+
+  * fix #1998: correct return properties for read_role
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 23 Nov 2018 14:22:40 +0100
+
 libpve-access-control (5.1-1) unstable; urgency=medium
 
   * pveum: introduce sub-commands
