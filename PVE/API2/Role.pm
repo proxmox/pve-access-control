@@ -163,9 +163,7 @@ __PACKAGE__->register_method ({
     returns => {
 	type => "object",
 	additionalProperties => 0,
-	properties => {
-	    privs =>  get_standard_option('role-privs'),
-	},
+	properties => PVE::AccessControl::create_priv_properties(),
     },
     code => sub {
 	my ($param) = @_;

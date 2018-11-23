@@ -499,6 +499,17 @@ sub create_roles {
 
 create_roles();
 
+sub create_priv_properties {
+    my $properties = {};
+    foreach my $priv (keys %$valid_privs) {
+	$properties->{$priv} = {
+	    type => 'boolean',
+	    optional => 1,
+	};
+    }
+    return $properties;
+}
+
 sub role_is_special {
     my ($role) = @_;
     return (exists $special_roles->{$role}) ? 1 : 0;
