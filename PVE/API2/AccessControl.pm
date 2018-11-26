@@ -281,11 +281,14 @@ __PACKAGE__->register_method ({
 
 	if (PVE::Corosync::check_conf_exists(1)) {
 	    if ($rpcenv->check($username, '/', ['Sys.Audit'], 1)) {
-		my $conf = cfs_read_file('corosync.conf');
-		my $totem = PVE::Corosync::totem_config($conf);
-		if ($totem->{cluster_name}) {
-		    $res->{clustername} = $totem->{cluster_name};
-		}
+		eval {
+		    my $conf = cfs_read_file('corosync.conf');
+		    my $totem = PVE::Corosync::totem_config($conf);
+		    if ($totem->{cluster_name}) {
+			$res->{clustername} = $totem->{cluster_name};
+		    }
+		};
+		warn "$@\n" if $@;
 	    }
 	}
 
