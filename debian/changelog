@@ -1,3 +1,9 @@
+libpve-access-control (5.1-3) unstable; urgency=medium
+
+  * api/ticket: move getting cluster name into an eval
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 29 Nov 2018 12:59:36 +0100
+
 libpve-access-control (5.1-2) unstable; urgency=medium
 
   * fix #1998: correct return properties for read_role
