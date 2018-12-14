@@ -2,10 +2,13 @@ Source: libpve-access-control
 Section: perl
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: debhelper (>= 7.0.50~),
+Build-Depends: debhelper (>= 9.0.0~),
+               libauthen-pam-perl,
+               libnet-ldap-perl,
                libpve-common-perl,
                lintian,
                perl (>= 5.10.0-19),
+               pve-cluster,
                pve-doc-generator,
 Standards-Version: 3.9.5
 Homepage: http://www.proxmox.com
