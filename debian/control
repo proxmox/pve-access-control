@@ -9,7 +9,7 @@ Build-Depends: debhelper (>= 9.0.0~),
                lintian,
                perl (>= 5.10.0-19),
                pve-cluster,
-               pve-doc-generator,
+               pve-doc-generator (>= 5.3-3),
 Standards-Version: 3.9.5
 Homepage: http://www.proxmox.com
 
