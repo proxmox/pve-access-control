@@ -9,6 +9,8 @@ use Net::SSLeay;
 use Net::IP;
 use MIME::Base64;
 use Digest::SHA;
+use IO::File;
+use File::stat;
 
 use PVE::OTP;
 use PVE::Ticket;
@@ -33,11 +35,20 @@ PVE::Auth::Plugin->init();
 # $authdir must be writable by root only!
 my $confdir = "/etc/pve";
 my $authdir = "$confdir/priv";
-my $authprivkeyfn = "$authdir/authkey.key";
-my $authpubkeyfn = "$confdir/authkey.pub";
+
 my $pve_www_key_fn = "$confdir/pve-www.key";
 
+my $pve_auth_key_files = {
+    priv => "$authdir/authkey.key",
+    pub =>  "$confdir/authkey.pub",
+    pubold => "$confdir/authkey.pub.old",
+};
+
+my $pve_auth_key_cache = {};
+
 my $ticket_lifetime = 3600*2; # 2 hours
+# TODO: set to 24h for PVE 6.0
+my $authkey_lifetime = 3600*0; # rotation disabled
 
 Crypt::OpenSSL::RSA->import_random_seed();
 
@@ -62,16 +73,136 @@ sub lock_user_config {
     }
 }
 
-my $pve_auth_pub_key;
+my $cache_read_key = sub {
+    my ($type) = @_;
+
+    my $path = $pve_auth_key_files->{$type};
+
+    my $read_key_and_mtime = sub {
+	my $fh = IO::File->new($path, "r");
+
+	return undef if !defined($fh);
+
+	my $st = stat($fh);
+	my $pem = PVE::Tools::safe_read_from($fh, 0, 0, $path);
+
+	close $fh;
+
+	my $key;
+	if ($type eq 'pub' || $type eq 'pubold') {
+	    $key = eval { Crypt::OpenSSL::RSA->new_public_key($pem); };
+	} elsif ($type eq 'priv') {
+	    $key = eval { Crypt::OpenSSL::RSA->new_private_key($pem); };
+	} else {
+	    die "Invalid authkey type '$type'\n";
+	}
+
+	return { key => $key, mtime => $st->mtime };
+    };
+
+    if (!defined($pve_auth_key_cache->{$type})) {
+	$pve_auth_key_cache->{$type} = $read_key_and_mtime->();
+    } else {
+	my $st = stat($path);
+	if (!$st || $st->mtime != $pve_auth_key_cache->{$type}->{mtime}) {
+	    $pve_auth_key_cache->{$type} = $read_key_and_mtime->();
+	}
+    }
+
+    return $pve_auth_key_cache->{$type};
+};
+
 sub get_pubkey {
+    my ($old) = @_;
 
-    return $pve_auth_pub_key if $pve_auth_pub_key;
+    my $type = $old ? 'pubold' : 'pub';
 
-    my $input = PVE::Tools::file_get_contents($authpubkeyfn);
+    my $res = $cache_read_key->($type);
+    return undef if !defined($res);
 
-    $pve_auth_pub_key = Crypt::OpenSSL::RSA->new_public_key($input);
+    return wantarray ? ($res->{key}, $res->{mtime}) : $res->{key};
+}
 
-    return $pve_auth_pub_key;
+sub get_privkey {
+    my $res = $cache_read_key->('priv');
+
+    if (!defined($res) || !check_authkey(1)) {
+	rotate_authkey();
+	$res = $cache_read_key->('priv');
+    }
+
+    return wantarray ? ($res->{key}, $res->{mtime}) : $res->{key};
+}
+
+sub check_authkey {
+    my ($quiet) = @_;
+
+    # skip check if non-quorate, as rotation is not possible anyway
+    return 1 if !PVE::Cluster::check_cfs_quorum(1);
+
+    my ($pub_key, $mtime) = get_pubkey();
+    if (!$pub_key) {
+	warn "auth key pair missing, generating new one..\n"  if !$quiet;
+	return 0;
+    } else {
+	if (time() - $mtime >= $authkey_lifetime) {
+	    warn "auth key pair too old, rotating..\n" if !$quiet;;
+	    return 0;
+	} else {
+	    warn "auth key new enough, skipping rotation\n" if !$quiet;;
+	    return 1;
+	}
+    }
+}
+
+sub rotate_authkey {
+    return if $authkey_lifetime == 0;
+
+    cfs_lock_authkey(undef, sub {
+	# re-check with lock to avoid double rotation in clusters
+	return if check_authkey();
+
+	my $old = get_pubkey();
+
+	if ($old) {
+	    eval {
+		my $pem = $old->get_public_key_x509_string();
+		PVE::Tools::file_set_contents($pve_auth_key_files->{pubold}, $pem);
+	    };
+	    die "Failed to store old auth key: $@\n" if $@;
+	}
+
+	my $new = Crypt::OpenSSL::RSA->generate_key(2048);
+	eval {
+	    my $pem = $new->get_public_key_x509_string();
+	    PVE::Tools::file_set_contents($pve_auth_key_files->{pub}, $pem);
+	};
+	if ($@) {
+	    if ($old) {
+		warn "Failed to store new auth key - $@\n";
+		warn "Reverting to previous auth key\n";
+		eval {
+		    my $pem = $old->get_public_key_x509_string();
+		    PVE::Tools::file_set_contents($pve_auth_key_files->{pub}, $pem);
+		};
+		die "Failed to restore old auth key: $@\n" if $@;
+	    } else {
+		die "Failed to store new auth key - $@\n";
+	    }
+	}
+
+	eval {
+	    my $pem = $new->get_private_key_string();
+	    PVE::Tools::file_set_contents($pve_auth_key_files->{priv}, $pem);
+	};
+	if ($@) {
+	    warn "Failed to store new auth key - $@\n";
+	    warn "Deleting auth key to force regeneration\n";
+	    unlink $pve_auth_key_files->{pub};
+	    unlink $pve_auth_key_files->{priv};
+	}
+    });
+    die $@ if $@;
 }
 
 my $csrf_prevention_secret;
@@ -100,17 +231,34 @@ sub verify_csrf_prevention_token {
 	$secret, $username, $token, -300, $ticket_lifetime, $noerr);
 }
 
-my $pve_auth_priv_key;
-sub get_privkey {
+my $get_ticket_age_range = sub {
+    my ($now, $mtime, $rotated) = @_;
 
-    return $pve_auth_priv_key if $pve_auth_priv_key;
+    my $key_age = $now - $mtime;
+    $key_age = 0 if $key_age < 0;
 
-    my $input = PVE::Tools::file_get_contents($authprivkeyfn);
+    my $min = -300;
+    my $max = $ticket_lifetime;
 
-    $pve_auth_priv_key = Crypt::OpenSSL::RSA->new_private_key($input);
+    if ($rotated) {
+	# ticket creation after rotation is not allowed
+	$min = $key_age - 300;
+    } else {
+	if ($key_age > $authkey_lifetime && $authkey_lifetime > 0) {
+	    if (PVE::Cluster::check_cfs_quorum(1)) {
+		# key should have been rotated, clamp range accordingly
+		$min = $key_age - $authkey_lifetime;
+	    } else {
+		warn "Cluster not quorate - extending auth key lifetime!\n";
+	    }
+	}
 
-    return $pve_auth_priv_key;
-}
+	$max = $key_age + 300 if $key_age < $ticket_lifetime;
+    }
+
+    return undef if $min > $ticket_lifetime;
+    return ($min, $max);
+};
 
 sub assemble_ticket {
     my ($username) = @_;
@@ -123,12 +271,34 @@ sub assemble_ticket {
 sub verify_ticket {
     my ($ticket, $noerr) = @_;
 
-    my $rsa_pub = get_pubkey();
+    my $now = time();
 
-    my ($username, $age) = PVE::Ticket::verify_rsa_ticket(
-	$rsa_pub, 'PVE', $ticket, undef, -300, $ticket_lifetime, $noerr);
+    my $check = sub {
+	my ($old) = @_;
 
-    return undef if $noerr && !defined($username);
+	my ($rsa_pub, $rsa_mtime) = get_pubkey($old);
+	return undef if !$rsa_pub;
+
+	my ($min, $max) = $get_ticket_age_range->($now, $rsa_mtime, $old);
+	return undef if !$min;
+
+	return PVE::Ticket::verify_rsa_ticket(
+	    $rsa_pub, 'PVE', $ticket, undef, $min, $max, 1);
+    };
+
+    my ($username, $age) = $check->();
+
+    # check with old, rotated key if current key failed
+    ($username, $age) = $check->(1) if !defined($username);
+
+    if (!defined($username)) {
+	if ($noerr) {
+	    return undef;
+	} else {
+	    # raise error via undef ticket
+	    PVE::Ticket::verify_rsa_ticket(undef, 'PVE');
+	}
+    }
 
     return undef if !PVE::Auth::Plugin::verify_username($username, $noerr);
 
@@ -154,9 +324,17 @@ sub assemble_vnc_ticket {
 sub verify_vnc_ticket {
     my ($ticket, $username, $path, $noerr) = @_;
 
-    my $rsa_pub = get_pubkey();
-
     my $secret_data = "$username:$path";
+
+    my ($rsa_pub, $rsa_mtime) = get_pubkey();
+    if (!$rsa_pub || (time() - $rsa_mtime > $authkey_lifetime)) {
+	if ($noerr) {
+	    return undef;
+	} else {
+	    # raise error via undef ticket
+	    PVE::Ticket::verify_rsa_ticket($rsa_pub, 'PVEVNC');
+	}
+    }
 
     return PVE::Ticket::verify_rsa_ticket(
 	$rsa_pub, 'PVEVNC', $ticket, $secret_data, -20, 40, $noerr);
