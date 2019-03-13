@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+
+#DEBHELPER#
+
+case "$1" in
+  configure)
+        # TODO: enable for PVE 6.0
+#    if test -n "$2"; then
+#
+#        # TODO: remove once PVE 7.0 is released
+#        if dpkg --compare-versions "$2" 'lt' '6.0-1'; then
+#            if test ! -e /etc/pve/authkey.pub.old; then
+#                # reset key age to prevent immediate invalidation of all current tickets
+#                touch -d "-2h" /etc/pve/authkey.pub  2>/dev/null || true
+#            fi
+#       fi
+#
+#    fi
+    ;;
+
+esac
+
+exit 0
