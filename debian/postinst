@@ -13,7 +13,7 @@ case "$1" in
 #        if dpkg --compare-versions "$2" 'lt' '6.0-1'; then
 #            if test ! -e /etc/pve/authkey.pub.old; then
 #                # reset key age to prevent immediate invalidation of all current tickets
-#                touch -d "-2h" /etc/pve/authkey.pub  2>/dev/null || true
+#                touch -d "-2 hours" /etc/pve/authkey.pub || true
 #            fi
 #       fi
 #
