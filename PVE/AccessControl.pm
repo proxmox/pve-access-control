@@ -158,7 +158,7 @@ sub check_authkey {
 sub rotate_authkey {
     return if $authkey_lifetime == 0;
 
-    cfs_lock_authkey(undef, sub {
+    PVE::Cluster::cfs_lock_authkey(undef, sub {
 	# re-check with lock to avoid double rotation in clusters
 	return if check_authkey();
 
