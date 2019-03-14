@@ -28,7 +28,7 @@ Depends: libauthen-pam-perl,
          liburi-perl,
          libwww-perl,
          perl (>= 5.6.0-16),
-         pve-cluster,
+         pve-cluster (>= 5.0-34),
          ${perl:Depends},
 Description: Proxmox VE access control library
  This package contains the role based user management and access
