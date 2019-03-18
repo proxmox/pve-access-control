@@ -1,3 +1,9 @@
+libpve-access-control (5.1-5) unstable; urgency=medium
+
+  * fix vnc ticket verification without authkey lifetime
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 18 Mar 2019 10:43:17 +0100
+
 libpve-access-control (5.1-4) unstable; urgency=medium
 
   * fix #1891: Add zsh command completion for pveum
