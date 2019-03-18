@@ -327,7 +327,7 @@ sub verify_vnc_ticket {
     my $secret_data = "$username:$path";
 
     my ($rsa_pub, $rsa_mtime) = get_pubkey();
-    if (!$rsa_pub || (time() - $rsa_mtime > $authkey_lifetime)) {
+    if (!$rsa_pub || (time() - $rsa_mtime > $authkey_lifetime && $authkey_lifetime > 0)) {
 	if ($noerr) {
 	    return undef;
 	} else {
