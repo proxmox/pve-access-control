@@ -355,11 +355,14 @@ __PACKAGE__->register_method ({
 		    $plugin->delete_user($cfg, $realm, $ruid);
 		}
 
+		# Remove TFA data before removing the user entry as the user entry tells us whether
+		# we need ot update priv/tfa.cfg.
+		PVE::AccessControl::user_set_tfa($userid, $realm, undef, undef, $usercfg, $domain_cfg);
+
 		delete $usercfg->{users}->{$userid};
 
 		PVE::AccessControl::delete_user_group($userid, $usercfg);
 		PVE::AccessControl::delete_user_acl($userid, $usercfg);
-
 		cfs_write_file("user.cfg", $usercfg);
 	    }, "delete user failed");
 
