@@ -10,13 +10,12 @@ Build-Depends: debhelper (>= 9.0.0~),
                perl (>= 5.10.0-19),
                pve-cluster,
                pve-doc-generator (>= 5.3-3),
-Standards-Version: 3.9.5
+Standards-Version: 3.9.8
 Homepage: http://www.proxmox.com
 
 Package: libpve-access-control
 Architecture: any
 Depends: libauthen-pam-perl,
-         libc6 (>= 2.3),
          libcrypt-openssl-random-perl,
          libcrypt-openssl-rsa-perl,
          libjson-perl,
@@ -29,6 +28,7 @@ Depends: libauthen-pam-perl,
          libwww-perl,
          perl (>= 5.6.0-16),
          pve-cluster (>= 5.0-34),
+         ${misc:Depends},
          ${perl:Depends},
 Description: Proxmox VE access control library
  This package contains the role based user management and access

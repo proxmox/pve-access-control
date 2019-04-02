@@ -2,6 +2,8 @@ VERSION=5.1
 PACKAGE=libpve-access-control
 PKGREL=5
 
+BUILDDIR ?= ${PACKAGE}-${VERSION}
+
 DESTDIR=
 PREFIX=/usr
 BINDIR=${PREFIX}/bin
@@ -20,6 +22,7 @@ ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
 GITVERSION:=$(shell cat .git/refs/heads/master)
 
 DEB=${PACKAGE}_${VERSION}-${PKGREL}_${ARCH}.deb
+DSC=${PACKAGE}_${VERSION}-${PKGREL}.dsc
 
 # this requires package pve-doc-generator
 export NOVIEW=1
@@ -58,14 +61,22 @@ test:
 	perl -I. ./pveum verifyapi
 	perl -I. -T -e "use PVE::CLI::pveum; PVE::CLI::pveum->verify_api();"
 
+${BUILDDIR}:
+	rm -rf ${BUILDDIR}
+	rsync -a * ${BUILDDIR}
+	echo "git clone git://git.proxmox.com/git/pve-access-control.git\\ngit checkout ${GITVERSION}" > ${BUILDDIR}/debian/SOURCE
+
 .PHONY: deb
 deb: ${DEB}
-${DEB}:
-	rm -rf build
-	rsync -a * build
-	echo "git clone git://git.proxmox.com/git/pve-access-control.git\\ngit checkout ${GITVERSION}" >build/debian/SOURCE
-	cd build; dpkg-buildpackage -b -us -uc
+${DEB}: ${BUILDDIR}
+	cd ${BUILDDIR}; dpkg-buildpackage -b -us -uc
 	lintian ${DEB}
+
+.PHONY: dsc
+dsc: ${DSC}
+${DSC}: ${BUILDDIR}
+	cd ${BUILDDIR}; dpkg-buildpackage -S -us -uc -d
+	lintian ${DSC}
 
 .PHONY: upload
 upload: ${DEB}
@@ -73,8 +84,9 @@ upload: ${DEB}
 
 .PHONY: clean
 clean:
+	rm -rf ${BUILDDIR}
 	make cleanup-docgen
-	rm -rf build *.deb *.buildinfo *.changes
+	rm -rf *.deb *.buildinfo *.changes ${PACKAGE}*.tar.gz *.dsc
 	find . -name '*~' -exec rm {} ';'
 
 .PHONY: distclean
