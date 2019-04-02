@@ -19,6 +19,8 @@ use PVE::API2::User;
 use PVE::API2::Group;
 use PVE::API2::Role;
 use PVE::API2::ACL;
+use PVE::OTP;
+use PVE::Tools;
 
 my $u2f_available = 0;
 eval {
@@ -418,12 +420,46 @@ sub get_u2f_instance {
     return $u2f;
 }
 
+sub verify_user_tfa_config {
+    my ($type, $tfa_cfg, $value) = @_;
+
+    if (!defined($type)) {
+	die "missing tfa 'type'\n";
+    }
+
+    if ($type ne 'oath') {
+	die "invalid type for custom tfa authentication\n";
+    }
+
+    my $secret = $tfa_cfg->{keys}
+	or die "missing TOTP secret\n";
+    $tfa_cfg = $tfa_cfg->{config};
+    # Copy the hash to verify that we have no unexpected keys without modifying the original hash.
+    $tfa_cfg = {%$tfa_cfg};
+
+    # We can only verify 1 secret but oath_verify_otp allows multiple:
+    if (scalar(PVE::Tools::split_list($secret)) != 1) {
+	die "only exactly one secret key allowed\n";
+    }
+
+    my $digits = delete($tfa_cfg->{digits}) // 6;
+    my $step = delete($tfa_cfg->{step}) // 30;
+    # Maybe also this?
+    #     my $algorithm = delete($tfa_cfg->{algorithm}) // 'sha1';
+
+    if (length(my $more = join(', ', keys %$tfa_cfg))) {
+	die "unexpected tfa config keys: $more\n";
+    }
+
+    PVE::OTP::oath_verify_otp($value, $secret, $step, $digits);
+}
+
 __PACKAGE__->register_method ({
     name => 'change_tfa',
     path => 'tfa',
     method => 'PUT',
     permissions => {
-	description => 'A user can change their own u2f token.',
+	description => 'A user can change their own u2f or totp token.',
 	check => [ 'or',
 		   ['userid-param', 'self'],
 		   [ 'and',
@@ -454,8 +490,25 @@ __PACKAGE__->register_method ({
 	    },
 	    response => {
 		optional => 1,
-		description => 'The response to the current registration challenge.',
+		description =>
+		    'Either the the response to the current u2f registration challenge,'
+		    .' or, when adding TOTP, the currently valid TOTP value.',
 		type => 'string',
+	    },
+	    key => {
+		optional => 1,
+		description => 'When adding TOTP, the shared secret value.',
+		type => 'string',
+		# This is what pve-common's PVE::OTP::oath_verify_otp accepts.
+		# Should we move this to pve-common's JSONSchema as a named format?
+		pattern => qr/[A-Z2-7=]{16}|[A-Fa-f0-9]{40}/,
+	    },
+	    config => {
+		optional => 1,
+		description => 'A TFA configuration. This must currently be of type TOTP of not set at all.',
+		type => 'string',
+		format => 'pve-tfa-config',
+		maxLength => 128,
 	    },
 	}
     },
@@ -469,6 +522,8 @@ __PACKAGE__->register_method ({
 	my $action = delete $param->{action};
 	my $response = delete $param->{response};
 	my $password = delete($param->{password}) // '';
+	my $key = delete($param->{key});
+	my $config = delete($param->{config});
 
 	my ($userid, $ruid, $realm) = PVE::AccessControl::verify_username($param->{userid});
 	$rpcenv->check_user_exist($userid);
@@ -491,12 +546,24 @@ __PACKAGE__->register_method ({
 	    PVE::AccessControl::user_set_tfa($userid, $realm, undef, undef);
 	    PVE::Cluster::log_msg('info', $authuser, "deleted u2f data for user '$userid'");
 	} elsif ($action eq 'new') {
-	    my $u2f = get_u2f_instance($rpcenv);
-	    my $challenge = $u2f->registration_challenge()
-		or raise("failed to get u2f challenge");
-	    $challenge = decode_json($challenge);
-	    PVE::AccessControl::user_set_tfa($userid, $realm, 'u2f', $challenge);
-	    return $challenge;
+	    if (defined($config)) {
+		$config = PVE::Auth::Plugin::parse_tfa_config($config);
+		my $type = delete($config->{type});
+		my $tfa_cfg = {
+		    keys => $key,
+		    config => $config,
+		};
+		verify_user_tfa_config($type, $tfa_cfg, $response);
+		PVE::AccessControl::user_set_tfa($userid, $realm, $type, $tfa_cfg);
+	    } else {
+		# The default is U2F:
+		my $u2f = get_u2f_instance($rpcenv);
+		my $challenge = $u2f->registration_challenge()
+		    or raise("failed to get u2f challenge");
+		$challenge = decode_json($challenge);
+		PVE::AccessControl::user_set_tfa($userid, $realm, 'u2f', $challenge);
+		return $challenge;
+	    }
 	} elsif ($action eq 'confirm') {
 	    raise_param_exc('response' => "confirm action requires the 'response' parameter to be set")
 		if !defined($response);
