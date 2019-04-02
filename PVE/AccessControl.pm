@@ -11,6 +11,7 @@ use MIME::Base64;
 use Digest::SHA;
 use IO::File;
 use File::stat;
+use JSON;
 
 use PVE::OTP;
 use PVE::Ticket;
@@ -55,6 +56,9 @@ Crypt::OpenSSL::RSA->import_random_seed();
 cfs_register_file('user.cfg',
 		  \&parse_user_config,
 		  \&write_user_config);
+cfs_register_file('priv/tfa.cfg',
+		  \&parse_priv_tfa_config,
+		  \&write_priv_tfa_config);
 
 sub verify_username {
     PVE::Auth::Plugin::verify_username(@_);
@@ -446,9 +450,7 @@ sub check_user_enabled {
 }
 
 sub verify_one_time_pw {
-    my ($usercfg, $username, $tfa_cfg, $otp) = @_;
-
-    my $type = $tfa_cfg->{type};
+    my ($type, $username, $keys, $tfa_cfg, $otp) = @_;
 
     die "missing one time password for two-factor authentication '$type'\n" if !$otp;
 
@@ -456,11 +458,9 @@ sub verify_one_time_pw {
     my $proxy;
 
     if ($type eq 'yubico') {
-	my $keys = $usercfg->{users}->{$username}->{keys};
 	PVE::OTP::yubico_verify_otp($otp, $keys, $tfa_cfg->{url},
 				    $tfa_cfg->{id}, $tfa_cfg->{key}, $proxy);
     } elsif ($type eq 'oath') {
-	my $keys = $usercfg->{users}->{$username}->{keys};
 	PVE::OTP::oath_verify_otp($otp, $keys, $tfa_cfg->{step}, $tfa_cfg->{digits});
     } else {
 	die "unknown tfa type '$type'\n";
@@ -494,12 +494,22 @@ sub authenticate_user {
     my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
     $plugin->authenticate_user($cfg, $realm, $ruid, $password);
 
-    if ($cfg->{tfa}) {
-	my $tfa_cfg = PVE::Auth::Plugin::parse_tfa_config($cfg->{tfa});
-	verify_one_time_pw($usercfg, $username, $tfa_cfg, $otp);
+    my $u2f;
+
+    my ($type, $tfa_data) = user_get_tfa($username, $realm);
+    if ($type) {
+	if ($type eq 'u2f') {
+	    # Note that if the user did not manage to complete the initial u2f registration
+	    # challenge we have a hash containing a 'challenge' entry in the user's tfa.cfg entry:
+	    $u2f = $tfa_data if !exists $tfa_data->{challenge};
+	} else {
+	    my $keys = $tfa_data->{keys};
+	    my $tfa_cfg = $tfa_data->{config};
+	    verify_one_time_pw($type, $username, $keys, $tfa_cfg, $otp);
+	}
     }
 
-    return $username;
+    return wantarray ? ($username, $u2f) : $username;
 }
 
 sub domain_set_password {
@@ -1083,6 +1093,64 @@ sub write_user_config {
     return $data;
 }
 
+# The TFA configuration in priv/tfa.cfg format contains one line per user of
+# the form:
+#     USER:TYPE:DATA
+# DATA is a base64 encoded json string and its format depends on the type.
+sub parse_priv_tfa_config {
+    my ($filename, $raw) = @_;
+
+    my $users = {};
+    my $cfg = { users => $users };
+
+    $raw = '' if !defined($raw);
+    while ($raw =~ /^\s*(.+?)\s*$/gm) {
+	my $line = $1;
+	my ($user, $type, $data) = split(/:/, $line, 3);
+
+	my (undef, undef, $realm) = PVE::Auth::Plugin::verify_username($user, 1);
+	if (!$realm) {
+	    warn "user tfa config - ignore user '$user' - invalid user name\n";
+	    next;
+	}
+
+	$data = decode_json(decode_base64($data));
+
+	$users->{$user} = {
+	    type => $type,
+	    data => $data,
+	};
+    }
+
+    return $cfg;
+}
+
+sub write_priv_tfa_config {
+    my ($filename, $cfg) = @_;
+
+    my $output = '';
+
+    my $users = $cfg->{users};
+    foreach my $user (sort keys %$users) {
+	my $info = $users->{$user};
+	next if !%$info; # skip empty entries
+
+	$info = {%$info}; # copy to verify contents:
+
+	my $type = delete $info->{type};
+	my $data = delete $info->{data};
+
+	if (my @keys = keys %$info) {
+	    die "invalid keys in TFA config for user $user: " . join(', ', @keys) . "\n";
+	}
+
+	$data = encode_base64(encode_json($data), '');
+	$output .= "${user}:${type}:${data}\n";
+    }
+
+    return $output;
+}
+
 sub roles {
     my ($cfg, $user, $path) = @_;
 
@@ -1263,6 +1331,118 @@ sub remove_vm_from_pool {
     };
 
     lock_user_config($delVMfromPoolFn, "pool cleanup for VM $vmid failed");
+}
+
+my $CUSTOM_TFA_TYPES = {
+    u2f => 1,
+    oath => 1,
+};
+
+# Delete an entry by setting $data=undef in which case $type is ignored.
+# Otherwise both must be valid.
+sub user_set_tfa {
+    my ($userid, $realm, $type, $data, $cached_usercfg, $cached_domaincfg) = @_;
+
+    if (defined($data) && !defined($type)) {
+	# This is an internal usage error and should not happen
+	die "cannot set tfa data without a type\n";
+    }
+
+    my $user_cfg = $cached_usercfg || cfs_read_file('user.cfg');
+    my $user = $user_cfg->{users}->{$userid}
+	or die "user '$userid' not found\n";
+
+    my $domain_cfg = $cached_domaincfg || cfs_read_file('domains.cfg');
+    my $realm_cfg = $domain_cfg->{ids}->{$realm};
+    die "auth domain '$realm' does not exist\n" if !$realm_cfg;
+
+    my $realm_tfa = $realm_cfg->{tfa};
+    if (defined($realm_tfa)) {
+	$realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_tfa);
+	# If the realm has a TFA setting, we're only allowed to use that.
+	if (defined($data)) {
+	    my $required_type = $realm_tfa->{type};
+	    if ($required_type ne $type) {
+		die "realm '$realm' only allows TFA of type '$required_type\n";
+	    }
+
+	    if (defined($data->{config})) {
+		# XXX: Is it enough if the type matches? Or should the configuration also match?
+	    }
+
+	    # realm-configured tfa always uses a simple key list, so use the user.cfg
+	    $user->{keys} = $data->{keys};
+	} else {
+	    die "realm '$realm' does not allow removing the 2nd factor\n";
+	}
+    } else {
+	# Without a realm-enforced TFA setting the user can add a u2f or totp entry by themselves.
+	# The 'yubico' type requires yubico server settings, which have to be configured on the
+	# realm, so this is not supported here:
+	die "domain '$realm' does not support TFA type '$type'\n"
+	    if defined($data) && !$CUSTOM_TFA_TYPES->{$type};
+    }
+
+    # Custom TFA entries are stored in priv/tfa.cfg as they can be more complet: u2f uses a
+    # public key and a key handle, TOTP requires the usual totp settings...
+
+    my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
+    my $tfa = ($tfa_cfg->{users}->{$userid} //= {});
+
+    if (defined($data)) {
+	$tfa->{type} = $type;
+	$tfa->{data} = $data;
+	cfs_write_file('priv/tfa.cfg', $tfa_cfg);
+
+	$user->{keys} = 'x';
+    } else {
+	delete $tfa_cfg->{users}->{$userid};
+	cfs_write_file('priv/tfa.cfg', $tfa_cfg);
+
+	delete $user->{keys};
+    }
+
+    cfs_write_file('user.cfg', $user_cfg);
+}
+
+sub user_get_tfa {
+    my ($username, $realm) = @_;
+
+    my $user_cfg = cfs_read_file('user.cfg');
+    my $user = $user_cfg->{users}->{$username}
+	or die "user '$username' not found\n";
+
+    my $keys = $user->{keys};
+    return if !$keys;
+
+    my $domain_cfg = cfs_read_file('domains.cfg');
+    my $realm_cfg = $domain_cfg->{ids}->{$realm};
+    die "auth domain '$realm' does not exist\n" if !$realm_cfg;
+
+    my $realm_tfa = $realm_cfg->{tfa};
+    $realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_tfa)
+	if $realm_tfa;
+
+    if ($keys ne 'x') {
+	# old style config, find the type via the realm
+	return if !$realm_tfa;
+	return ($realm_tfa->{type}, {
+	    keys => $keys,
+	    config => $realm_tfa,
+	});
+    } else {
+	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
+	my $tfa = $tfa_cfg->{users}->{$username};
+	return if !$tfa; # should not happen (user.cfg wasn't cleaned up?)
+
+	if ($realm_tfa) {
+	    # if the realm has a tfa setting we need to verify the type:
+	    die "auth domain '$realm' and user have mismatching TFA settings\n"
+		if $realm_tfa && $realm_tfa->{type} ne $tfa->{type};
+	}
+
+	return ($tfa->{type}, $tfa->{data});
+    }
 }
 
 # bash completion helpers
