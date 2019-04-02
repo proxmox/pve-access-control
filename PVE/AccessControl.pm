@@ -265,11 +265,11 @@ my $get_ticket_age_range = sub {
 };
 
 sub assemble_ticket {
-    my ($username) = @_;
+    my ($data) = @_;
 
     my $rsa_priv = get_privkey();
 
-    return PVE::Ticket::assemble_rsa_ticket($rsa_priv, 'PVE', $username);
+    return PVE::Ticket::assemble_rsa_ticket($rsa_priv, 'PVE', $data);
 }
 
 sub verify_ticket {
@@ -290,23 +290,44 @@ sub verify_ticket {
 	    $rsa_pub, 'PVE', $ticket, undef, $min, $max, 1);
     };
 
-    my ($username, $age) = $check->();
+    my ($data, $age) = $check->();
 
     # check with old, rotated key if current key failed
-    ($username, $age) = $check->(1) if !defined($username);
+    ($data, $age) = $check->(1) if !defined($data);
 
-    if (!defined($username)) {
+    my $auth_failure = sub {
 	if ($noerr) {
 	    return undef;
 	} else {
 	    # raise error via undef ticket
 	    PVE::Ticket::verify_rsa_ticket(undef, 'PVE');
 	}
+    };
+
+    if (!defined($data)) {
+	return $auth_failure->();
+    }
+
+    my ($username, $challenge);
+    if ($data =~ m{^u2f!([^!]+)!([0-9a-zA-Z/.=_\-+]+)$}) {
+	# Ticket for u2f-users:
+	($username, $challenge) = ($1, $2);
+	if ($challenge eq 'verified') {
+	    # u2f challenge was completed
+	    $challenge = undef;
+	} elsif (!wantarray) {
+	    # The caller is not aware there could be an ongoing challenge,
+	    # so we treat this ticket as invalid:
+	    return $auth_failure->();
+	}
+    } else {
+	# Regular ticket (full access)
+	$username = $data;
     }
 
     return undef if !PVE::Auth::Plugin::verify_username($username, $noerr);
 
-    return wantarray ? ($username, $age) : $username;
+    return wantarray ? ($username, $age, $challenge) : $username;
 }
 
 # VNC tickets

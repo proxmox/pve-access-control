@@ -123,21 +123,33 @@ my $verify_auth = sub {
 my $create_ticket = sub {
     my ($rpcenv, $username, $pw_or_ticket, $otp) = @_;
 
-    my $ticketuser;
+    my ($ticketuser, $u2fdata);
     if (($ticketuser = PVE::AccessControl::verify_ticket($pw_or_ticket, 1)) &&
 	($ticketuser eq 'root@pam' || $ticketuser eq $username)) {
 	# valid ticket. Note: root@pam can create tickets for other users
     } else {
-	$username = PVE::AccessControl::authenticate_user($username, $pw_or_ticket, $otp);
+	($username, $u2fdata) = PVE::AccessControl::authenticate_user($username, $pw_or_ticket, $otp);
     }
 
-    my $ticket = PVE::AccessControl::assemble_ticket($username);
+    my %extra;
+    my $ticket_data = $username;
+    if (defined($u2fdata)) {
+	my $u2f = get_u2f_instance($rpcenv, $u2fdata->@{qw(publicKey keyHandle)});
+	my $challenge = $u2f->auth_challenge()
+	    or die "failed to get u2f challenge\n";
+	$challenge = decode_json($challenge);
+	$extra{U2FChallenge} = $challenge;
+	$ticket_data = "u2f!$username!$challenge->{challenge}";
+    }
+
+    my $ticket = PVE::AccessControl::assemble_ticket($ticket_data);
     my $csrftoken = PVE::AccessControl::assemble_csrf_prevention_token($username);
 
     return {
 	ticket => $ticket,
 	username => $username,
 	CSRFPreventionToken => $csrftoken,
+	%extra,
     };
 };
 
@@ -257,6 +269,7 @@ __PACKAGE__->register_method ({
 	    ticket => { type => 'string', optional => 1},
 	    CSRFPreventionToken => { type => 'string', optional => 1 },
 	    clustername => { type => 'string', optional => 1 },
+	    # cap => computed api permissions, unless there's a u2f challenge
 	}
     },
     code => sub {
@@ -286,7 +299,8 @@ __PACKAGE__->register_method ({
 	    die PVE::Exception->new("authentication failure\n", code => 401);
 	}
 
-	$res->{cap} = &$compute_api_permission($rpcenv, $username);
+	$res->{cap} = &$compute_api_permission($rpcenv, $username)
+	    if !defined($res->{U2FChallenge});
 
 	if (PVE::Corosync::check_conf_exists(1)) {
 	    if ($rpcenv->check($username, '/', ['Sys.Audit'], 1)) {
