@@ -81,16 +81,50 @@ PVE::JSONSchema::register_standard_option('userid', {
     maxLength => 64,
 });
 
-PVE::JSONSchema::register_format('pve-tfa-config', \&verify_tfa_config);
-sub verify_tfa_config {
-    my ($value, $noerr) = @_;
+my $tfa_format = {
+    type => {
+        description => "The type of 2nd factor authentication.",
+        format_description => 'TFATYPE',
+        type => 'string',
+        enum => [qw(yubico oath)],
+    },
+    id => {
+        description => "Yubico API ID.",
+        format_description => 'ID',
+        type => 'string',
+        optional => 1,
+    },
+    key => {
+        description => "Yubico API Key.",
+        format_description => 'KEY',
+        type => 'string',
+        optional => 1,
+    },
+    url => {
+        description => "Yubico API URL.",
+        format_description => 'URL',
+        type => 'string',
+        optional => 1,
+    },
+    digits => {
+        description => "TOTP digits.",
+        format_description => 'COUNT',
+        type => 'integer',
+        minimum => 6, maximum => 8,
+        default => 6,
+        optional => 1,
+    },
+    step => {
+        description => "TOTP time period.",
+        format_description => 'SECONDS',
+        type => 'integer',
+        minimum => 10,
+        default => 30,
+        optional => 1,
+    },
+};
 
-    return $value if parse_tfa_config($value);
-
-    return undef if $noerr;
-
-    die "unable to parse tfa option\n";
-}
+PVE::JSONSchema::register_format('pve-tfa-config', $tfa_format);
 
 PVE::JSONSchema::register_standard_option('tfa', {
     description => "Use Two-factor authentication.",
@@ -102,30 +136,7 @@ PVE::JSONSchema::register_standard_option('tfa', {
 sub parse_tfa_config {
     my ($data) = @_;
 
-    my $res = {};
-
-    foreach my $kvp (split(/,/, $data)) {
-
-	if ($kvp =~ m/^type=(yubico|oath)$/) {
-	    $res->{type} = $1;
-	} elsif ($kvp =~ m/^id=(\S+)$/) {
-	    $res->{id} = $1;
-	} elsif ($kvp =~ m/^key=(\S+)$/) {
-	    $res->{key} = $1;
-	} elsif ($kvp =~ m/^url=(\S+)$/) {
-	    $res->{url} = $1;
-	} elsif ($kvp =~ m/^digits=([6|7|8])$/) {
-	    $res->{digits} = $1;
-	} elsif ($kvp =~ m/^step=([1-9]\d+)$/) {
-	    $res->{step} = $1;
-	} else {
-	    return undef;
-	}
-    }
-
-    return undef if !$res->{type};
-
-    return $res;
+    return PVE::JSONSchema::parse_property_string($tfa_format, $data);
 }
 
 my $defaultData = {
