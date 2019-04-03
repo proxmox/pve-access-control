@@ -1,6 +1,6 @@
 VERSION=5.1
 PACKAGE=libpve-access-control
-PKGREL=5
+PKGREL=6
 
 BUILDDIR ?= ${PACKAGE}-${VERSION}
 

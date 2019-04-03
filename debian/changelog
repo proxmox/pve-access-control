@@ -1,3 +1,15 @@
+libpve-access-control (5.1-6) unstable; urgency=medium
+
+  * more general 2FA configuration via priv/tfa.cfg
+
+  * add u2f api endpoints
+
+  * delete TFA entries when deleting a user
+
+  * allow users to change their TOTP settings
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 03 Apr 2019 13:40:26 +0200
+
 libpve-access-control (5.1-5) unstable; urgency=medium
 
   * fix vnc ticket verification without authkey lifetime
