@@ -1354,7 +1354,7 @@ sub remove_vm_from_pool {
     lock_user_config($delVMfromPoolFn, "pool cleanup for VM $vmid failed");
 }
 
-my $CUSTOM_TFA_TYPES = {
+my $USER_CONTROLLED_TFA_TYPES = {
     u2f => 1,
     oath => 1,
 };
@@ -1401,7 +1401,7 @@ sub user_set_tfa {
 	# The 'yubico' type requires yubico server settings, which have to be configured on the
 	# realm, so this is not supported here:
 	die "domain '$realm' does not support TFA type '$type'\n"
-	    if defined($data) && !$CUSTOM_TFA_TYPES->{$type};
+	    if defined($data) && !$USER_CONTROLLED_TFA_TYPES->{$type};
     }
 
     # Custom TFA entries are stored in priv/tfa.cfg as they can be more complet: u2f uses a
