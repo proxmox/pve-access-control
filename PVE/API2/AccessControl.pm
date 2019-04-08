@@ -125,23 +125,32 @@ my $verify_auth = sub {
 my $create_ticket = sub {
     my ($rpcenv, $username, $pw_or_ticket, $otp) = @_;
 
-    my ($ticketuser, $u2fdata);
-    if (($ticketuser = PVE::AccessControl::verify_ticket($pw_or_ticket, 1)) &&
-	($ticketuser eq 'root@pam' || $ticketuser eq $username)) {
+    my ($ticketuser, undef, $tfa_info) = PVE::AccessControl::verify_ticket($pw_or_ticket, 1);
+    if (defined($ticketuser) && ($ticketuser eq 'root@pam' || $ticketuser eq $username)) {
+	if (defined($tfa_info)) {
+	    die "incomplete ticket\n";
+	}
 	# valid ticket. Note: root@pam can create tickets for other users
     } else {
-	($username, $u2fdata) = PVE::AccessControl::authenticate_user($username, $pw_or_ticket, $otp);
+	($username, $tfa_info) = PVE::AccessControl::authenticate_user($username, $pw_or_ticket, $otp);
     }
 
     my %extra;
     my $ticket_data = $username;
-    if (defined($u2fdata)) {
-	my $u2f = get_u2f_instance($rpcenv, $u2fdata->@{qw(publicKey keyHandle)});
-	my $challenge = $u2f->auth_challenge()
-	    or die "failed to get u2f challenge\n";
-	$challenge = decode_json($challenge);
-	$extra{U2FChallenge} = $challenge;
-	$ticket_data = "u2f!$username!$challenge->{challenge}";
+    if (defined($tfa_info)) {
+	$extra{NeedTFA} = 1;
+	if ($tfa_info->{type} eq 'u2f') {
+	    my $u2finfo = $tfa_info->{data};
+	    my $u2f = get_u2f_instance($rpcenv, $u2finfo->@{qw(publicKey keyHandle)});
+	    my $challenge = $u2f->auth_challenge()
+		or die "failed to get u2f challenge\n";
+	    $challenge = decode_json($challenge);
+	    $extra{U2FChallenge} = $challenge;
+	    $ticket_data = "u2f!$username!$challenge->{challenge}";
+	} else {
+	    # General half-login / 'missing 2nd factor' ticket:
+	    $ticket_data = "tfa!$username";
+	}
     }
 
     my $ticket = PVE::AccessControl::assemble_ticket($ticket_data);
@@ -302,7 +311,7 @@ __PACKAGE__->register_method ({
 	}
 
 	$res->{cap} = &$compute_api_permission($rpcenv, $username)
-	    if !defined($res->{U2FChallenge});
+	    if !defined($res->{NeedTFA});
 
 	if (PVE::Corosync::check_conf_exists(1)) {
 	    if ($rpcenv->check($username, '/', ['Sys.Audit'], 1)) {
@@ -616,27 +625,35 @@ __PACKAGE__->register_method({
 	my ($param) = @_;
 
 	my $rpcenv = PVE::RPCEnvironment::get();
-	my $challenge = $rpcenv->get_u2f_challenge()
-	   or raise('no active challenge');
 	my $authuser = $rpcenv->get_user();
 	my ($username, undef, $realm) = PVE::AccessControl::verify_username($authuser);
 
-	my ($tfa_type, $u2fdata) = PVE::AccessControl::user_get_tfa($username, $realm);
-	if (!defined($tfa_type) || $tfa_type ne 'u2f') {
+	my ($tfa_type, $tfa_data) = PVE::AccessControl::user_get_tfa($username, $realm);
+	if (!defined($tfa_type)) {
 	    raise('no u2f data available');
 	}
 
-	my $keyHandle = $u2fdata->{keyHandle};
-	my $publicKey = $u2fdata->{publicKey};
-	raise("incomplete u2f setup")
-	    if !defined($keyHandle) || !defined($publicKey);
-
-	my $u2f = get_u2f_instance($rpcenv, $publicKey, $keyHandle);
-	$u2f->set_challenge($challenge);
-
 	eval {
-	    my ($counter, $present) = $u2f->auth_verify($param->{response});
-	    # Do we want to do anything with these?
+	    if ($tfa_type eq 'u2f') {
+		my $challenge = $rpcenv->get_u2f_challenge()
+		   or raise('no active challenge');
+
+		my $keyHandle = $tfa_data->{keyHandle};
+		my $publicKey = $tfa_data->{publicKey};
+		raise("incomplete u2f setup")
+		    if !defined($keyHandle) || !defined($publicKey);
+
+		my $u2f = get_u2f_instance($rpcenv, $publicKey, $keyHandle);
+		$u2f->set_challenge($challenge);
+
+		my ($counter, $present) = $u2f->auth_verify($param->{response});
+		# Do we want to do anything with these?
+	    } else {
+		# sanity check before handing off to the verification code:
+		my $keys = $tfa_data->{keys} or die "missing tfa keys\n";
+		my $config = $tfa_data->{config} or die "bad tfa entry\n";
+		PVE::AccessControl::verify_one_time_pw($tfa_type, $authuser, $keys, $config, $param->{response});
+	    }
 	};
 	if (my $err = $@) {
 	    my $clientip = $rpcenv->get_client_ip() || '';
@@ -644,10 +661,8 @@ __PACKAGE__->register_method({
 	    die PVE::Exception->new("authentication failure\n", code => 401);
 	}
 
-	# create a new ticket for the user:
-	my $ticket_data = "u2f!$authuser!verified";
 	return {
-	    ticket => PVE::AccessControl::assemble_ticket($ticket_data),
+	    ticket => PVE::AccessControl::assemble_ticket($authuser),
 	    cap => &$compute_api_permission($rpcenv, $authuser),
 	}
     }});

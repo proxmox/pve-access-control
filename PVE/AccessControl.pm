@@ -308,10 +308,10 @@ sub verify_ticket {
 	return $auth_failure->();
     }
 
-    my ($username, $challenge);
+    my ($username, $tfa_info);
     if ($data =~ m{^u2f!([^!]+)!([0-9a-zA-Z/.=_\-+]+)$}) {
 	# Ticket for u2f-users:
-	($username, $challenge) = ($1, $2);
+	($username, my $challenge) = ($1, $2);
 	if ($challenge eq 'verified') {
 	    # u2f challenge was completed
 	    $challenge = undef;
@@ -320,6 +320,15 @@ sub verify_ticket {
 	    # so we treat this ticket as invalid:
 	    return $auth_failure->();
 	}
+	$tfa_info = {
+	    type => 'u2f',
+	    challenge => $challenge,
+	};
+    } elsif ($data =~ /^tfa!(.*)$/) {
+	# TOTP and Yubico don't require a challenge so this is the generic
+	# 'missing 2nd factor ticket'
+	$username = $1;
+	$tfa_info = { type => 'tfa' };
     } else {
 	# Regular ticket (full access)
 	$username = $data;
@@ -327,7 +336,7 @@ sub verify_ticket {
 
     return undef if !PVE::Auth::Plugin::verify_username($username, $noerr);
 
-    return wantarray ? ($username, $age, $challenge) : $username;
+    return wantarray ? ($username, $age, $tfa_info) : $username;
 }
 
 # VNC tickets
@@ -515,22 +524,32 @@ sub authenticate_user {
     my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
     $plugin->authenticate_user($cfg, $realm, $ruid, $password);
 
-    my $u2f;
-
     my ($type, $tfa_data) = user_get_tfa($username, $realm);
     if ($type) {
 	if ($type eq 'u2f') {
 	    # Note that if the user did not manage to complete the initial u2f registration
 	    # challenge we have a hash containing a 'challenge' entry in the user's tfa.cfg entry:
-	    $u2f = $tfa_data if !exists $tfa_data->{challenge};
+	    $tfa_data = undef if exists $tfa_data->{challenge};
+	} elsif (!defined($otp)) {
+	    # The user requires a 2nd factor but has not provided one. Return success but
+	    # don't clear $tfa_data.
 	} else {
 	    my $keys = $tfa_data->{keys};
 	    my $tfa_cfg = $tfa_data->{config};
 	    verify_one_time_pw($type, $username, $keys, $tfa_cfg, $otp);
+	    $tfa_data = undef;
+	}
+
+	# Return the type along with the rest:
+	if ($tfa_data) {
+	    $tfa_data = {
+		type => $type,
+		data => $tfa_data,
+	    };
 	}
     }
 
-    return wantarray ? ($username, $u2f) : $username;
+    return wantarray ? ($username, $tfa_data) : $username;
 }
 
 sub domain_set_password {
