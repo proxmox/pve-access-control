@@ -589,7 +589,7 @@ __PACKAGE__->register_method ({
 	    my ($keyHandle, $publicKey) = $u2f->registration_verify($response);
 	    PVE::AccessControl::user_set_tfa($userid, $realm, 'u2f', {
 		keyHandle => $keyHandle,
-		publicKey => encode_base64($publicKey, ''),
+		publicKey => $publicKey, # already base64 encoded
 	    });
 	} else {
 	    die "invalid action: $action\n";
