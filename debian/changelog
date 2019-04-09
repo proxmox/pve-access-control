@@ -1,3 +1,9 @@
+libpve-access-control (5.1-8) unstable; urgency=medium
+
+  * U2F: ensure we save correct public key on registration
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 09 Apr 2019 12:47:12 +0200
+
 libpve-access-control (5.1-7) unstable; urgency=medium
 
   * verify_ticket: allow general non-challenge tfa to be run as two step
