@@ -1434,7 +1434,7 @@ sub user_set_tfa {
 	$tfa->{data} = $data;
 	cfs_write_file('priv/tfa.cfg', $tfa_cfg);
 
-	$user->{keys} = 'x';
+	$user->{keys} = "x!$type";
     } else {
 	delete $tfa_cfg->{users}->{$userid};
 	cfs_write_file('priv/tfa.cfg', $tfa_cfg);
@@ -1463,7 +1463,8 @@ sub user_get_tfa {
     $realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_tfa)
 	if $realm_tfa;
 
-    if ($keys ne 'x') {
+    # new style config starts with an 'x' and optionally contains a !<type> suffix
+    if ($keys != /^x(?:!.*)?$/) {
 	# old style config, find the type via the realm
 	return if !$realm_tfa;
 	return ($realm_tfa->{type}, {
