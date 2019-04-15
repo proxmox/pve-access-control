@@ -1464,7 +1464,7 @@ sub user_get_tfa {
 	if $realm_tfa;
 
     # new style config starts with an 'x' and optionally contains a !<type> suffix
-    if ($keys != /^x(?:!.*)?$/) {
+    if ($keys !~ /^x(?:!.*)?$/) {
 	# old style config, find the type via the realm
 	return if !$realm_tfa;
 	return ($realm_tfa->{type}, {
