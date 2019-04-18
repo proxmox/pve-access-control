@@ -1453,7 +1453,6 @@ sub user_get_tfa {
 	or die "user '$username' not found\n";
 
     my $keys = $user->{keys};
-    return if !$keys;
 
     my $domain_cfg = cfs_read_file('domains.cfg');
     my $realm_cfg = $domain_cfg->{ids}->{$realm};
@@ -1462,6 +1461,11 @@ sub user_get_tfa {
     my $realm_tfa = $realm_cfg->{tfa};
     $realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_tfa)
 	if $realm_tfa;
+
+    if (!$keys) {
+	return if !$realm_tfa;
+	die "missing required 2nd keys\n";
+    }
 
     # new style config starts with an 'x' and optionally contains a !<type> suffix
     if ($keys !~ /^x(?:!.*)?$/) {
