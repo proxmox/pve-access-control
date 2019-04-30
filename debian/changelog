@@ -1,3 +1,13 @@
+libpve-access-control (5.1-9) unstable; urgency=medium
+
+  * store the tfa type in user.cfg allowing to get it without proxying the call
+    to a higher priviledged daemon.
+
+  * tfa: realm required TFA should lock out users without TFA configured, as it
+    was done before Proxmox VE 5.4
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 30 Apr 2019 14:01:00 +0000
+
 libpve-access-control (5.1-8) unstable; urgency=medium
 
   * U2F: ensure we save correct public key on registration
