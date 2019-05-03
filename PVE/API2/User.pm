@@ -369,4 +369,63 @@ __PACKAGE__->register_method ({
 	return undef;
     }});
 
+__PACKAGE__->register_method ({
+    name => 'read_user_tfa_type',
+    path => '{userid}/tfa',
+    method => 'GET',
+    protected => 1,
+    description => "Get user TFA types (Personal and Realm).",
+    permissions => {
+	check => [ 'or',
+	    ['userid-param', 'self'],
+	    ['userid-group', ['User.Modify', 'Sys.Audit']],
+	],
+    },
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid-completed'),
+	},
+    },
+    returns => {
+	additionalProperties => 0,
+	properties => {
+	    realm => {
+		type => 'string',
+		enum => [qw(oath yubico)],
+		description => "The type of TFA the users realm has set, if any.",
+		optional => 1,
+	    },
+	    user => {
+		type => 'string',
+		enum => [qw(oath u2f)],
+		description => "The type of TFA the user has set, if any.",
+		optional => 1,
+	    },
+	},
+	type => "object"
+    },
+    code => sub {
+	my ($param) = @_;
+
+	my ($username, undef, $realm) = PVE::AccessControl::verify_username($param->{userid});
+
+
+	my $domain_cfg = cfs_read_file('domains.cfg');
+	my $realm_cfg = $domain_cfg->{ids}->{$realm};
+	die "auth domain '$realm' does not exist\n" if !$realm_cfg;
+
+	my $realm_tfa = {};
+	$realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_cfg->{tfa})
+	    if $realm_cfg->{tfa};
+
+	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
+	my $tfa = $tfa_cfg->{users}->{$username};
+
+	my $res = {};
+	$res->{realm} = $realm_tfa->{type} if $realm_tfa->{type};
+	$res->{user} = $tfa->{type} if $tfa->{type};
+	return $res;
+    }});
+
 1;
