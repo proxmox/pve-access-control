@@ -1,3 +1,9 @@
+libpve-access-control (5.1-10) unstable; urgency=medium
+
+  * add /access/user/{id}/tfa api call to get tfa types
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 15 May 2019 16:21:10 +0200
+
 libpve-access-control (5.1-9) unstable; urgency=medium
 
   * store the tfa type in user.cfg allowing to get it without proxying the call
