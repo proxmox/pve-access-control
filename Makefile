@@ -1,8 +1,10 @@
-VERSION=5.1
-PACKAGE=libpve-access-control
-PKGREL=10
+include /usr/share/dpkg/pkg-info.mk
+include /usr/share/dpkg/architecture.mk
 
-BUILDDIR ?= ${PACKAGE}-${VERSION}
+PACKAGE=libpve-access-control
+
+
+BUILDDIR ?= ${PACKAGE}-${DEB_VERSION_UPSTREAM}
 
 DESTDIR=
 PREFIX=/usr
@@ -16,13 +18,10 @@ ZSHCOMPLDIR=${PREFIX}/share/zsh/vendor-completions/
 
 export PERLDIR=${PREFIX}/share/perl5
 
-export SOURCE_DATE_EPOCH ?= $(shell dpkg-parsechangelog -STimestamp)
-
-ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
 GITVERSION:=$(shell cat .git/refs/heads/master)
 
-DEB=${PACKAGE}_${VERSION}-${PKGREL}_${ARCH}.deb
-DSC=${PACKAGE}_${VERSION}-${PKGREL}.dsc
+DEB=${PACKAGE}_${DEB_VERSION_UPSTREAM_REVISION}_${DEB_BUILD_ARCH}.deb
+DSC=${PACKAGE}_${DEB_VERSION_UPSTREAM_REVISION}.dsc
 
 # this requires package pve-doc-generator
 export NOVIEW=1
@@ -80,7 +79,7 @@ ${DSC}: ${BUILDDIR}
 
 .PHONY: upload
 upload: ${DEB}
-	tar cf - ${DEB} | ssh repoman@repo.proxmox.com -- upload --product pve --dist stretch --arch ${ARCH}
+	tar cf - ${DEB} | ssh repoman@repo.proxmox.com -- upload --product pve --dist stretch --arch ${DEB_BUILD_ARCH}
 
 .PHONY: clean
 clean:
