@@ -47,9 +47,8 @@ my $pve_auth_key_files = {
 
 my $pve_auth_key_cache = {};
 
-my $ticket_lifetime = 3600*2; # 2 hours
-# TODO: set to 24h for PVE 6.0
-my $authkey_lifetime = 3600*0; # rotation disabled
+my $ticket_lifetime = 3600 * 2; # 2 hours
+my $authkey_lifetime = 3600 * 24; # rotate every 24 hours
 
 Crypt::OpenSSL::RSA->import_random_seed();
 
