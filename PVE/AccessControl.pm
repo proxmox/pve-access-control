@@ -166,6 +166,7 @@ sub rotate_authkey {
 	return if check_authkey();
 
 	my $old = get_pubkey();
+	my $new = Crypt::OpenSSL::RSA->generate_key(2048);
 
 	if ($old) {
 	    eval {
@@ -175,7 +176,6 @@ sub rotate_authkey {
 	    die "Failed to store old auth key: $@\n" if $@;
 	}
 
-	my $new = Crypt::OpenSSL::RSA->generate_key(2048);
 	eval {
 	    my $pem = $new->get_public_key_x509_string();
 	    PVE::Tools::file_set_contents($pve_auth_key_files->{pub}, $pem);
