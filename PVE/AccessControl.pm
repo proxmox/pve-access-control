@@ -171,6 +171,7 @@ sub rotate_authkey {
 	if ($old) {
 	    eval {
 		my $pem = $old->get_public_key_x509_string();
+		# mtime is used for caching and ticket age range calculation
 		PVE::Tools::file_set_contents($pve_auth_key_files->{pubold}, $pem);
 	    };
 	    die "Failed to store old auth key: $@\n" if $@;
@@ -178,6 +179,8 @@ sub rotate_authkey {
 
 	eval {
 	    my $pem = $new->get_public_key_x509_string();
+	    # mtime is used for caching and ticket age range calculation,
+	    # should be close to that of pubold above
 	    PVE::Tools::file_set_contents($pve_auth_key_files->{pub}, $pem);
 	};
 	if ($@) {
