@@ -212,10 +212,12 @@ sub rotate_authkey {
 }
 
 my $csrf_prevention_secret;
+my $csrf_prevention_secret_legacy;
 my $get_csrfr_secret = sub {
     if (!$csrf_prevention_secret) {
 	my $input = PVE::Tools::file_get_contents($pve_www_key_fn);
 	$csrf_prevention_secret = Digest::SHA::hmac_sha256_base64($input);
+	$csrf_prevention_secret_legacy = Digest::SHA::sha1_base64($input);
     }
     return $csrf_prevention_secret;
 };
@@ -231,7 +233,16 @@ sub assemble_csrf_prevention_token {
 sub verify_csrf_prevention_token {
     my ($username, $token, $noerr) = @_;
 
-    my $secret =  &$get_csrfr_secret();
+    my $secret = $get_csrfr_secret->();
+
+    # FIXME: remove with PVE 7 and/or refactor all into PVE::Ticket ?
+    if ($token =~ m/^([A-Z0-9]{8}):(\S+)$/) {
+	my $sig = $2;
+	if (length($sig) == 27) {
+	    # the legacy secret got populated by above get_csrfr_secret call
+	    $secret = $csrf_prevention_secret_legacy;
+	}
+    }
 
     return PVE::Ticket::verify_csrf_prevention_token(
 	$secret, $username, $token, -300, $ticket_lifetime, $noerr);
