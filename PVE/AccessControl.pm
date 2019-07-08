@@ -294,7 +294,7 @@ sub verify_ticket {
 	return undef if !$rsa_pub;
 
 	my ($min, $max) = $get_ticket_age_range->($now, $rsa_mtime, $old);
-	return undef if !$min;
+	return undef if !defined($min);
 
 	return PVE::Ticket::verify_rsa_ticket(
 	    $rsa_pub, 'PVE', $ticket, undef, $min, $max, 1);
