@@ -1,3 +1,9 @@
+libpve-access-control (5.1-12) unstable; urgency=medium
+
+  * ticket: properly verify exactly 5min old tickets
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 09 Jul 2019 14:44:25 +0200
+
 libpve-access-control (5.1-11) unstable; urgency=medium
 
   * improve CSRF verification compatibility with newer PVE
