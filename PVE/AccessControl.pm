@@ -974,8 +974,9 @@ sub parse_user_config {
 		    }
 
 		    foreach my $ug (split_list($uglist)) {
-			if ($ug =~ m/^@(\S+)$/) {
-			    my $group = $1;
+			my ($group) = $ug =~ m/^@(\S+)$/;
+
+			if ($group && verify_groupname($group, 1)) {
 			    if ($cfg->{groups}->{$group}) { # group exists
 				$cfg->{acl}->{$path}->{groups}->{$group}->{$role} = $propagate;
 			    } else {
