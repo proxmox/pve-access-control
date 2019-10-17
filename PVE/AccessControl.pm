@@ -1135,11 +1135,11 @@ sub write_user_config {
 	}
 
 	foreach my $rolelist (sort keys %{$ra->{0}}) {
-	    my $uglist = join (',', keys %{$ra->{0}->{$rolelist}});
+	    my $uglist = join (',', sort keys %{$ra->{0}->{$rolelist}});
 	    $data .= "acl:0:$path:$uglist:$rolelist:\n";
 	}
 	foreach my $rolelist (sort keys %{$ra->{1}}) {
-	    my $uglist = join (',', keys %{$ra->{1}->{$rolelist}});
+	    my $uglist = join (',', sort keys %{$ra->{1}->{$rolelist}});
 	    $data .= "acl:1:$path:$uglist:$rolelist:\n";
 	}
     }
