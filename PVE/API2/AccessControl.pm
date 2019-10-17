@@ -19,6 +19,7 @@ use PVE::API2::User;
 use PVE::API2::Group;
 use PVE::API2::Role;
 use PVE::API2::ACL;
+use PVE::Auth::Plugin;
 use PVE::OTP;
 use PVE::Tools;
 
