@@ -509,9 +509,7 @@ __PACKAGE__->register_method ({
 		optional => 1,
 		description => 'When adding TOTP, the shared secret value.',
 		type => 'string',
-		# This is what pve-common's PVE::OTP::oath_verify_otp accepts.
-		# Should we move this to pve-common's JSONSchema as a named format?
-		pattern => qr/[A-Z2-7=]{16}|[A-Fa-f0-9]{40}/,
+		format => 'pve-tfa-secret',
 	    },
 	    config => {
 		optional => 1,
