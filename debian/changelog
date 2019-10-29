@@ -1,3 +1,14 @@
+libpve-access-control (6.0-3) pve; urgency=medium
+
+  * fix #2433: increase possible TFA secret length
+
+  * parse user configuration: correctly parse group names in ACLs, for users
+    which begin their name with an @
+
+  * sort user.cfg entries alphabetically
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 29 Oct 2019 08:52:23 +0100
+
 libpve-access-control (6.0-2) pve; urgency=medium
 
   * improve CSRF verification compatibility with newer PVE
