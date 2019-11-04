@@ -70,6 +70,7 @@ sub options {
 	user_attr => {},
 	port => { optional => 1 },
 	secure => { optional => 1 },
+	sslversion => { optional => 1 },
 	default => { optional => 1 },
 	comment => { optional => 1 },
 	tfa => { optional => 1 },
@@ -107,6 +108,10 @@ my $authenticate_user_ldap = sub {
 	}
     } else {
 	$ldap_args{verify} = 'none';
+    }
+
+    if ($config->{secure}) {
+	$ldap_args{sslversion} = $config->{sslversion} ? $config->{sslversion} : 'tlsv1_2';
     }
 
     my $ldap = Net::LDAP->new($conn_string, %ldap_args) || die "$@\n";

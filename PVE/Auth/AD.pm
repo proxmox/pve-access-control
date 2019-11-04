@@ -33,6 +33,12 @@ sub properties {
 	    optional => 1,
 
 	},
+	sslversion => {
+	    description => "LDAPS ssl version.",
+	    type => 'string',
+	    enum => [qw(tlsv1 tlsv1_1 tlsv1_2)],
+	    optional => 1,
+	},
 	default => {
 	    description => "Use this as default realm",
 	    type => 'boolean',
@@ -69,6 +75,7 @@ sub options {
 	domain => {},
 	port => { optional => 1 },
 	secure => { optional => 1 },
+	sslversion => { optional => 1 },
 	default => { optional => 1 },,
 	comment => { optional => 1 },
 	tfa => { optional => 1 },
@@ -106,6 +113,10 @@ my $authenticate_user_ad = sub {
 	}
     } elsif (defined($config->{verify})) {
 	$ad_args{verify} = 'none';
+    }
+
+    if ($config->{secure}) {
+	$ad_args{sslversion} = $config->{sslversion} ? $config->{sslversion} : 'tlsv1_2';
     }
 
     my $ldap = Net::LDAP->new($conn_string, %ad_args) || die "$@\n";
