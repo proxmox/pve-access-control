@@ -14,7 +14,7 @@ Standards-Version: 3.9.8
 Homepage: http://www.proxmox.com
 
 Package: libpve-access-control
-Architecture: any
+Architecture: all
 Depends: libauthen-pam-perl,
          libcrypt-openssl-random-perl,
          libcrypt-openssl-rsa-perl,
