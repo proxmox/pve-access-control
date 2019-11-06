@@ -34,9 +34,9 @@ sub properties {
 
 	},
 	sslversion => {
-	    description => "LDAPS ssl version.",
+	    description => "LDAPS TLS/SSL version. It's not recommended to use version older than 1.2!",
 	    type => 'string',
-	    enum => [qw(tlsv1 tlsv1_1 tlsv1_2)],
+	    enum => [qw(tlsv1 tlsv1_1 tlsv1_2 tlsv1_3)],
 	    optional => 1,
 	},
 	default => {
@@ -116,7 +116,7 @@ my $authenticate_user_ad = sub {
     }
 
     if ($config->{secure}) {
-	$ad_args{sslversion} = $config->{sslversion} ? $config->{sslversion} : 'tlsv1_2';
+	$ad_args{sslversion} = $config->{sslversion} || 'tlsv1_2';
     }
 
     my $ldap = Net::LDAP->new($conn_string, %ad_args) || die "$@\n";

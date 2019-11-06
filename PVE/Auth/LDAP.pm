@@ -111,7 +111,7 @@ my $authenticate_user_ldap = sub {
     }
 
     if ($config->{secure}) {
-	$ldap_args{sslversion} = $config->{sslversion} ? $config->{sslversion} : 'tlsv1_2';
+	$ldap_args{sslversion} = $config->{sslversion} || 'tlsv1_2';
     }
 
     my $ldap = Net::LDAP->new($conn_string, %ldap_args) || die "$@\n";
