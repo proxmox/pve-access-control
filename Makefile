@@ -51,7 +51,6 @@ install: pveum.1 oathkeygen pveum.bash-completion pveum.zsh-completion
 	install -d ${DESTDIR}/${MAN1DIR}
 	install -d ${DESTDIR}/${DOCDIR}
 	install -m 0644 pveum.1 ${DESTDIR}/${MAN1DIR}
-	gzip -9 -n ${DESTDIR}/${MAN1DIR}/pveum.1
 	install -m 0644 -D pveum.bash-completion ${DESTDIR}${BASHCOMPLDIR}/pveum
 	install -m 0644 -D pveum.zsh-completion ${DESTDIR}${ZSHCOMPLDIR}/_pveum
 
