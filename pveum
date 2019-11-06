@@ -5,9 +5,4 @@ use warnings;
 
 use PVE::CLI::pveum;
 
-my $prepare = sub {
-    # autmatically generate the private key if it does not already exists
-    PVE::Cluster::gen_auth_key();
-};
-
-PVE::CLI::pveum->run_cli_handler(prepare => $prepare);
+PVE::CLI::pveum->run_cli_handler();
