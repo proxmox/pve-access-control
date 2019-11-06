@@ -2,20 +2,13 @@ package PVE::CLI::pveum;
 
 use strict;
 use warnings;
-use Getopt::Long;
-use PVE::Tools qw(run_command);
-use PVE::Cluster;
-use PVE::SafeSyslog;
-use PVE::AccessControl;
-use File::Path qw(make_path remove_tree);
-use PVE::INotify;
+
 use PVE::RPCEnvironment;
 use PVE::API2::User;
 use PVE::API2::Group;
 use PVE::API2::Role;
 use PVE::API2::ACL;
 use PVE::API2::AccessControl;
-use PVE::JSONSchema qw(get_standard_option);
 use PVE::CLIHandler;
 use PVE::PTY;
 
