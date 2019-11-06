@@ -10,7 +10,6 @@ use PVE::Exception qw(raise raise_perm_exc);
 use PVE::SafeSyslog;
 use PVE::RPCEnvironment;
 use PVE::Cluster qw(cfs_read_file);
-use PVE::Corosync;
 use PVE::RESTHandler;
 use PVE::AccessControl;
 use PVE::JSONSchema qw(get_standard_option);
@@ -314,17 +313,9 @@ __PACKAGE__->register_method ({
 	$res->{cap} = &$compute_api_permission($rpcenv, $username)
 	    if !defined($res->{NeedTFA});
 
-	if (PVE::Corosync::check_conf_exists(1)) {
-	    if ($rpcenv->check($username, '/', ['Sys.Audit'], 1)) {
-		eval {
-		    my $conf = cfs_read_file('corosync.conf');
-		    my $totem = PVE::Corosync::totem_config($conf);
-		    if ($totem->{cluster_name}) {
-			$res->{clustername} = $totem->{cluster_name};
-		    }
-		};
-		warn "$@\n" if $@;
-	    }
+	my $clinfo = PVE::Cluster::get_clinfo();
+	if ($clinfo->{cluster}->{name} && $rpcenv->check($username, '/', ['Sys.Audit'], 1)) {
+	    $res->{clustername} = $clinfo->{cluster}->{name};
 	}
 
 	PVE::Cluster::log_msg('info', 'root@pam', "successful auth for user '$username'");
