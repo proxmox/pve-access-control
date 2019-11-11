@@ -390,7 +390,6 @@ sub get_u2f_config() {
     my $dc = cfs_read_file('datacenter.cfg');
     my $u2f = $dc->{u2f};
     die "u2f not configured in datacenter.cfg\n" if !$u2f;
-    $u2f = PVE::JSONSchema::parse_property_string($PVE::DataCenterConfig::u2f_format, $u2f);
     return $u2f;
 }
 
