@@ -10,6 +10,7 @@ use PVE::Exception qw(raise raise_perm_exc raise_param_exc);
 use PVE::SafeSyslog;
 use PVE::RPCEnvironment;
 use PVE::Cluster qw(cfs_read_file);
+use PVE::DataCenterConfig;
 use PVE::RESTHandler;
 use PVE::AccessControl;
 use PVE::JSONSchema qw(get_standard_option);
@@ -389,7 +390,7 @@ sub get_u2f_config() {
     my $dc = cfs_read_file('datacenter.cfg');
     my $u2f = $dc->{u2f};
     die "u2f not configured in datacenter.cfg\n" if !$u2f;
-    $u2f = PVE::JSONSchema::parse_property_string($PVE::Cluster::u2f_format, $u2f);
+    $u2f = PVE::JSONSchema::parse_property_string($PVE::DataCenterConfig::u2f_format, $u2f);
     return $u2f;
 }
 
