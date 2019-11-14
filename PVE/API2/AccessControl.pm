@@ -6,7 +6,7 @@ use warnings;
 use JSON;
 use MIME::Base64;
 
-use PVE::Exception qw(raise raise_perm_exc);
+use PVE::Exception qw(raise raise_perm_exc raise_param_exc);
 use PVE::SafeSyslog;
 use PVE::RPCEnvironment;
 use PVE::Cluster qw(cfs_read_file);
@@ -532,7 +532,7 @@ __PACKAGE__->register_method ({
 
 	# Regular users need to confirm their password to change u2f settings.
 	if ($authuser ne 'root@pam') {
-	    raise_param_exc('password' => 'password is required to modify u2f data')
+	    raise_param_exc({ 'password' => 'password is required to modify u2f data' })
 		if !defined($password);
 	    my $domain_cfg = cfs_read_file('domains.cfg');
 	    my $cfg = $domain_cfg->{ids}->{$realm};
@@ -564,7 +564,7 @@ __PACKAGE__->register_method ({
 		return $challenge;
 	    }
 	} elsif ($action eq 'confirm') {
-	    raise_param_exc('response' => "confirm action requires the 'response' parameter to be set")
+	    raise_param_exc({ 'response' => "confirm action requires the 'response' parameter to be set" })
 		if !defined($response);
 
 	    my ($type, $u2fdata) = PVE::AccessControl::user_get_tfa($userid, $realm);
