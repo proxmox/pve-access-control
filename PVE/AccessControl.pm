@@ -1104,55 +1104,45 @@ sub write_user_config {
 
     $data .= "\n";
 
+    my $collect_rolelist_members = sub {
+	my ($acl_members, $result, $prefix, $exclude) = @_;
+
+	foreach my $member (keys %$acl_members) {
+	    next if $exclude && $member eq $exclude;
+
+	    my $l0 = '';
+	    my $l1 = '';
+	    foreach my $role (sort keys %{$acl_members->{$member}}) {
+		my $propagate = $acl_members->{$member}->{$role};
+		if ($propagate) {
+		    $l1 .= ',' if $l1;
+		    $l1 .= $role;
+		} else {
+		    $l0 .= ',' if $l0;
+		    $l0 .= $role;
+		}
+	    }
+	    $result->{0}->{$l0}->{"${prefix}${member}"} = 1 if $l0;
+	    $result->{1}->{$l1}->{"${prefix}${member}"} = 1 if $l1;
+	}
+    };
+
     foreach my $path (sort keys %{$cfg->{acl}}) {
 	my $d = $cfg->{acl}->{$path};
 
-	my $ra = {};
+	my $rolelist_members = {};
 
-	foreach my $group (keys %{$d->{groups}}) {
-	    my $l0 = '';
-	    my $l1 = '';
-	    foreach my $role (sort keys %{$d->{groups}->{$group}}) {
-		my $propagate = $d->{groups}->{$group}->{$role};
-		if ($propagate) {
-		    $l1 .= ',' if $l1;
-		    $l1 .= $role;
-		} else {
-		    $l0 .= ',' if $l0;
-		    $l0 .= $role;
-		}
+	$collect_rolelist_members->($d->{'groups'}, $rolelist_members, '@');
+
+	# no need to save 'root@pam', it is always 'Administrator'
+	$collect_rolelist_members->($d->{'users'}, $rolelist_members, '', 'root@pam');
+
+	foreach my $propagate (0,1) {
+	    my $filtered = $rolelist_members->{$propagate};
+	    foreach my $rolelist (sort keys %$filtered) {
+		my $uglist = join (',', sort keys %{$filtered->{$rolelist}});
+		$data .= "acl:$propagate:$path:$uglist:$rolelist:\n";
 	    }
-	    $ra->{0}->{$l0}->{"\@$group"} = 1 if $l0;
-	    $ra->{1}->{$l1}->{"\@$group"} = 1 if $l1;
-	}
-
-	foreach my $user (keys %{$d->{users}}) {
-	    # no need to save, because root is always 'Administrator'
-	    next if $user eq 'root@pam';
-
-	    my $l0 = '';
-	    my $l1 = '';
-	    foreach my $role (sort keys %{$d->{users}->{$user}}) {
-		my $propagate = $d->{users}->{$user}->{$role};
-		if ($propagate) {
-		    $l1 .= ',' if $l1;
-		    $l1 .= $role;
-		} else {
-		    $l0 .= ',' if $l0;
-		    $l0 .= $role;
-		}
-	    }
-	    $ra->{0}->{$l0}->{$user} = 1 if $l0;
-	    $ra->{1}->{$l1}->{$user} = 1 if $l1;
-	}
-
-	foreach my $rolelist (sort keys %{$ra->{0}}) {
-	    my $uglist = join (',', sort keys %{$ra->{0}->{$rolelist}});
-	    $data .= "acl:0:$path:$uglist:$rolelist:\n";
-	}
-	foreach my $rolelist (sort keys %{$ra->{1}}) {
-	    my $uglist = join (',', sort keys %{$ra->{1}->{$rolelist}});
-	    $data .= "acl:1:$path:$uglist:$rolelist:\n";
 	}
     }
 
