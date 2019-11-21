@@ -1275,43 +1275,6 @@ sub roles {
     return @ra;
 }
 
-sub permission {
-    my ($cfg, $user, $path) = @_;
-
-    $user = PVE::Auth::Plugin::verify_username($user, 1);
-    return {} if !$user;
-
-    my @ra = roles($cfg, $user, $path);
-
-    my $privs = {};
-
-    foreach my $role (@ra) {
-	if (my $privset = $cfg->{roles}->{$role}) {
-	    foreach my $p (keys %$privset) {
-		$privs->{$p} = 1;
-	    }
-	}
-    }
-
-    #print "priviledges $user $path = " . Dumper ($privs);
-
-    return $privs;
-}
-
-sub check_permissions {
-    my ($username, $path, $privlist) = @_;
-
-    $path = normalize_path($path);
-    my $usercfg = cfs_read_file('user.cfg');
-    my $perm = permission($usercfg, $username, $path);
-
-    foreach my $priv (split_list($privlist)) {
-	return undef if !$perm->{$priv};
-    };
-
-    return 1;
-}
-
 sub remove_vm_access {
     my ($vmid) = @_;
     my $delVMaccessFn = sub {

@@ -31,6 +31,7 @@ Depends: libauthen-pam-perl,
          pve-cluster (>= 5.0-35),
          ${misc:Depends},
          ${perl:Depends},
+Breaks: pve-manager (<= 6.0-9),
 Description: Proxmox VE access control library
  This package contains the role based user management and access
  control function used by Proxmox VE.

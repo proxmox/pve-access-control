@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
-use PVE::AccessControl;
+use PVE::RPCEnvironment;
 use Getopt::Long;
 use Data::Dumper;
 
@@ -23,18 +23,14 @@ if (!($username && $path)) {
 
 my $cfg;
 
+my $rpcenv = PVE::RPCEnvironment->init('cli');
 if ($opt_file) {
-
-    my $fh = IO::File->new ($opt_file, 'r') ||
-	die "can't open file $opt_file - $!\n";
-
-    $cfg = PVE::AccessControl::parse_config ($opt_file, $fh);
-    $fh->close();
-
+    $rpcenv->init_request(userconfig => $opt_file);
 } else {
-    $cfg = PVE::AccessControl::load_user_config();
+    $rpcenv->init_request();
 }
-my $perm = PVE::AccessControl::permission($cfg, $username, $path);
+
+my $perm = $rpcenv->permissions($username, $path);
 
 print "permission for user '$username' on '$path':\n";
 print join(',', keys %$perm) . "\n";

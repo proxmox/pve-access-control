@@ -26,7 +26,7 @@ sub check_roles {
 sub check_permission {
     my ($user, $path, $expected_result) = @_;
 
-    my $perm = PVE::AccessControl::permission($rpcenv->{user_cfg}, $user, $path);
+    my $perm = $rpcenv->permissions($user, $path);
     my $res = join(',', sort keys %$perm);
 
     die "unexpected result\nneed '${expected_result}'\ngot '$res'\n"
