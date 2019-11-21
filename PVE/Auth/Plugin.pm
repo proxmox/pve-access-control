@@ -27,7 +27,8 @@ sub lock_domain_config {
     }
 }
 
-my $realm_regex = qr/[A-Za-z][A-Za-z0-9\.\-_]+/;
+our $realm_regex = qr/[A-Za-z][A-Za-z0-9\.\-_]+/;
+our $user_regex = qr![^\s:/]+!;
 
 PVE::JSONSchema::register_format('pve-realm', \&pve_verify_realm);
 sub pve_verify_realm {
@@ -66,7 +67,7 @@ sub verify_username {
     # colon separated lists)!
     # slash is not allowed because it is used as pve API delimiter
     # also see "man useradd"
-    if ($username =~ m!^([^\s:/]+)\@(${realm_regex})$!) {
+    if ($username =~ m!^(${user_regex})\@(${realm_regex})$!) {
 	return wantarray ? ($username, $1, $2) : $username;
     }
 
