@@ -14,7 +14,7 @@ $rpcenv->init_request(userconfig => $cfgfn);
 sub check_roles {
     my ($user, $path, $expected_result) = @_;
 
-    my @ra = $rpcenv->roles($user, $path);
+    my @ra = PVE::AccessControl::roles($rpcenv->{user_cfg}, $user, $path);
     my $res = join(',', sort @ra);
 
     die "unexpected result\nneed '${expected_result}'\ngot '$res'\n"
@@ -23,10 +23,30 @@ sub check_roles {
     print "ROLES:$path:$user:$res\n";
 }
 
+sub check_permissions {
+    my ($user, $path, $expected_result) = @_;
+
+    my $perm = $rpcenv->permissions($user, $path);
+    my $res = join(',', sort keys %$perm);
+
+    die "unexpected result\nneed '${expected_result}'\ngot '$res'\n"
+	if $res ne $expected_result;
+
+    $perm = $rpcenv->permissions($user, $path);
+    $res = join(',', sort keys %$perm);
+    die "unexpected result (compiled)\nneed '${expected_result}'\ngot '$res'\n"
+	if $res ne $expected_result;
+
+    print "PERM:$path:$user:$res\n";
+}
 
 check_roles('User1@pve', '/vms', 'Role1');
 check_roles('User1@pve', '/vms/200', 'Role1');
-check_roles('User1@pve', '/vms/100', 'NoAccess');
+
+# no pool
+check_roles('User1@pve', '/vms/100', 'Role1');
+# with pool
+check_permissions('User1@pve', '/vms/100', '');
 
 print "all tests passed\n";
 

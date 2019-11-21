@@ -81,29 +81,6 @@ my $compile_acl_path = sub {
     return $privs;
 };
 
-sub roles {
-   my ($self, $user, $path) = @_;
-
-   if ($user eq 'root@pam') { # root can do anything
-       return ('Administrator');
-   }
-
-   $user = PVE::AccessControl::verify_username($user, 1);
-   return () if !$user;
-
-   my $cache = $self->{aclcache};
-   $cache->{$user} = {} if !$cache->{$user};
-
-   my $acl = $cache->{$user};
-
-   my $roles = $acl->{roles}->{$path};
-   return @$roles if $roles;
-
-   &$compile_acl_path($self, $user, $path);
-   $roles = $acl->{roles}->{$path} || [];
-   return @$roles;
-}
-
 sub permissions {
     my ($self, $user, $path) = @_;
 

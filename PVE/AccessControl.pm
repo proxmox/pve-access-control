@@ -1221,7 +1221,7 @@ sub roles {
     my ($cfg, $user, $path) = @_;
 
     # NOTE: we do not consider pools here.
-    # You need to use $rpcenv->roles() instead if you want that.
+    # Use $rpcenv->permission() for any actual permission checks!
 
     return 'Administrator' if $user eq 'root@pam'; # root can do anything
 
