@@ -9,8 +9,10 @@ use PVE::API2::Group;
 use PVE::API2::Role;
 use PVE::API2::ACL;
 use PVE::API2::AccessControl;
+use PVE::CLIFormatter;
 use PVE::CLIHandler;
 use PVE::PTY;
+use PVE::RESTHandler;
 
 use base qw(PVE::CLIHandler);
 
@@ -38,25 +40,34 @@ sub param_mapping {
     return $mapping->{$name};
 }
 
+my $print_api_result = sub {
+    my ($data, $schema, $options) = @_;
+    PVE::CLIFormatter::print_api_result($data, $schema, undef, $options);
+};
+
 our $cmddef = {
     user => {
 	add    => [ 'PVE::API2::User', 'create_user', ['userid'] ],
 	modify => [ 'PVE::API2::User', 'update_user', ['userid'] ],
 	delete => [ 'PVE::API2::User', 'delete_user', ['userid'] ],
+	list   => [ 'PVE::API2::User', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
     },
     group => {
 	add    => [ 'PVE::API2::Group', 'create_group', ['groupid'] ],
 	modify => [ 'PVE::API2::Group', 'update_group', ['groupid'] ],
 	delete => [ 'PVE::API2::Group', 'delete_group', ['groupid'] ],
+	list   => [ 'PVE::API2::Group', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
     },
     role => {
 	add    => [ 'PVE::API2::Role', 'create_role', ['roleid'] ],
 	modify => [ 'PVE::API2::Role', 'update_role', ['roleid'] ],
 	delete => [ 'PVE::API2::Role', 'delete_role', ['roleid'] ],
+	list   => [ 'PVE::API2::Role', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
     },
     acl => {
 	modify => [ 'PVE::API2::ACL', 'update_acl', ['path'], { delete => 0 }],
 	delete => [ 'PVE::API2::ACL', 'update_acl', ['path'], { delete => 1 }],
+	list   => [ 'PVE::API2::ACL', 'read_acl', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
     },
     ticket => [ 'PVE::API2::AccessControl', 'create_ticket', ['username'], undef,
 		sub {
