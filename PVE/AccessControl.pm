@@ -1067,7 +1067,7 @@ sub write_user_config {
 
     foreach my $group (sort keys %{$cfg->{groups}}) {
 	my $d = $cfg->{groups}->{$group};
-	my $list = join (',', keys %{$d->{users}});
+	my $list = join (',', sort keys %{$d->{users}});
 	my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';
 	$data .= "group:$group:$list:$comment:\n";
     }
@@ -1076,8 +1076,8 @@ sub write_user_config {
 
     foreach my $pool (sort keys %{$cfg->{pools}}) {
 	my $d = $cfg->{pools}->{$pool};
-	my $vmlist = join (',', keys %{$d->{vms}});
-	my $storelist = join (',', keys %{$d->{storage}});
+	my $vmlist = join (',', sort keys %{$d->{vms}});
+	my $storelist = join (',', sort keys %{$d->{storage}});
 	my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';
 	$data .= "pool:$pool:$comment:$vmlist:$storelist:\n";
     }
@@ -1088,7 +1088,7 @@ sub write_user_config {
 	next if $special_roles->{$role};
 
 	my $d = $cfg->{roles}->{$role};
-	my $list = join (',', keys %$d);
+	my $list = join (',', sort keys %$d);
 	$data .= "role:$role:$list:\n";
     }
 
