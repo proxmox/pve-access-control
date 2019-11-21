@@ -965,6 +965,8 @@ sub parse_user_config {
 	} elsif ($et eq 'acl') {
 	    my ($propagate, $pathtxt, $uglist, $rolelist) = @data;
 
+	    $propagate = $propagate ? 1 : 0;
+
 	    if (my $path = normalize_path($pathtxt)) {
 		foreach my $role (split_list($rolelist)) {
 
