@@ -683,6 +683,16 @@ my $privgroups = {
 	    'Datastore.Audit',
 	],
     },
+    SDN => {
+	root => [],
+	admin => [
+	    'SDN.Allocate',
+	    'SDN.Audit',
+	],
+	audit => [
+	    'SDN.Audit',
+	],
+    },
     User => {
 	root => [
 	    'Realm.Allocate',
