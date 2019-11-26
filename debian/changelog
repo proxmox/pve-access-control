@@ -1,3 +1,11 @@
+libpve-access-control (6.0-5) pve; urgency=medium
+
+  * pveum: add list command for users, groups, ACLs and roles
+
+  * add initial permissions for experimental SDN integration
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 26 Nov 2019 17:56:37 +0100
+
 libpve-access-control (6.0-4) pve; urgency=medium
 
   * ticket: use clinfo to get cluster name
