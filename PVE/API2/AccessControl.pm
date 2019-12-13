@@ -536,7 +536,7 @@ __PACKAGE__->register_method ({
 		if !defined($password);
 	    my $domain_cfg = cfs_read_file('domains.cfg');
 	    my $cfg = $domain_cfg->{ids}->{$realm};
-	    die "auth domain '$realm' does not exists\n" if !$cfg;
+	    die "auth domain '$realm' does not exist\n" if !$cfg;
 	    my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
 	    $plugin->authenticate_user($cfg, $realm, $ruid, $password);
 	}
