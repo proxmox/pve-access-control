@@ -2,11 +2,12 @@ package PVE::API2::User;
 
 use strict;
 use warnings;
-use PVE::Exception qw(raise raise_perm_exc);
+use PVE::Exception qw(raise raise_perm_exc raise_param_exc);
 use PVE::Cluster qw (cfs_read_file cfs_write_file);
-use PVE::Tools qw(split_list);
+use PVE::Tools qw(split_list extract_param);
 use PVE::AccessControl;
 use PVE::JSONSchema qw(get_standard_option register_standard_option);
+use PVE::TokenConfig;
 
 use PVE::SafeSyslog;
 
@@ -40,6 +41,50 @@ register_standard_option('group-list', {
     optional => 1,
     completion => \&PVE::AccessControl::complete_group,
 });
+register_standard_option('token-subid', {
+    type => 'string',
+    pattern => $PVE::AccessControl::token_subid_regex,
+    description => 'User-specific token identifier.',
+});
+register_standard_option('token-expire', {
+    description => "API token expiration date (seconds since epoch). '0' means no expiration date.",
+    type => 'integer',
+    minimum => 0,
+    optional => 1,
+});
+register_standard_option('token-privsep', {
+    description => "Restrict API token privileges with separate ACLs (default), or give full privileges of corresponding user.",
+    type => 'boolean',
+    optional => 1,
+    default => 1,
+});
+register_standard_option('token-comment', { type => 'string', optional => 1 });
+register_standard_option('token-info', {
+    type => 'object',
+    properties => {
+	expire => get_standard_option('token-expire'),
+	privsep => get_standard_option('token-privsep'),
+	comment => get_standard_option('token-comment'),
+    }
+});
+
+my $token_info_extend = sub {
+    my ($props) = @_;
+
+    my $obj = get_standard_option('token-info');
+    my $base_props = $obj->{properties};
+    $obj->{properties} = {};
+
+    foreach my $prop (keys %$base_props) {
+	$obj->{properties}->{$prop} = $base_props->{$prop};
+    }
+
+    foreach my $add_prop (keys %$props) {
+	$obj->{properties}->{$add_prop} = $props->{$add_prop};
+    }
+
+    return $obj;
+};
 
 my $extract_user_data = sub {
     my ($data, $full) = @_;
@@ -53,6 +98,7 @@ my $extract_user_data = sub {
     return $res if !$full;
 
     $res->{groups} = $data->{groups} ? [ keys %{$data->{groups}} ] : [];
+    $res->{tokens} = $data->{tokens};
 
     return $res;
 };
@@ -228,7 +274,16 @@ __PACKAGE__->register_method ({
 	    email => get_standard_option('user-email'),
 	    comment => get_standard_option('user-comment'),
 	    keys => get_standard_option('user-keys'),
-	    groups => { type => 'array' },
+	    groups => {
+		type => 'array',
+		items => {
+		    type => 'string',
+		    format => 'pve-groupid',
+		},
+	    },
+	    tokens => {
+		type => 'object',
+	    },
 	},
 	type => "object"
     },
@@ -428,4 +483,237 @@ __PACKAGE__->register_method ({
 	return $res;
     }});
 
+__PACKAGE__->register_method ({
+    name => 'token_index',
+    path => '{userid}/token',
+    method => 'GET',
+    description => "Get user API tokens.",
+    permissions => {
+	check => ['or',
+		    ['userid-param', 'self'],
+		    ['perm', '/access/users/{userid}', ['User.Modify']],
+	],
+    },
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid-completed'),
+	},
+    },
+    returns => {
+	type => "array",
+	items => $token_info_extend->({
+		    tokenid => get_standard_option('token-subid'),
+	}),
+	links => [ { rel => 'child', href => "{tokenid}" } ],
+    },
+    code => sub {
+	my ($param) = @_;
+
+	my $userid = PVE::AccessControl::verify_username($param->{userid});
+	my $usercfg = cfs_read_file("user.cfg");
+
+	my $user = PVE::AccessControl::check_user_exist($usercfg, $userid);
+
+	my $tokens = $user->{tokens} // {};
+	return [ map { $tokens->{$_}->{tokenid} = $_; $tokens->{$_} } keys %$tokens];
+    }});
+
+__PACKAGE__->register_method ({
+    name => 'read_token',
+    path => '{userid}/token/{tokenid}',
+    method => 'GET',
+    description => "Get specific API token information.",
+    permissions => {
+	check => ['or',
+		    ['userid-param', 'self'],
+		    ['perm', '/access/users/{userid}', ['User.Modify']],
+	],
+    },
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid-completed'),
+	    tokenid => get_standard_option('token-subid'),
+	},
+    },
+    returns => get_standard_option('token-info'),
+    code => sub {
+	my ($param) = @_;
+
+	my $userid = PVE::AccessControl::verify_username($param->{userid});
+	my $tokenid = $param->{tokenid};
+
+	my $usercfg = cfs_read_file("user.cfg");
+
+	return PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
+    }});
+
+__PACKAGE__->register_method ({
+    name => 'generate_token',
+    path => '{userid}/token/{tokenid}',
+    method => 'POST',
+    description => "Generate a new API token for a specific user. NOTE: returns API token value, which needs to be stored as it cannot be retrieved afterwards!",
+    protected => 1,
+    permissions => {
+	check => ['or',
+		    ['userid-param', 'self'],
+		    ['perm', '/access/users/{userid}', ['User.Modify']],
+	],
+    },
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid-completed'),
+	    tokenid => get_standard_option('token-subid'),
+	    expire => get_standard_option('token-expire'),
+	    privsep => get_standard_option('token-privsep'),
+	    comment => get_standard_option('token-comment'),
+	},
+    },
+    returns => {
+	additionalProperties => 0,
+	type => "object",
+	properties => {
+	    info => get_standard_option('token-info'),
+	    value => {
+		type => 'string',
+		description => 'API token value used for authentication.',
+	    },
+	},
+    },
+    code => sub {
+	my ($param) = @_;
+
+	my $userid = PVE::AccessControl::verify_username(extract_param($param, 'userid'));
+	my $tokenid = extract_param($param, 'tokenid');
+
+	my $usercfg = cfs_read_file("user.cfg");
+
+	my $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid, 1);
+	my $value;
+
+	PVE::AccessControl::check_user_exist($usercfg, $userid);
+	raise_param_exc({ 'tokenid' => 'Token already exists.' }) if defined($token);
+
+	my $generate_and_add_token = sub {
+	    $usercfg = cfs_read_file("user.cfg");
+	    PVE::AccessControl::check_user_exist($usercfg, $userid);
+	    die "Token already exists.\n" if defined(PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid, 1));
+
+	    my $full_tokenid = PVE::AccessControl::join_tokenid($userid, $tokenid);
+	    $value = PVE::TokenConfig::generate_token($full_tokenid);
+
+	    $token = {};
+	    $token->{privsep} = defined($param->{privsep}) ? $param->{privsep} : 1;
+	    $token->{expire} = $param->{expire} if defined($param->{expire});
+	    $token->{comment} = $param->{comment} if $param->{comment};
+
+	    $usercfg->{users}->{$userid}->{tokens}->{$tokenid} = $token;
+	    cfs_write_file("user.cfg", $usercfg);
+	};
+
+	PVE::AccessControl::lock_user_config($generate_and_add_token, 'generating token failed');
+
+	return { info => $token, value => $value };
+    }});
+
+
+__PACKAGE__->register_method ({
+    name => 'update_token_info',
+    path => '{userid}/token/{tokenid}',
+    method => 'PUT',
+    description => "Update API token for a specific user.",
+    protected => 1,
+    permissions => {
+	check => ['or',
+		    ['userid-param', 'self'],
+		    ['perm', '/access/users/{userid}', ['User.Modify']],
+	],
+    },
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid-completed'),
+	    tokenid => get_standard_option('token-subid'),
+	    expire => get_standard_option('token-expire'),
+	    privsep => get_standard_option('token-privsep'),
+	    comment => get_standard_option('token-comment'),
+	},
+    },
+    returns => get_standard_option('token-info', { description => "Updated token information." }),
+    code => sub {
+	my ($param) = @_;
+
+	my $userid = PVE::AccessControl::verify_username(extract_param($param, 'userid'));
+	my $tokenid = extract_param($param, 'tokenid');
+
+	my $usercfg = cfs_read_file("user.cfg");
+	my $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
+
+	my $update_token = sub {
+	    $usercfg = cfs_read_file("user.cfg");
+	    $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
+
+	    my $full_tokenid = PVE::AccessControl::join_tokenid($userid, $tokenid);
+
+	    $token->{privsep} = $param->{privsep} if defined($param->{privsep});
+	    $token->{expire} = $param->{expire} if defined($param->{expire});
+	    $token->{comment} = $param->{comment} if $param->{comment};
+
+	    $usercfg->{users}->{$userid}->{tokens}->{$tokenid} = $token;
+	    cfs_write_file("user.cfg", $usercfg);
+	};
+
+	PVE::AccessControl::lock_user_config($update_token, 'updating token info failed');
+
+	return $token;
+    }});
+
+
+__PACKAGE__->register_method ({
+    name => 'remove_token',
+    path => '{userid}/token/{tokenid}',
+    method => 'DELETE',
+    description => "Remove API token for a specific user.",
+    protected => 1,
+    permissions => {
+	check => ['or',
+		    ['userid-param', 'self'],
+		    ['perm', '/access/users/{userid}', ['User.Modify']],
+	],
+    },
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid-completed'),
+	    tokenid => get_standard_option('token-subid'),
+	},
+    },
+    returns => { type => 'null' },
+    code => sub {
+	my ($param) = @_;
+
+	my $userid = PVE::AccessControl::verify_username(extract_param($param, 'userid'));
+	my $tokenid = extract_param($param, 'tokenid');
+
+	my $usercfg = cfs_read_file("user.cfg");
+	my $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
+
+	my $update_token = sub {
+	    $usercfg = cfs_read_file("user.cfg");
+
+	    PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
+
+	    my $full_tokenid = PVE::AccessControl::join_tokenid($userid, $tokenid);
+	    PVE::TokenConfig::delete_token($full_tokenid);
+	    delete $usercfg->{users}->{$userid}->{tokens}->{$tokenid};
+
+	    cfs_write_file("user.cfg", $usercfg);
+	};
+
+	PVE::AccessControl::lock_user_config($update_token, 'deleting token failed');
+
+	return;
+    }});
 1;
