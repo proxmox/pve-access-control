@@ -1079,6 +1079,11 @@ sub parse_user_config {
 			next;
 		    }
 
+		    if (!$cfg->{roles}->{$role}) {
+			warn "user config - ignore invalid acl role '$role'\n";
+			next;
+		    }
+
 		    foreach my $ug (split_list($uglist)) {
 			my ($group) = $ug =~ m/^@(\S+)$/;
 

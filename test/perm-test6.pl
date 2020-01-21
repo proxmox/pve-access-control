@@ -55,10 +55,10 @@ check_roles('User2@pve', '/vms/100', 'RoleTEST1');
 check_roles('User3@pve', '/vms/100', 'NoAccess');
 check_roles('User4@pve', '/vms/100', '');
 
-check_roles('User1@pve', '/vms/300', 'Role1');
+check_roles('User1@pve', '/vms/300', 'RoleTEST1');
 check_roles('User2@pve', '/vms/300', 'RoleTEST1');
 check_roles('User3@pve', '/vms/300', 'NoAccess');
-check_roles('User4@pve', '/vms/300', 'Role1');
+check_roles('User4@pve', '/vms/300', 'RoleTEST1');
 
 check_permissions('User1@pve', '/vms/500', 'VM.Console,VM.PowerMgmt');
 check_permissions('User2@pve', '/vms/500', 'VM.Console,VM.PowerMgmt');

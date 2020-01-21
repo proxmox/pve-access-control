@@ -821,13 +821,17 @@ my $tests = [
 	config => {
 	    users => default_users_with([$default_cfg->{test_pam}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_missing_role}, $default_cfg->{acl_simple_user}]),
+	    acl => default_acls_with([$default_cfg->{acl_simple_user}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
 	       $default_raw->{users}->{'test_pam'}."\n\n\n\n\n".
 	       $default_raw->{acl}->{'acl_simple_user'}."\n".
 	       $default_raw->{acl}->{'acl_missing_role'}."\n",
+	expected_raw => "".
+	       $default_raw->{users}->{'root@pam'}."\n".
+	       $default_raw->{users}->{'test_pam'}."\n\n\n\n\n".
+	       $default_raw->{acl}->{'acl_simple_user'}."\n",
     },
     {
 	name => "acl_complex_mixed",
