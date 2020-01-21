@@ -1352,9 +1352,24 @@ sub roles {
     my ($cfg, $user, $path) = @_;
 
     # NOTE: we do not consider pools here.
+    # NOTE: for privsep tokens, this does not filter roles by those that the
+    # corresponding user has.
     # Use $rpcenv->permission() for any actual permission checks!
 
     return 'Administrator' if $user eq 'root@pam'; # root can do anything
+
+    if (pve_verify_tokenid($user, 1)) {
+	my $tokenid = $user;
+	my ($username, $token) = split_tokenid($tokenid);
+
+	my $token_info = $cfg->{users}->{$username}->{tokens}->{$token};
+	return () if !$token_info;
+
+	my @user_roles = roles($cfg, $username, $path);
+
+	# return full user privileges
+	return @user_roles if !$token_info->{privsep};
+    }
 
     my $perm = {};
 
@@ -1367,6 +1382,21 @@ sub roles {
 
 	#print "CHECKACL $path $p\n";
 	#print "ACL $path = " . Dumper ($acl);
+	if (my $ri = $acl->{tokens}->{$user}) {
+	    my $new;
+	    foreach my $role (keys %$ri) {
+		my $propagate = $ri->{$role};
+		if ($final || $propagate) {
+		    #print "APPLY ROLE $p $user $role\n";
+		    $new = {} if !$new;
+		    $new->{$role} = 1;
+		}
+	    }
+	    if ($new) {
+		$perm = $new; # overwrite previous settings
+		next;
+	    }
+	}
 
 	if (my $ri = $acl->{users}->{$user}) {
 	    my $new;

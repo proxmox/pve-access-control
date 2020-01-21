@@ -30,6 +30,9 @@ my $compile_acl_path = sub {
     $cache->{$user} = {} if !$cache->{$user};
     my $data = $cache->{$user};
 
+    my ($username, undef) = PVE::AccessControl::split_tokenid($user, 1);
+    die "internal error" if $username && $username ne 'root@pam' && !defined($cache->{$username});
+
     if (!$data->{poolroles}) {
 	$data->{poolroles} = {};
 
@@ -76,6 +79,13 @@ my $compile_acl_path = sub {
 	    }
 	}
     }
+
+    if ($username && $username ne 'root@pam') {
+	# intersect user and token permissions
+	my $user_privs = $cache->{$username}->{privs}->{$path};
+	$privs = { map { $_ => 1 } grep { $user_privs->{$_} } keys %$privs };
+    }
+
     $data->{privs}->{$path} = $privs;
 
     return $privs;
@@ -89,8 +99,21 @@ sub permissions {
 	return $cfg->{roles}->{'Administrator'};
     }
 
-    $user = PVE::AccessControl::verify_username($user, 1);
-    return {} if !$user;
+    if (PVE::AccessControl::pve_verify_tokenid($user, 1)) {
+	my ($username, $token) = PVE::AccessControl::split_tokenid($user);
+	my $cfg = $self->{user_cfg};
+	my $token_info = $cfg->{users}->{$username}->{tokens}->{$token};
+	return {} if !$token_info;
+
+	# ensure cache for user is populated
+	my $user_perms = $self->permissions($username, $path);
+
+	# return user privs for non-privsep tokens
+	return $user_perms if !$token_info->{privsep};
+    } else {
+	$user = PVE::AccessControl::verify_username($user, 1);
+	return {} if !$user;
+    }
 
     my $cache = $self->{aclcache};
     $cache->{$user} = {} if !$cache->{$user};
