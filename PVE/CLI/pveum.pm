@@ -3,6 +3,7 @@ package PVE::CLI::pveum;
 use strict;
 use warnings;
 
+use PVE::AccessControl;
 use PVE::RPCEnvironment;
 use PVE::API2::User;
 use PVE::API2::Group;
@@ -11,8 +12,10 @@ use PVE::API2::ACL;
 use PVE::API2::AccessControl;
 use PVE::CLIFormatter;
 use PVE::CLIHandler;
+use PVE::JSONSchema qw(get_standard_option);
 use PVE::PTY;
 use PVE::RESTHandler;
+use PVE::Tools qw(extract_param);
 
 use base qw(PVE::CLIHandler);
 
@@ -45,17 +48,80 @@ my $print_api_result = sub {
     PVE::CLIFormatter::print_api_result($data, $schema, undef, $options);
 };
 
+my $print_perm_result = sub {
+    my ($data, $schema, $options) = @_;
+
+    if (!defined($options->{'output-format'}) || $options->{'output-format'} eq 'text') {
+	my $table_schema = {
+	    type => 'array',
+	    items => {
+		type => 'object',
+		properties => {
+		    'path' => { type => 'string', title => 'ACL path' },
+		    'permissions' => { type => 'string', title => 'Permissions' },
+		},
+	    },
+	};
+	my $table_data = [];
+	foreach my $path (sort keys %$data) {
+	    my $value = '';
+	    my $curr = $data->{$path};
+	    foreach my $perm (sort keys %$curr) {
+		$value .= "\n" if $value;
+		$value .= $perm;
+		$value .= " (*)" if $curr->{$perm};
+	    }
+	    push @$table_data, { path => $path, permissions => $value };
+	}
+	PVE::CLIFormatter::print_api_result($table_data, $table_schema, undef, $options);
+	print "Permissions marked with '(*)' have the 'propagate' flag set.\n";
+    } else {
+	PVE::CLIFormatter::print_api_result($data, $schema, undef, $options);
+    }
+};
+
+__PACKAGE__->register_method({
+    name => 'token_permissions',
+    path => 'token_permissions',
+    method => 'GET',
+    description => 'Retrieve effective permissions of given token.',
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid'),
+	    tokenid => get_standard_option('token-subid'),
+	    path => get_standard_option('acl-path', {
+		description => "Only dump this specific path, not the whole tree.",
+		optional => 1,
+	    }),
+	},
+    },
+    returns => {
+	type => 'object',
+	description => 'Hash of structure "path" => "privilege" => "propagate boolean".',
+    },
+    code => sub {
+	my ($param) = @_;
+
+	my $token_subid = extract_param($param, "tokenid");
+	$param->{userid} = PVE::AccessControl::join_tokenid($param->{userid}, $token_subid);
+
+	return PVE::API2::AccessControl->permissions($param);
+    }});
+
 our $cmddef = {
     user => {
 	add    => [ 'PVE::API2::User', 'create_user', ['userid'] ],
 	modify => [ 'PVE::API2::User', 'update_user', ['userid'] ],
 	delete => [ 'PVE::API2::User', 'delete_user', ['userid'] ],
 	list   => [ 'PVE::API2::User', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
+	permissions => [ 'PVE::API2::AccessControl', 'permissions', ['userid'], {}, $print_perm_result, $PVE::RESTHandler::standard_output_options],
 	token => {
 	    add    => [ 'PVE::API2::User', 'generate_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
 	    modify    => [ 'PVE::API2::User', 'update_token_info', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
 	    remove    => [ 'PVE::API2::User', 'remove_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
 	    list   => [ 'PVE::API2::User', 'token_index', ['userid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
+	    permissions => [ __PACKAGE__, 'token_permissions', ['userid', 'tokenid'], {}, $print_perm_result, $PVE::RESTHandler::standard_output_options],
 	}
     },
     group => {
