@@ -38,6 +38,12 @@ __PACKAGE__->register_method ({
 	    properties => {
 		groupid => get_standard_option('group-id'),
 		comment => get_standard_option('group-comment'),
+		users => {
+		    type => 'string',
+		    format => 'pve-userid-list',
+		    optional => 1,
+		    description => 'list of users which form this group',
+		},
 	    },
 	},
 	links => [ { rel => 'child', href => "{groupid}" } ],
@@ -58,6 +64,7 @@ __PACKAGE__->register_method ({
 	    my $data = $usercfg->{groups}->{$group};
 	    my $entry = { groupid => $group };
 	    $entry->{comment} = $data->{comment} if defined($data->{comment});
+	    $entry->{users} = join (',', sort keys %{$data->{users}}) if defined($data->{users});
 	    push @$res, $entry;
 	}
 
