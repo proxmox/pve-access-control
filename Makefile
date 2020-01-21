@@ -58,6 +58,7 @@ install: pveum.1 oathkeygen pveum.bash-completion pveum.zsh-completion
 test:
 	perl -I. ./pveum verifyapi
 	perl -I. -T -e "use PVE::CLI::pveum; PVE::CLI::pveum->verify_api();"
+	make -C test check
 
 ${BUILDDIR}:
 	rm -rf ${BUILDDIR}
