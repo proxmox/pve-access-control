@@ -211,6 +211,12 @@ sub rotate_authkey {
     die $@ if $@;
 }
 
+PVE::JSONSchema::register_standard_option('tokenid', {
+    description => "API token identifier.",
+    type => "string",
+    format => "pve-tokenid",
+});
+
 our $token_subid_regex = $PVE::Auth::Plugin::realm_regex;
 
 # username@realm username realm tokenid
@@ -529,6 +535,20 @@ sub check_user_enabled {
     return 1 if $data->{enable};
 
     die "user '$username' is disabled\n" if !$noerr;
+
+    return undef;
+}
+
+sub check_token_exist {
+    my ($usercfg, $username, $tokenid, $noerr) = @_;
+
+    my $user = check_user_exist($usercfg, $username, $noerr);
+    return undef if !$user;
+
+    return $user->{tokens}->{$tokenid}
+	if defined($user->{tokens}) && $user->{tokens}->{$tokenid};
+
+    die "no such token '$tokenid' for user '$username'\n" if !$noerr;
 
     return undef;
 }
@@ -1042,7 +1062,7 @@ sub parse_user_config {
 				warn "user config - ignore invalid acl member '$ug'\n";
 			    }
 			} elsif (my ($user, $token) = split_tokenid($ug, 1)) {
-			    if ($cfg->{users}->{$user}->{tokens}->{$token}) { # token exists
+			    if (check_token_exist($cfg, $user, $token, 1)) {
 				$cfg->{acl}->{$path}->{tokens}->{$ug}->{$role} = $propagate;
 			    } else {
 				warn "user config - ignore invalid acl token '$ug'\n";
