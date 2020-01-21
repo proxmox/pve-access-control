@@ -38,44 +38,44 @@ my $compile_acl_path = sub {
 
 	foreach my $pool (keys %{$cfg->{pools}}) {
 	    my $d = $cfg->{pools}->{$pool};
-	    my @ra = PVE::AccessControl::roles($cfg, $user, "/pool/$pool"); # pool roles
-	    next if !scalar(@ra);
+	    my $pool_roles = PVE::AccessControl::roles($cfg, $user, "/pool/$pool"); # pool roles
+	    next if !scalar(keys %$pool_roles);
 	    foreach my $vmid (keys %{$d->{vms}}) {
-		for my $role (@ra) {
+		for my $role (keys %$pool_roles) {
 		    $data->{poolroles}->{"/vms/$vmid"}->{$role} = 1;
 		}
 	    }
 	    foreach my $storeid (keys %{$d->{storage}}) {
-		for my $role (@ra) {
+		for my $role (keys %$pool_roles) {
 		    $data->{poolroles}->{"/storage/$storeid"}->{$role} = 1;
 		}
 	    }
 	}
     }
 
-    my @ra = PVE::AccessControl::roles($cfg, $user, $path);
+    my $roles = PVE::AccessControl::roles($cfg, $user, $path);
 
     # apply roles inherited from pools
     # Note: assume we do not want to propagate those privs
     if ($data->{poolroles}->{$path}) {
-	if (!($ra[0] && $ra[0] eq 'NoAccess')) {
+	if (!defined($roles->{NoAccess})) {
 	    if ($data->{poolroles}->{$path}->{NoAccess}) {
-		@ra = ('NoAccess');
+		$roles = { 'NoAccess' => 0 };
 	    } else {
 		foreach my $role (keys %{$data->{poolroles}->{$path}}) {
-		    push @ra, $role;
+		    $roles->{$role} = 0 if !defined($roles->{$role});
 		}
 	    }
 	}
     }
 
-    $data->{roles}->{$path} = [ @ra ];
+    $data->{roles}->{$path} = $roles;
 
     my $privs = {};
-    foreach my $role (@ra) {
+    foreach my $role (keys %$roles) {
 	if (my $privset = $cfg->{roles}->{$role}) {
 	    foreach my $p (keys %$privset) {
-		$privs->{$p} = 1;
+		$privs->{$p} = $roles->{$role};
 	    }
 	}
     }
@@ -83,7 +83,7 @@ my $compile_acl_path = sub {
     if ($username && $username ne 'root@pam') {
 	# intersect user and token permissions
 	my $user_privs = $cache->{$username}->{privs}->{$path};
-	$privs = { map { $_ => 1 } grep { $user_privs->{$_} } keys %$privs };
+	$privs = { map { $_ => $user_privs->{$_} && $privs->{$_} } keys %$privs };
     }
 
     $data->{privs}->{$path} = $privs;
@@ -96,13 +96,14 @@ sub permissions {
 
     if ($user eq 'root@pam') { # root can do anything
 	my $cfg = $self->{user_cfg};
-	return $cfg->{roles}->{'Administrator'};
+	return { map { $_ => 1 } keys %{$cfg->{roles}->{'Administrator'}} };
     }
 
     if (PVE::AccessControl::pve_verify_tokenid($user, 1)) {
 	my ($username, $token) = PVE::AccessControl::split_tokenid($user);
 	my $cfg = $self->{user_cfg};
 	my $token_info = $cfg->{users}->{$username}->{tokens}->{$token};
+
 	return {} if !$token_info;
 
 	# ensure cache for user is populated
@@ -133,7 +134,7 @@ sub check {
 
     foreach my $priv (@$privs) {
 	PVE::AccessControl::verify_privname($priv);
-	if (!$perm->{$priv}) {
+	if (!defined($perm->{$priv})) {
 	    return undef if $noerr;
 	    raise_perm_exc("$path, $priv");
 	}
@@ -150,7 +151,7 @@ sub check_any {
     my $found = 0;
     foreach my $priv (@$privs) {
 	PVE::AccessControl::verify_privname($priv);
-	if ($perm->{$priv}) {
+	if (defined($perm->{$priv})) {
 	    $found = 1;
 	    last;
 	}

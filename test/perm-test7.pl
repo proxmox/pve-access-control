@@ -14,8 +14,8 @@ $rpcenv->init_request(userconfig => $cfgfn);
 sub check_roles {
     my ($user, $path, $expected_result) = @_;
 
-    my @ra = PVE::AccessControl::roles($rpcenv->{user_cfg}, $user, $path);
-    my $res = join(',', sort @ra);
+    my $roles = PVE::AccessControl::roles($rpcenv->{user_cfg}, $user, $path);
+    my $res = join(',', sort keys %$roles);
 
     die "unexpected result\nneed '${expected_result}'\ngot '$res'\n"
 	if $res ne $expected_result;

@@ -1365,13 +1365,13 @@ sub roles {
 	my $token_info = $cfg->{users}->{$username}->{tokens}->{$token};
 	return () if !$token_info;
 
-	my @user_roles = roles($cfg, $username, $path);
+	my $user_roles = roles($cfg, $username, $path);
 
 	# return full user privileges
-	return @user_roles if !$token_info->{privsep};
+	return $user_roles if !$token_info->{privsep};
     }
 
-    my $perm = {};
+    my $roles = {};
 
     foreach my $p (sort keys %{$cfg->{acl}}) {
 	my $final = ($path eq $p);
@@ -1389,11 +1389,11 @@ sub roles {
 		if ($final || $propagate) {
 		    #print "APPLY ROLE $p $user $role\n";
 		    $new = {} if !$new;
-		    $new->{$role} = 1;
+		    $new->{$role} = $propagate;
 		}
 	    }
 	    if ($new) {
-		$perm = $new; # overwrite previous settings
+		$roles = $new; # overwrite previous settings
 		next;
 	    }
 	}
@@ -1405,11 +1405,11 @@ sub roles {
 		if ($final || $propagate) {
 		    #print "APPLY ROLE $p $user $role\n";
 		    $new = {} if !$new;
-		    $new->{$role} = 1;
+		    $new->{$role} = $propagate;
 		}
 	    }
 	    if ($new) {
-		$perm = $new; # overwrite previous settings
+		$roles = $new; # overwrite previous settings
 		next; # user privs always override group privs
 	    }
 	}
@@ -1423,27 +1423,25 @@ sub roles {
 		    if ($final || $propagate) {
 			#print "APPLY ROLE $p \@$g $role\n";
 			$new = {} if !$new;
-			$new->{$role} = 1;
+			$new->{$role} = $propagate;
 		    }
 		}
 	    }
 	}
 	if ($new) {
-	    $perm = $new; # overwrite previous settings
+	    $roles = $new; # overwrite previous settings
 	    next;
 	}
     }
 
-    return ('NoAccess') if defined ($perm->{NoAccess});
-    #return () if defined ($perm->{NoAccess});
+    return { 'NoAccess' => $roles->{NoAccess} } if defined ($roles->{NoAccess});
+    #return () if defined ($roles->{NoAccess});
 
-    #print "permission $user $path = " . Dumper ($perm);
-
-    my @ra = keys %$perm;
+    #print "permission $user $path = " . Dumper ($roles);
 
     #print "roles $user $path = " . join (',', @ra) . "\n";
 
-    return @ra;
+    return $roles;
 }
 
 sub remove_vm_access {
