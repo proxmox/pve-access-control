@@ -399,6 +399,39 @@ sub verify_ticket {
     return wantarray ? ($username, $age, $tfa_info) : $username;
 }
 
+sub verify_token {
+    my ($api_token) = @_;
+
+    die "no API token specified\n" if !$api_token;
+
+    my ($tokenid, $value);
+    if ($api_token =~ /^(.*)=(.*)$/) {
+	$tokenid = $1;
+	$value = $2;
+    } else {
+	die "no tokenid specified\n";
+    }
+
+    my ($username, $token) = split_tokenid($tokenid);
+
+    my $usercfg = cfs_read_file('user.cfg');
+    check_user_enabled($usercfg, $username);
+    check_token_exist($usercfg, $username, $token);
+
+    my $ctime = time();
+
+    my $user = $usercfg->{users}->{$username};
+    die "account expired\n" if $user->{expire} && ($user->{expire} < $ctime);
+
+    my $token_info = $user->{tokens}->{$token};
+    die "token expired\n" if $token_info->{expire} && ($token_info->{expire} < $ctime);
+
+    die "invalid token value!\n" if !PVE::Cluster::verify_token($tokenid, $value);
+
+    return wantarray ? ($tokenid) : $tokenid;
+}
+
+
 # VNC tickets
 # - they do not contain the username in plain text
 # - they are restricted to a specific resource path (example: '/vms/100')
