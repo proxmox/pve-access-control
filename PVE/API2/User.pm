@@ -120,6 +120,12 @@ __PACKAGE__->register_method ({
 		type => 'boolean',
 		description => "Optional filter for enable property.",
 		optional => 1,
+	    },
+	    full => {
+		type => 'boolean',
+		description => "Include group and token information.",
+		optional => 1,
+		default => 0,
 	    }
 	},
     },
@@ -136,6 +142,14 @@ __PACKAGE__->register_method ({
 	        email => get_standard_option('user-email'),
 	        comment => get_standard_option('user-comment'),
 	        keys => get_standard_option('user-keys'),
+	        groups => get_standard_option('group-list'),
+		tokens => {
+		    type => 'array',
+		    optional => 1,
+		    items => $token_info_extend->({
+			tokenid => get_standard_option('token-subid'),
+		    }),
+		}
 	    },
 	},
 	links => [ { rel => 'child', href => "{userid}" } ],
@@ -155,17 +169,20 @@ __PACKAGE__->register_method ({
 	my $allowed_users = $rpcenv->group_member_join([keys %$groups]);
 
 	foreach my $user (keys %{$usercfg->{users}}) {
-
 	    if (!($canUserMod || $user eq $authuser)) {
 		next if !$allowed_users->{$user};
 	    }
 
-	    my $entry = &$extract_user_data($usercfg->{users}->{$user});
+	    my $entry = &$extract_user_data($usercfg->{users}->{$user}, $param->{full});
 
 	    if (defined($param->{enabled})) {
 		next if $entry->{enable} && !$param->{enabled};
 		next if !$entry->{enable} && $param->{enabled};
 	    }
+
+	    $entry->{groups} = join(',', @{$entry->{groups}}) if $entry->{groups};
+	    $entry->{tokens} = [ map { { tokenid => $_, %{$entry->{tokens}->{$_}} } } sort keys %{$entry->{tokens}} ]
+		if defined($entry->{tokens});
 
 	    $entry->{userid} = $user;
 	    push @$res, $entry;
