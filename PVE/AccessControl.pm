@@ -968,7 +968,7 @@ sub parse_user_config {
 		if (defined ($valid_privs->{$priv})) {
 		    $cfg->{roles}->{$role}->{$priv} = 1;
 		} else {
-		    warn "user config - ignore invalid priviledge '$priv'\n";
+		    warn "user config - ignore invalid privilege '$priv'\n";
 		}
 	    }
 
