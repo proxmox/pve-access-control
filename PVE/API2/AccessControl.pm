@@ -234,6 +234,7 @@ __PACKAGE__->register_method ({
 	user => 'world' 
     },
     protected => 1, # else we can't access shadow files
+    allowtoken => 0, # we don't want tokens to create tickets
     description => "Create or verify authentication ticket.",
     parameters => {
 	additionalProperties => 0,
@@ -339,6 +340,7 @@ __PACKAGE__->register_method ({
 	    ],
     },
     protected => 1, # else we can't access shadow files
+    allowtoken => 0, # we don't want tokens to change the regular user password
     description => "Change user password.",
     parameters => {
 	additionalProperties => 0,
@@ -470,6 +472,7 @@ __PACKAGE__->register_method ({
 	    ],
     },
     protected => 1, # else we can't access shadow files
+    allowtoken => 0, # we don't want tokens to change the regular user's TFA settings
     description => "Change user u2f authentication.",
     parameters => {
 	additionalProperties => 0,
@@ -594,6 +597,7 @@ __PACKAGE__->register_method({
     method => 'POST',
     permissions => { user => 'all' },
     protected => 1, # else we can't access shadow files
+    allowtoken => 0, # we don't want tokens to access TFA information
     description => 'Finish a u2f challenge.',
     parameters => {
 	additionalProperties => 0,
