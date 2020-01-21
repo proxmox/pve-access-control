@@ -211,6 +211,47 @@ sub rotate_authkey {
     die $@ if $@;
 }
 
+our $token_subid_regex = $PVE::Auth::Plugin::realm_regex;
+
+# username@realm username realm tokenid
+our $token_full_regex = qr/((${PVE::Auth::Plugin::user_regex})\@(${PVE::Auth::Plugin::realm_regex}))!(${token_subid_regex})/;
+
+our $userid_or_token_regex = qr/^$PVE::Auth::Plugin::user_regex\@$PVE::Auth::Plugin::realm_regex(?:!$token_subid_regex)?$/;
+
+sub split_tokenid {
+    my ($tokenid, $noerr) = @_;
+
+    if ($tokenid =~ /^${token_full_regex}$/) {
+	return ($1, $4);
+    }
+
+    die "'$tokenid' is not a valid token ID - not able to split into user and token parts\n" if !$noerr;
+
+    return undef;
+}
+
+sub join_tokenid {
+    my ($username, $tokensubid) = @_;
+
+    my $joined = "${username}!${tokensubid}";
+
+    return pve_verify_tokenid($joined);
+}
+
+PVE::JSONSchema::register_format('pve-tokenid', \&pve_verify_tokenid);
+sub pve_verify_tokenid {
+    my ($tokenid, $noerr) = @_;
+
+    if ($tokenid =~ /^${token_full_regex}$/) {
+	return wantarray ? ($tokenid, $2, $3, $4) : $tokenid;
+    }
+
+    die "value '$tokenid' does not look like a valid token ID\n" if !$noerr;
+
+    return undef;
+}
+
+
 my $csrf_prevention_secret;
 my $csrf_prevention_secret_legacy;
 my $get_csrfr_secret = sub {
@@ -1000,6 +1041,12 @@ sub parse_user_config {
 			    } else {
 				warn "user config - ignore invalid acl member '$ug'\n";
 			    }
+			} elsif (my ($user, $token) = split_tokenid($ug, 1)) {
+			    if ($cfg->{users}->{$user}->{tokens}->{$token}) { # token exists
+				$cfg->{acl}->{$path}->{tokens}->{$ug}->{$role} = $propagate;
+			    } else {
+				warn "user config - ignore invalid acl token '$ug'\n";
+			    }
 			} else {
 			    warn "user config - invalid user/group '$ug' in acl\n";
 			}
@@ -1046,6 +1093,34 @@ sub parse_user_config {
 		}
 		$cfg->{pools}->{$pool}->{storage}->{$storeid} = 1;
 	    }
+	} elsif ($et eq 'token') {
+	    my ($tokenid, $expire, $privsep, $comment) = @data;
+
+	    my ($user, $token) = split_tokenid($tokenid, 1);
+	    if (!($user && $token)) {
+		warn "user config - ignore invalid tokenid '$tokenid'\n";
+		next;
+	    }
+
+	    $privsep = $privsep ? 1 : 0;
+
+	    $expire = 0 if !$expire;
+
+	    if ($expire !~ m/^\d+$/) {
+		warn "user config - ignore token '$tokenid' - (illegal characters in expire '$expire')\n";
+		next;
+	    }
+	    $expire = int($expire);
+
+	    if (my $user_cfg = $cfg->{users}->{$user}) { # user exists
+		$user_cfg->{tokens}->{$token} = {} if !$user_cfg->{tokens}->{$token};
+		my $token_cfg = $user_cfg->{tokens}->{$token};
+		$token_cfg->{privsep} = $privsep;
+		$token_cfg->{expire} = $expire;
+		$token_cfg->{comment} = PVE::Tools::decode_text($comment) if $comment;
+	    } else {
+		warn "user config - ignore token '$tokenid' - user does not exist\n";
+	    }
 	} else {
 	    warn "user config - ignore config line: $line\n";
 	}
@@ -1071,6 +1146,16 @@ sub write_user_config {
 	my $enable = $d->{enable} ? 1 : 0;
 	my $keys = $d->{keys} ? $d->{keys} : '';
 	$data .= "user:$user:$enable:$expire:$firstname:$lastname:$email:$comment:$keys:\n";
+
+	my $user_tokens = $d->{tokens};
+	foreach my $token (sort keys %$user_tokens) {
+	    my $td = $user_tokens->{$token};
+	    my $full_tokenid = join_tokenid($user, $token);
+	    my $comment = $td->{comment} ? PVE::Tools::encode_text($td->{comment}) : '';
+	    my $expire = int($td->{expire} || 0);
+	    my $privsep = $td->{privsep} ? 1 : 0;
+	    $data .= "token:$full_tokenid:$expire:$privsep:$comment:\n";
+	}
     }
 
     $data .= "\n";
@@ -1137,12 +1222,15 @@ sub write_user_config {
 	# no need to save 'root@pam', it is always 'Administrator'
 	$collect_rolelist_members->($d->{'users'}, $rolelist_members, '', 'root@pam');
 
+	$collect_rolelist_members->($d->{'tokens'}, $rolelist_members, '');
+
 	foreach my $propagate (0,1) {
 	    my $filtered = $rolelist_members->{$propagate};
 	    foreach my $rolelist (sort keys %$filtered) {
 		my $uglist = join (',', sort keys %{$filtered->{$rolelist}});
 		$data .= "acl:$propagate:$path:$uglist:$rolelist:\n";
 	    }
+
 	}
     }
 
