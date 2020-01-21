@@ -160,6 +160,38 @@ my $default_cfg = {
 	'email' => undef,
 	'groups' => { 'another' => 1 },
     },
+    test_pam_with_token => {
+	'id' => 'test@pam',
+	'enable' => 1,
+	'expire' => 0,
+	'email' => undef,
+	'tokens' => {
+	    'full' => {
+		'privsep' => 0,
+		'expire' => 0,
+	    },
+	},
+    },
+    test_pam2_with_token => {
+	'id' => 'test2@pam',
+	'enable' => 1,
+	'expire' => 0,
+	'email' => undef,
+	'tokens' => {
+	    'full' => {
+		'privsep' => 0,
+		'expire' => 0,
+	    },
+	    'privsep' => {
+		'privsep' => 1,
+		'expire' => 0,
+	    },
+	    'expired' => {
+		'privsep' => 0,
+		'expire' => 1,
+	    },
+	},
+    },
     test_group_empty => {
 	'id' => 'testgroup',
 	users => {},
@@ -235,6 +267,39 @@ my $default_cfg = {
 	'path' => '/storage',
 	users => {
 	    'test2@pam' => {
+		'PVEDatastoreUser' => 1,
+	    },
+	},
+    },
+    acl_simple_token => {
+	'path' => '/',
+	tokens => {
+	    'test@pam!full' => {
+		'PVEVMAdmin' => 1,
+	    },
+	},
+    },
+    acl_complex_tokens => {
+	'path' => '/storage',
+	tokens => {
+	    'test2@pam!privsep' => {
+		'PVEDatastoreUser' => 1,
+	    },
+	    'test2@pam!expired' => {
+		'PVEDatastoreAdmin' => 1,
+	    },
+	    'test@pam!full' => {
+		'PVEDatastoreAdmin' => 1,
+	    },
+	},
+    },
+    acl_complex_missing_token => {
+	'path' => '/storage',
+	tokens => {
+	    'test2@pam!expired' => {
+		'PVEDatastoreAdmin' => 1,
+	    },
+	    'test2@pam!privsep' => {
 		'PVEDatastoreUser' => 1,
 	    },
 	},
@@ -333,6 +398,12 @@ my $default_raw = {
 	'test_group_members_out_of_order' => 'group:testgroup:test@pam,test2@pam::',
 	'test_group_second' => 'group:another:test3@pam::',
     },
+    tokens => {
+	'test_token_simple' => 'token:test@pam!full:0:0::',
+	'test_token_multi_full' => 'token:test2@pam!full:0:0::',
+	'test_token_multi_privsep' => 'token:test2@pam!privsep:0:1::',
+	'test_token_multi_expired' => 'token:test2@pam!expired:1:0::',
+    },
     roles => {
 	'test_role_single_priv' => 'role:testrolesingle:VM.Allocate:',
 	'test_role_privs' => 'role:testrole:Datastore.Audit,VM.Allocate:',
@@ -352,6 +423,10 @@ my $default_raw = {
 	'acl_simple_user' => 'acl:1:/:test@pam:PVEVMAdmin:',
 	'acl_complex_users_1' => 'acl:1:/storage:test@pam:PVEDatastoreAdmin:',
 	'acl_complex_users_2' => 'acl:1:/storage:test2@pam:PVEDatastoreUser:',
+	'acl_simple_token' => 'acl:1:/:test@pam!full:PVEVMAdmin:',
+	'acl_complex_tokens_1' => 'acl:1:/storage:test2@pam!expired,test@pam!full:PVEDatastoreAdmin:',
+	'acl_complex_tokens_2' => 'acl:1:/storage:test2@pam!privsep:PVEDatastoreUser:',
+	'acl_complex_tokens_1_missing' => 'acl:1:/storage:test2@pam!expired:PVEDatastoreAdmin:',
 	'acl_simple_group' => 'acl:1:/:@testgroup:PVEVMAdmin:',
 	'acl_complex_groups_1' => 'acl:1:/storage:@testgroup:PVEDatastoreAdmin:',
 	'acl_complex_groups_2' => 'acl:1:/storage:@another:PVEDatastoreUser:',
@@ -449,6 +524,33 @@ my $tests = [
 	       $default_raw->{users}->{'test_pam'}."\n\n".
 	       $default_raw->{groups}->{'test_group_members'}."\n\n".
 	       "\n\n",
+    },
+    {
+	name => "token_simple",
+	config => {
+	    users => default_users_with([$default_cfg->{test_pam_with_token}]),
+	    roles => default_roles(),
+	},
+	raw => "".
+	       $default_raw->{users}->{'root@pam'}."\n".
+	       $default_raw->{users}->{'test_pam'}."\n".
+	       $default_raw->{tokens}->{'test_token_simple'}."\n\n\n\n\n",
+    },
+    {
+	name => "token_multi",
+	config => {
+	    users => default_users_with([$default_cfg->{test_pam_with_token}, $default_cfg->{test_pam2_with_token}]),
+	    roles => default_roles(),
+	},
+	raw => "".
+	       $default_raw->{users}->{'root@pam'}."\n".
+	       $default_raw->{users}->{'test2_pam'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_expired'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_full'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_privsep'}."\n".
+	       $default_raw->{users}->{'test_pam'}."\n".
+	       $default_raw->{tokens}->{'test_token_simple'}."\n".
+	       "\n\n\n\n",
     },
     {
 	name => "custom_role_with_single_priv",
@@ -656,6 +758,65 @@ my $tests = [
 	       $default_raw->{acl}->{'acl_complex_groups_2'}."\n",
     },
     {
+	name => "acl_simple_token",
+	config => {
+	    users => default_users_with([$default_cfg->{test_pam_with_token}]),
+	    roles => default_roles(),
+	    acl => default_acls_with([$default_cfg->{acl_simple_token}]),
+	},
+	raw => "".
+	       $default_raw->{users}->{'root@pam'}."\n".
+	       $default_raw->{users}->{'test_pam'}."\n".
+	       $default_raw->{tokens}->{'test_token_simple'}."\n\n\n\n\n".
+	       $default_raw->{acl}->{'acl_simple_token'}."\n",
+    },
+    {
+	name => "acl_complex_tokens",
+	config => {
+	    users => default_users_with([$default_cfg->{test_pam_with_token}, $default_cfg->{'test_pam2_with_token'}]),
+	    roles => default_roles(),
+	    acl => default_acls_with([$default_cfg->{acl_simple_token}, $default_cfg->{acl_complex_tokens}]),
+	},
+	raw => "".
+	       $default_raw->{users}->{'root@pam'}."\n".
+	       $default_raw->{users}->{'test2_pam'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_expired'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_full'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_privsep'}."\n".
+	       $default_raw->{users}->{'test_pam'}."\n".
+	       $default_raw->{tokens}->{'test_token_simple'}."\n\n\n\n\n".
+	       $default_raw->{acl}->{'acl_simple_token'}."\n".
+	       $default_raw->{acl}->{'acl_complex_tokens_1'}."\n".
+	       $default_raw->{acl}->{'acl_complex_tokens_2'}."\n",
+    },
+    {
+	name => "acl_complex_missing_token",
+	config => {
+	    users => default_users_with([$default_cfg->{test_pam}, $default_cfg->{test_pam2_with_token}]),
+	    roles => default_roles(),
+	    acl => default_acls_with([$default_cfg->{acl_complex_missing_token}]),
+	},
+	raw => "".
+	       $default_raw->{users}->{'root@pam'}."\n".
+	       $default_raw->{users}->{'test2_pam'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_expired'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_full'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_privsep'}."\n".
+	       $default_raw->{users}->{'test_pam'}."\n".
+	       $default_raw->{acl}->{'acl_simple_token'}."\n".
+	       $default_raw->{acl}->{'acl_complex_tokens_1'}."\n".
+	       $default_raw->{acl}->{'acl_complex_tokens_2'}."\n",
+	expected_raw => "".
+	       $default_raw->{users}->{'root@pam'}."\n".
+	       $default_raw->{users}->{'test2_pam'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_expired'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_full'}."\n".
+	       $default_raw->{tokens}->{'test_token_multi_privsep'}."\n".
+	       $default_raw->{users}->{'test_pam'}."\n\n\n\n\n".
+	       $default_raw->{acl}->{'acl_complex_tokens_1_missing'}."\n".
+	       $default_raw->{acl}->{'acl_complex_tokens_2'}."\n",
+    },
+    {
 	name => "acl_missing_role",
 	config => {
 	    users => default_users_with([$default_cfg->{test_pam}]),
@@ -793,6 +954,12 @@ my $tests = [
 		    enable => 0,
 		    expire => 0,
 		    email => undef,
+		    tokens => {
+			'test' => {
+			    expire => 0,
+			    privsep => 0,
+			},
+		    },
 		},
 	    },
 	    roles => default_roles_with([{ id => 'testrole' }]),
@@ -801,14 +968,16 @@ my $tests = [
 	},
 	raw => "".
 	       'user:root@pam'."\n".
-	       'user:test@pam'."\n\n".
+	       'user:test@pam'."\n".
+	       'token:test@pam!test'."\n\n".
 	       'group:testgroup'."\n\n".
 	       'pool:testpool'."\n\n".
 	       'role:testrole'."\n\n".
 	       'acl::/:',
 	expected_raw => "".
 	       'user:root@pam:0:0::::::'."\n".
-	       'user:test@pam:0:0::::::'."\n\n".
+	       'user:test@pam:0:0::::::'."\n".
+	       'token:test@pam!test:0:0::'."\n\n".
 	       'group:testgroup:::'."\n\n".
 	       'pool:testpool::::'."\n\n".
 	       'role:testrole::'."\n\n",
