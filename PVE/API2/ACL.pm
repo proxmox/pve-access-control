@@ -46,7 +46,7 @@ __PACKAGE__->register_method ({
 	    properties => {
 		propagate => get_standard_option('acl-propagate'),
 		path => get_standard_option('acl-path'),
-		type => { type => 'string', enum => ['user', 'group'] },
+		type => { type => 'string', enum => ['user', 'group', 'token'] },
 		ugid => { type => 'string' },
 		roleid => { type => 'string' },
 	    },
@@ -68,8 +68,8 @@ __PACKAGE__->register_method ({
 
 	my $acl = $usercfg->{acl};
 	foreach my $path (keys %$acl) {
-	    foreach my $type (qw(users groups)) {
-		my $d = $acl->{$path}->{$type};
+	    foreach my $type (qw(user group token)) {
+		my $d = $acl->{$path}->{"${type}s"};
 		next if !$d;
 		next if !($audit || $rpcenv->check_perm_modify($authuser, $path, 1));
 		foreach my $id (keys %$d) {
@@ -77,7 +77,7 @@ __PACKAGE__->register_method ({
 			my $propagate = $d->{$id}->{$role};
 			push @$res, {
 			    path => $path,
-			    type => $type eq 'groups' ? 'group' : 'user',
+			    type => $type,
 			    ugid => $id,
 			    roleid => $role,
 			    propagate => $propagate,
@@ -114,6 +114,11 @@ __PACKAGE__->register_method ({
 		type => 'string', format => 'pve-groupid-list',
 		optional => 1,
 	    },
+	    tokens => {
+		description => "List of API tokens.",
+		type => 'string', format => 'pve-tokenid-list',
+		optional => 1,
+	    },
 	    roles => {
 		description => "List of roles.",
 		type => 'string', format => 'pve-roleid-list',
@@ -129,10 +134,8 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	if (!($param->{users} || $param->{groups})) {
-	    raise_param_exc({
-		users => "either 'users' or 'groups' is required.",
-		groups => "either 'users' or 'groups' is required." });
+	if (!($param->{users} || $param->{groups} || $param->{tokens})) {
+	    raise_param_exc({ map { $_ => "either 'users', 'groups' or 'tokens' is required." } qw(users groups tokens) });
 	}
 
 	my $path = PVE::AccessControl::normalize_path($param->{path});
@@ -175,6 +178,17 @@ __PACKAGE__->register_method ({
 			    delete($cfg->{acl}->{$path}->{users}->{$username}->{$role});
 			} else {
 			    $cfg->{acl}->{$path}->{users}->{$username}->{$role} = $propagate;
+			}
+		    }
+
+		    foreach my $tokenid (split_list($param->{tokens})) {
+			my ($username, $token) = PVE::AccessControl::split_tokenid($tokenid);
+			PVE::AccessControl::check_token_exist($cfg, $username, $token);
+
+			if ($param->{delete}) {
+			    delete $cfg->{acl}->{$path}->{tokens}->{$tokenid}->{$role};
+			} else {
+			    $cfg->{acl}->{$path}->{tokens}->{$tokenid}->{$role} = $propagate;
 			}
 		    }
 		}
