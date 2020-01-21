@@ -661,4 +661,60 @@ __PACKAGE__->register_method({
 	}
     }});
 
+__PACKAGE__->register_method({
+    name => 'permissions',
+    path => 'permissions',
+    method => 'GET',
+    description => 'Retrieve effective permissions of given user/token.',
+    permissions => {
+	description => "Each user/token is allowed to dump their own permissions. A user can dump the permissions of another user if they have 'Sys.Audit' permission on /access.",
+	user => 'all',
+    },
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => {
+		type => 'string',
+		description => "User ID or full API token ID",
+		pattern => $PVE::AccessControl::userid_or_token_regex,
+		optional => 1,
+	    },
+	    path => get_standard_option('acl-path', {
+		description => "Only dump this specific path, not the whole tree.",
+		optional => 1,
+	    }),
+	},
+    },
+    returns => {
+	type => 'object',
+	description => 'Map of "path" => (Map of "privilege" => "propagate boolean").',
+    },
+    code => sub {
+	my ($param) = @_;
+
+	my $rpcenv = PVE::RPCEnvironment::get();
+
+	my $userid = $param->{userid};
+	if (defined($userid)) {
+	    $rpcenv->check($rpcenv->get_user(), '/access', ['Sys.Audit']);
+	} else {
+	    $userid = $rpcenv->get_user();
+	}
+
+	my $res;
+
+	if (my $path = $param->{path}) {
+	    my $perms = $rpcenv->permissions($userid, $path);
+	    if ($perms) {
+		$res = { $path => $perms };
+	    } else {
+		$res = {};
+	    }
+	} else {
+	    $res = $rpcenv->get_effective_permissions($userid);
+	}
+
+	return $res;
+    }});
+
 1;

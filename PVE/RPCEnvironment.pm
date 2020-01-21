@@ -127,6 +127,47 @@ sub permissions {
     return &$compile_acl_path($self, $user, $path);
 }
 
+sub get_effective_permissions {
+    my ($self, $user) = @_;
+
+    # default / top level paths
+    my $paths = {
+	'/' => 1,
+	'/access' => 1,
+	'/access/groups' => 1,
+	'/nodes' => 1,
+	'/pools' => 1,
+	'/storage' => 1,
+	'/vms' => 1,
+    };
+
+    my $cfg = $self->{user_cfg};
+
+    # paths explicitly listed in ACLs
+    foreach my $acl_path (keys %{$cfg->{acl}}) {
+	$paths->{$acl_path} = 1;
+    }
+
+    # paths referenced by pool definitions
+    foreach my $pool (keys %{$cfg->{pools}}) {
+	my $d = $cfg->{pools}->{$pool};
+	foreach my $vmid (keys %{$d->{vms}}) {
+	    $paths->{"/vms/$vmid"} = 1;
+	}
+	foreach my $storeid (keys %{$d->{storage}}) {
+	    $paths->{"/storage/$storeid"} = 1;
+	}
+    }
+
+    my $perms = {};
+    foreach my $path (keys %$paths) {
+	my $path_perms = $self->permissions($user, $path);
+	# filter paths where user has NO permissions
+	$perms->{$path} = $path_perms if %$path_perms;
+    }
+    return $perms;
+}
+
 sub check {
     my ($self, $user, $path, $privs, $noerr) = @_;
 
