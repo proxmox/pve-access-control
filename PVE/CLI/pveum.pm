@@ -51,6 +51,12 @@ our $cmddef = {
 	modify => [ 'PVE::API2::User', 'update_user', ['userid'] ],
 	delete => [ 'PVE::API2::User', 'delete_user', ['userid'] ],
 	list   => [ 'PVE::API2::User', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
+	token => {
+	    add    => [ 'PVE::API2::User', 'generate_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
+	    update    => [ 'PVE::API2::User', 'update_token_info', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
+	    remove    => [ 'PVE::API2::User', 'remove_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
+	    list   => [ 'PVE::API2::User', 'token_index', ['userid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
+	}
     },
     group => {
 	add    => [ 'PVE::API2::Group', 'create_group', ['groupid'] ],
