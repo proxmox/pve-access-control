@@ -8,7 +8,7 @@ use Getopt::Long;
 
 my $rpcenv = PVE::RPCEnvironment->init('cli');
 
-my $cfgfn = "user.cfg.ex1";
+my $cfgfn = "test1.cfg";
 $rpcenv->init_request(userconfig => $cfgfn);
 
 sub check_roles {
