@@ -294,12 +294,14 @@ __PACKAGE__->register_method ({
 	    keys => get_standard_option('user-keys'),
 	    groups => {
 		type => 'array',
+		optional => 1,
 		items => {
 		    type => 'string',
 		    format => 'pve-groupid',
 		},
 	    },
 	    tokens => {
+		optional => 1,
 		type => 'object',
 	    },
 	},
