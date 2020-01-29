@@ -51,6 +51,7 @@ register_standard_option('token-expire', {
     type => 'integer',
     minimum => 0,
     optional => 1,
+    default => 'same as user',
 });
 register_standard_option('token-privsep', {
     description => "Restrict API token privileges with separate ACLs (default), or give full privileges of corresponding user.",
