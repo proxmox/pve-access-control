@@ -12,7 +12,7 @@ Build-Depends: debhelper (>= 10.0.0~),
                pve-cluster (>= 6.1-4),
                pve-doc-generator (>= 5.3-3),
 Standards-Version: 3.9.8
-Homepage: http://www.proxmox.com
+Homepage: https://www.proxmox.com
 
 Package: libpve-access-control
 Architecture: all
