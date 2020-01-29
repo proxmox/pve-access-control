@@ -1,3 +1,19 @@
+libpve-access-control (6.0-6) pve; urgency=medium
+
+  * API: add group members to group index
+
+  * implement API token support and management
+
+  * pveum: add 'pveum user token add/update/remove/list'
+
+  * pveum: add permissions sub-commands
+
+  * API: add 'permissions' API endpoint
+
+  * user.cfg: skip inexisting roles when parsing ACLs
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 29 Jan 2020 10:17:27 +0100
+
 libpve-access-control (6.0-5) pve; urgency=medium
 
   * pveum: add list command for users, groups, ACLs and roles
