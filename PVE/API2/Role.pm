@@ -126,10 +126,13 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	my $role = $param->{roleid};
+
+	die "auto-generated role '$role' cannot be modified\n"
+	    if PVE::AccessControl::role_is_special($role);
+
 	PVE::AccessControl::lock_user_config(
 	    sub {
-
-		my $role = $param->{roleid};
 
 		my $usercfg = cfs_read_file("user.cfg");
 
