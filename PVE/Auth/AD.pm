@@ -3,8 +3,7 @@ package PVE::Auth::AD;
 use strict;
 use warnings;
 use PVE::Auth::Plugin;
-use Net::LDAP;
-use Net::IP;
+use PVE::LDAP;
 
 use base qw(PVE::Auth::Plugin);
 
@@ -31,7 +30,6 @@ sub properties {
 	    description => "Use secure LDAPS protocol.",
 	    type => 'boolean',
 	    optional => 1,
-
 	},
 	sslversion => {
 	    description => "LDAPS TLS/SSL version. It's not recommended to use version older than 1.2!",
@@ -86,24 +84,21 @@ sub options {
     };
 }
 
-my $authenticate_user_ad = sub {
-    my ($config, $server, $username, $password) = @_;
+sub authenticate_user {
+    my ($class, $config, $realm, $username, $password) = @_;
+
+    my $servers = [$config->{server1}];
+    push @$servers, $config->{server2} if $config->{server2};
 
     my $default_port = $config->{secure} ? 636: 389;
-    my $port = $config->{port} ? $config->{port} : $default_port;
+    my $port = $config->{port} // $default_port;
     my $scheme = $config->{secure} ? 'ldaps' : 'ldap';
-    $server = "[$server]" if Net::IP::ip_is_ipv6($server);
-    my $conn_string = "$scheme://${server}:$port";
 
     my %ad_args;
     if ($config->{verify}) {
 	$ad_args{verify} = 'require';
-	if (defined(my $cert = $config->{cert})) {
-	    $ad_args{clientcert} = $cert;
-	}
-	if (defined(my $key = $config->{certkey})) {
-	    $ad_args{clientkey} = $key;
-	}
+	$ad_args{clientcert} = $config->{cert} if $config->{cert};
+	$ad_args{clientkey} = $config->{certkey} if $config->{certkey};
 	if (defined(my $capath = $config->{capath})) {
 	    if (-d $capath) {
 		$ad_args{capath} = $capath;
@@ -116,32 +111,17 @@ my $authenticate_user_ad = sub {
     }
 
     if ($config->{secure}) {
-	$ad_args{sslversion} = $config->{sslversion} || 'tlsv1_2';
+	$ad_args{sslversion} = $config->{sslversion} // 'tlsv1_2';
     }
 
-    my $ldap = Net::LDAP->new($conn_string, %ad_args) || die "$@\n";
+    my $ldap = PVE::LDAP::ldap_connect($servers, $scheme, $port, \%ad_args);
 
     $username = "$username\@$config->{domain}"
 	if $username !~ m/@/ && $config->{domain};
 
-    my $res = $ldap->bind($username, password => $password);
-
-    my $code = $res->code();
-    my $err = $res->error;
+    PVE::LDAP::auth_user_dn($ldap, $username, $password);
 
     $ldap->unbind();
-
-    die "$err\n" if ($code);
-};
-
-sub authenticate_user {
-    my ($class, $config, $realm, $username, $password) = @_;
-
-    eval { &$authenticate_user_ad($config, $config->{server1}, $username, $password); };
-    my $err = $@;
-    return 1 if !$err;
-    die $err if !$config->{server2};
-    &$authenticate_user_ad($config, $config->{server2}, $username, $password);
     return 1;
 }
 

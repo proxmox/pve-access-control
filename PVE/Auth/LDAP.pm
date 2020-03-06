@@ -5,8 +5,7 @@ use warnings;
 
 use PVE::Tools;
 use PVE::Auth::Plugin;
-use Net::LDAP;
-use Net::IP;
+use PVE::LDAP;
 use base qw(PVE::Auth::Plugin);
 
 sub type {
@@ -81,24 +80,21 @@ sub options {
     };
 }
 
-my $authenticate_user_ldap = sub {
-    my ($config, $server, $username, $password, $realm) = @_;
+sub authenticate_user {
+    my ($class, $config, $realm, $username, $password) = @_;
+
+    my $servers = [$config->{server1}];
+    push @$servers, $config->{server2} if $config->{server2};
 
     my $default_port = $config->{secure} ? 636: 389;
-    my $port = $config->{port} ? $config->{port} : $default_port;
+    my $port = $config->{port} // $default_port;
     my $scheme = $config->{secure} ? 'ldaps' : 'ldap';
-    $server = "[$server]" if Net::IP::ip_is_ipv6($server);
-    my $conn_string = "$scheme://${server}:$port";
 
     my %ldap_args;
     if ($config->{verify}) {
 	$ldap_args{verify} = 'require';
-	if (defined(my $cert = $config->{cert})) {
-	    $ldap_args{clientcert} = $cert;
-	}
-	if (defined(my $key = $config->{certkey})) {
-	    $ldap_args{clientkey} = $key;
-	}
+	$ldap_args{clientcert} = $config->{cert} if $config->{cert};
+	$ldap_args{clientkey} = $config->{certkey} if $config->{certkey};
 	if (defined(my $capath = $config->{capath})) {
 	    if (-d $capath) {
 		$ldap_args{capath} = $capath;
@@ -114,43 +110,23 @@ my $authenticate_user_ldap = sub {
 	$ldap_args{sslversion} = $config->{sslversion} || 'tlsv1_2';
     }
 
-    my $ldap = Net::LDAP->new($conn_string, %ldap_args) || die "$@\n";
+    my $ldap = PVE::LDAP::ldap_connect($servers, $scheme, $port, \%ldap_args);
 
-    if (my $bind_dn = $config->{bind_dn}) {
-	my $bind_pass = PVE::Tools::file_read_firstline("/etc/pve/priv/ldap/${realm}.pw");
+    my $bind_dn;
+    my $bind_pass;
+
+    if ($config->{bind_dn}) {
+	$bind_dn = $config->{bind_dn};
+	$bind_pass = PVE::Tools::file_read_firstline("/etc/pve/priv/ldap/${realm}.pw");
 	die "missing password for realm $realm\n" if !defined($bind_pass);
-	my $res = $ldap->bind($bind_dn, password => $bind_pass);
-	my $code = $res->code();
-	my $err = $res->error;
-	die "failed to authenticate to ldap service: $err\n" if ($code);
     }
 
-    my $search = $config->{user_attr} . "=" . $username;
-    my $result = $ldap->search( base    => "$config->{base_dn}",
-				scope   => "sub",
-				filter  => "$search",
-				attrs   => ['dn']
-				);
-    die "no entries returned\n" if !$result->entries;
-    my @entries = $result->entries;
-    my $res = $ldap->bind($entries[0]->dn, password => $password);
-
-    my $code = $res->code();
-    my $err = $res->error;
+    PVE::LDAP::ldap_bind($ldap, $bind_dn, $bind_pass);
+    my $user_dn = PVE::LDAP::get_user_dn($ldap, $username, $config->{user_attr}, $config->{base_dn});
+    PVE::LDAP::auth_user_dn($ldap, $user_dn, $password);
 
     $ldap->unbind();
-
-    die "$err\n" if ($code);
-};
-
-sub authenticate_user {
-    my ($class, $config, $realm, $username, $password) = @_;
-
-    eval { &$authenticate_user_ldap($config, $config->{server1}, $username, $password, $realm); };
-    my $err = $@;
-    return 1 if !$err;
-    die $err if !$config->{server2};
-    &$authenticate_user_ldap($config, $config->{server2}, $username, $password, $realm);
+    return 1;
 }
 
 1;
