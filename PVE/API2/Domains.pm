@@ -34,6 +34,7 @@ __PACKAGE__->register_method ({
 	    type => "object",
 	    properties => {
 		realm => { type => 'string' },
+		type => { type => 'string' },
 		tfa => {
 		    description => "Two-factor authentication provider.",
 		    type => 'string',
