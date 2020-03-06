@@ -16,13 +16,13 @@ my $domainconfigfile = "domains.cfg";
 use base qw(PVE::RESTHandler);
 
 __PACKAGE__->register_method ({
-    name => 'index', 
-    path => '', 
+    name => 'index',
+    path => '',
     method => 'GET',
     description => "Authentication domain index.",
-    permissions => { 
+    permissions => {
 	description => "Anyone can access that, because we need that list for the login box (before the user is authenticated).",
-	user => 'world', 
+	user => 'world',
     },
     parameters => {
 	additionalProperties => 0,
@@ -51,7 +51,7 @@ __PACKAGE__->register_method ({
     },
     code => sub {
 	my ($param) = @_;
-    
+
 	my $res = [];
 
 	my $cfg = cfs_read_file($domainconfigfile);
@@ -72,11 +72,11 @@ __PACKAGE__->register_method ({
     }});
 
 __PACKAGE__->register_method ({
-    name => 'create', 
+    name => 'create',
     protected => 1,
-    path => '', 
+    path => '',
     method => 'POST',
-    permissions => { 
+    permissions => {
 	check => ['perm', '/access/realm', ['Realm.Allocate']],
     },
     description => "Add an authentication server.",
@@ -87,14 +87,14 @@ __PACKAGE__->register_method ({
 
 	PVE::Auth::Plugin::lock_domain_config(
 	    sub {
-			
+
 		my $cfg = cfs_read_file($domainconfigfile);
 		my $ids = $cfg->{ids};
 
 		my $realm = extract_param($param, 'realm');
 		my $type = $param->{type};
-	
-		die "domain '$realm' already exists\n" 
+
+		die "domain '$realm' already exists\n"
 		    if $ids->{$realm};
 
 		die "unable to use reserved name '$realm'\n"
@@ -121,10 +121,10 @@ __PACKAGE__->register_method ({
     }});
 
 __PACKAGE__->register_method ({
-    name => 'update', 
-    path => '{realm}', 
+    name => 'update',
+    path => '{realm}',
     method => 'PUT',
-    permissions => { 
+    permissions => {
 	check => ['perm', '/access/realm', ['Realm.Allocate']],
     },
     description => "Update authentication server settings.",
@@ -136,7 +136,7 @@ __PACKAGE__->register_method ({
 
 	PVE::Auth::Plugin::lock_domain_config(
 	    sub {
-			
+
 		my $cfg = cfs_read_file($domainconfigfile);
 		my $ids = $cfg->{ids};
 
@@ -145,7 +145,7 @@ __PACKAGE__->register_method ({
 
 		my $realm = extract_param($param, 'realm');
 
-		die "domain '$realm' does not exist\n" 
+		die "domain '$realm' does not exist\n"
 		    if !$ids->{$realm};
 
 		my $delete_str = extract_param($param, 'delete');
@@ -154,7 +154,7 @@ __PACKAGE__->register_method ({
 		foreach my $opt (PVE::Tools::split_list($delete_str)) {
 		    delete $ids->{$realm}->{$opt};
 		}
-	
+
 		my $plugin = PVE::Auth::Plugin->lookup($ids->{$realm}->{type});
 		my $config = $plugin->check_config($realm, $param, 0, 1);
 
@@ -176,11 +176,11 @@ __PACKAGE__->register_method ({
 
 # fixme: return format!
 __PACKAGE__->register_method ({
-    name => 'read', 
-    path => '{realm}', 
+    name => 'read',
+    path => '{realm}',
     method => 'GET',
     description => "Get auth server configuration.",
-    permissions => { 
+    permissions => {
 	check => ['perm', '/access/realm', ['Realm.Allocate', 'Sys.Audit'], any => 1],
     },
     parameters => {
@@ -196,7 +196,7 @@ __PACKAGE__->register_method ({
 	my $cfg = cfs_read_file($domainconfigfile);
 
 	my $realm = $param->{realm};
-	
+
 	my $data = $cfg->{ids}->{$realm};
 	die "domain '$realm' does not exist\n" if !$data;
 
@@ -207,10 +207,10 @@ __PACKAGE__->register_method ({
 
 
 __PACKAGE__->register_method ({
-    name => 'delete', 
-    path => '{realm}', 
+    name => 'delete',
+    path => '{realm}',
     method => 'DELETE',
-    permissions => { 
+    permissions => {
 	check => ['perm', '/access/realm', ['Realm.Allocate']],
     },
     description => "Delete an authentication server.",
@@ -232,14 +232,14 @@ __PACKAGE__->register_method ({
 		my $ids = $cfg->{ids};
 
 		my $realm = $param->{realm};
-	
+
 		die "domain '$realm' does not exist\n" if !$ids->{$realm};
 
 		delete $ids->{$realm};
 
 		cfs_write_file($domainconfigfile, $cfg);
 	    }, "delete auth server failed");
-	
+
 	return undef;
     }});
 
