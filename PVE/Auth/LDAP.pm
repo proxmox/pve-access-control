@@ -80,8 +80,8 @@ sub options {
     };
 }
 
-sub authenticate_user {
-    my ($class, $config, $realm, $username, $password) = @_;
+sub connect_and_bind {
+    my ($class, $config, $realm) = @_;
 
     my $servers = [$config->{server1}];
     push @$servers, $config->{server2} if $config->{server2};
@@ -122,6 +122,20 @@ sub authenticate_user {
     }
 
     PVE::LDAP::ldap_bind($ldap, $bind_dn, $bind_pass);
+
+    if (!$config->{base_dn}) {
+	my $root = $ldap->root_dse(attrs => [ 'defaultNamingContext' ]);
+	$config->{base_dn} = $root->get_value('defaultNamingContext');
+    }
+
+    return $ldap;
+}
+
+sub authenticate_user {
+    my ($class, $config, $realm, $username, $password) = @_;
+
+    my $ldap = $class->connect_and_bind($config, $realm);
+
     my $user_dn = PVE::LDAP::get_user_dn($ldap, $username, $config->{user_attr}, $config->{base_dn});
     PVE::LDAP::auth_user_dn($ldap, $user_dn, $password);
 
