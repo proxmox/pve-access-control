@@ -10,6 +10,7 @@ use PVE::API2::Group;
 use PVE::API2::Role;
 use PVE::API2::ACL;
 use PVE::API2::AccessControl;
+use PVE::API2::Domains;
 use PVE::CLIFormatter;
 use PVE::CLIHandler;
 use PVE::JSONSchema qw(get_standard_option);
@@ -141,6 +142,14 @@ our $cmddef = {
 	delete => [ 'PVE::API2::ACL', 'update_acl', ['path'], { delete => 1 }],
 	list   => [ 'PVE::API2::ACL', 'read_acl', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
     },
+
+    realm => {
+	add    => [ 'PVE::API2::Domains', 'create', ['realm'] ],
+	modify => [ 'PVE::API2::Domains', 'update', ['realm'] ],
+	delete => [ 'PVE::API2::Domains', 'delete', ['realm'] ],
+	list   => [ 'PVE::API2::Domains', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
+    },
+
     ticket => [ 'PVE::API2::AccessControl', 'create_ticket', ['username'], undef,
 		sub {
 		    my ($res) = @_;
