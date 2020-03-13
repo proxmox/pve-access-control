@@ -269,6 +269,9 @@ my $default_cfg = {
 	    'test2@pam' => {
 		'PVEDatastoreUser' => 1,
 	    },
+	    'test@pam' => {
+		'PVEDatastoreAdmin' => 1,
+	    },
 	},
     },
     acl_simple_token => {
@@ -345,6 +348,9 @@ my $default_cfg = {
     acl_complex_missing_group => {
 	'path' => '/storage',
 	groups => {
+	    'testgroup' => {
+		'PVEDatastoreAdmin' => 1,
+	    },
 	    'another' => {
 		'PVEDatastoreUser' => 1,
 	    },
@@ -686,17 +692,13 @@ my $tests = [
 	config => {
 	    users => default_users_with([$default_cfg->{test2_pam}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_complex_missing_user}]),
+	    acl => default_acls_with([$default_cfg->{acl_simple_user}, $default_cfg->{acl_complex_missing_user}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
 	       $default_raw->{users}->{'test2_pam'}."\n\n\n\n\n".
 	       $default_raw->{acl}->{'acl_simple_user'}."\n".
 	       $default_raw->{acl}->{'acl_complex_users_1'}."\n".
-	       $default_raw->{acl}->{'acl_complex_users_2'}."\n",
-	expected_raw => "".
-	       $default_raw->{users}->{'root@pam'}."\n".
-	       $default_raw->{users}->{'test2_pam'}."\n\n\n\n\n".
 	       $default_raw->{acl}->{'acl_complex_users_2'}."\n",
     },
     {
@@ -738,7 +740,7 @@ my $tests = [
 	    users => default_users_with([$default_cfg->{test_pam}, $default_cfg->{'test2_pam'}, $default_cfg->{'test3_pam'}]),
 	    groups => default_groups_with([$default_cfg->{'test_group_second'}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_complex_missing_group}]),
+	    acl => default_acls_with([$default_cfg->{acl_simple_group}, $default_cfg->{acl_complex_missing_group}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -755,6 +757,8 @@ my $tests = [
 	       $default_raw->{users}->{'test3_pam'}."\n".
 	       $default_raw->{users}->{'test_pam'}."\n\n".
 	       $default_raw->{groups}->{'test_group_second'}."\n\n\n\n".
+	       $default_raw->{acl}->{'acl_simple_group'}."\n".
+	       $default_raw->{acl}->{'acl_complex_groups_1'}."\n".
 	       $default_raw->{acl}->{'acl_complex_groups_2'}."\n",
     },
     {

@@ -1041,10 +1041,10 @@ sub parse_user_config {
 
 		if ($cfg->{users}->{$user}) { # user exists
 		    $cfg->{users}->{$user}->{groups}->{$group} = 1;
-		    $cfg->{groups}->{$group}->{users}->{$user} = 1;
 		} else {
 		    warn "user config - ignore invalid group member '$user'\n";
 		}
+		$cfg->{groups}->{$group}->{users}->{$user} = 1;
 	    }
 
 	} elsif ($et eq 'role') {
@@ -1088,17 +1088,15 @@ sub parse_user_config {
 			my ($group) = $ug =~ m/^@(\S+)$/;
 
 			if ($group && verify_groupname($group, 1)) {
-			    if ($cfg->{groups}->{$group}) { # group exists
-				$cfg->{acl}->{$path}->{groups}->{$group}->{$role} = $propagate;
-			    } else {
+			    if (!$cfg->{groups}->{$group}) { # group does not exist
 				warn "user config - ignore invalid acl group '$group'\n";
 			    }
+			    $cfg->{acl}->{$path}->{groups}->{$group}->{$role} = $propagate;
 			} elsif (PVE::Auth::Plugin::verify_username($ug, 1)) {
-			    if ($cfg->{users}->{$ug}) { # user exists
-				$cfg->{acl}->{$path}->{users}->{$ug}->{$role} = $propagate;
-			    } else {
+			    if (!$cfg->{users}->{$ug}) { # user does not exist
 				warn "user config - ignore invalid acl member '$ug'\n";
 			    }
+			    $cfg->{acl}->{$path}->{users}->{$ug}->{$role} = $propagate;
 			} elsif (my ($user, $token) = split_tokenid($ug, 1)) {
 			    if (check_token_exist($cfg, $user, $token, 1)) {
 				$cfg->{acl}->{$path}->{tokens}->{$ug}->{$role} = $propagate;
