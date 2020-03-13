@@ -2,6 +2,7 @@ package PVE::API2::Domains;
 
 use strict;
 use warnings;
+use PVE::Exception qw(raise_param_exc);
 use PVE::Tools qw(extract_param);
 use PVE::Cluster qw (cfs_read_file cfs_write_file);
 use PVE::AccessControl;
@@ -242,6 +243,188 @@ __PACKAGE__->register_method ({
 	    }, "delete auth server failed");
 
 	return undef;
+    }});
+
+__PACKAGE__->register_method ({
+    name => 'sync',
+    path => '{realm}/sync',
+    method => 'POST',
+    permissions => {
+	description => "You need 'Realm.AllocateUser' on '/access/realm/<realm>' on the realm  and 'User.Modify' permissions to '/access/groups/'.",
+	check => [ 'and',
+		   [ 'userid-param', 'Realm.AllocateUser'],
+		   [ 'userid-group', ['User.Modify']],
+	    ],
+    },
+    description => "Syncs users and/or groups from LDAP to user.cfg. ".
+		   "NOTE: Synced groups will have the name 'name-\$realm', so ".
+		   "make sure those groups do not exist to prevent overwriting.",
+    protected => 1,
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    realm =>  get_standard_option('realm'),
+	    scope => {
+		description => "Select what to sync.",
+		type => 'string',
+		enum => [qw(users groups both)],
+	    },
+	    full => {
+		description => "If set, uses the LDAP Directory as source of truth, ".
+			       "deleting all information not contained there. ".
+			       "Otherwise only syncs information set explicitly.",
+		type => 'boolean',
+	    },
+	    enable => {
+		description => "Enable newly synced users.",
+		type => 'boolean',
+	    },
+	    purge => {
+		description => "Remove ACLs for users/groups that were removed from the config.",
+		type => 'boolean',
+	    },
+	}
+    },
+    returns => { type => 'string' },
+    code => sub {
+	my ($param) = @_;
+
+	my $rpcenv = PVE::RPCEnvironment::get();
+	my $authuser = $rpcenv->get_user();
+
+
+	my $realm = $param->{realm};
+	my $cfg = cfs_read_file($domainconfigfile);
+	my $ids = $cfg->{ids};
+
+	raise_param_exc({ 'realm' => 'Realm does not exist.' }) if !defined($ids->{$realm});
+	my $type = $ids->{$realm}->{type};
+
+	if ($type ne 'ldap' && $type ne 'ad') {
+	    die "Only LDAP/AD realms can be synced.\n";
+	}
+
+	my $scope = $param->{scope};
+	my $sync_users;
+	my $sync_groups;
+
+	my $errorstring = "syncing ";
+	if ($scope eq 'users') {
+	    $errorstring .= "users ";
+	    $sync_users = 1;
+	} elsif ($scope eq 'groups') {
+	    $errorstring .= "groups ";
+	    $sync_groups = 1;
+	} elsif ($scope eq 'both') {
+	    $errorstring .= "users and groups ";
+	    $sync_users = $sync_groups = 1;
+	}
+	$errorstring .= "failed.";
+
+	my $plugin = PVE::Auth::Plugin->lookup($ids->{$realm}->{type});
+
+	my $realmdata = $ids->{$realm};
+	my $users = {};
+	my $groups = {};
+
+
+	my $worker = sub {
+	    print "starting sync for $realm\n";
+	    if ($sync_groups) {
+		my $dnmap = {};
+		($users, $dnmap) = $plugin->get_users($realmdata, $realm);
+		$groups = $plugin->get_groups($realmdata, $realm, $dnmap);
+	    } else {
+		$users = $plugin->get_users($realmdata, $realm);
+	    }
+
+	    PVE::AccessControl::lock_user_config(
+		sub {
+		my $usercfg = cfs_read_file("user.cfg");
+		print "got data from server, modifying users/groups\n";
+
+		if ($sync_users) {
+		    print "syncing users\n";
+		    my $oldusers = $usercfg->{users};
+
+		    my $oldtokens = {};
+		    my $oldenabled = {};
+
+		    if ($param->{full}) {
+			print "full sync, deleting existing users first\n";
+			foreach my $userid (keys %$oldusers) {
+			    next if $userid !~ m/\@$realm$/;
+			    # we save the old tokens 
+			    $oldtokens->{$userid} = $oldusers->{$userid}->{tokens};
+			    $oldenabled->{$userid} = $oldusers->{$userid}->{enable} // 0;
+			    delete $oldusers->{$userid};
+			    PVE::AccessControl::delete_user_acl($userid, $usercfg)
+				if $param->{purge} && !$users->{$userid};
+			    print "removed user '$userid'\n";
+			}
+		    }
+
+		    foreach my $userid (keys %$users) {
+			my $user = $users->{$userid};
+			if (!defined($oldusers->{$userid})) {
+			    $oldusers->{$userid} = $user;
+
+			    if (defined($oldenabled->{$userid})) {
+				$oldusers->{$userid}->{enable} = $oldenabled->{$userid};
+			    } elsif ($param->{enable}) {
+				$oldusers->{$userid}->{enable} = 1;
+			    }
+
+			    if (defined($oldtokens->{$userid})) {
+				$oldusers->{$userid}->{tokens} = $oldtokens->{$userid};
+			    }
+
+			    print "added user '$userid'\n";
+			} else {
+			    my $olduser = $oldusers->{$userid};
+			    foreach my $attr (keys %$user) {
+				$olduser->{$attr} = $user->{$attr};
+			    }
+			    print "updated user '$userid'\n";
+			}
+		    }
+		}
+
+		if ($sync_groups) {
+		    print "syncing groups\n";
+		    my $oldgroups = $usercfg->{groups};
+
+		    if ($param->{full}) {
+			print "full sync, deleting existing groups first\n";
+			foreach my $groupid (keys %$oldgroups) {
+			    next if $groupid !~ m/\-$realm$/;
+			    delete $oldgroups->{$groupid};
+			    PVE::AccessControl::delete_group_acl($groupid, $usercfg)
+				if $param->{purge} && !$groups->{$groupid};
+			    print "removed group '$groupid'\n";
+			}
+		    }
+
+		    foreach my $groupid (keys %$groups) {
+			my $group = $groups->{$groupid};
+			if (!defined($oldgroups->{$groupid})) {
+			    $oldgroups->{$groupid} = $group;
+			    print "added group '$groupid'\n";
+			} else {
+			    my $oldgroup = $oldgroups->{$groupid};
+			    foreach my $attr (keys %$group) {
+				$oldgroup->{$attr} = $group->{$attr};
+			    }
+			    print "updated group '$groupid'\n";
+			}
+		    }
+		}
+		cfs_write_file("user.cfg", $usercfg);
+		print "updated user.cfg\n";
+	    }, $errorstring);
+	};
+
+	return $rpcenv->fork_worker('ldapsync', $realm, $authuser, $worker);
     }});
 
 1;

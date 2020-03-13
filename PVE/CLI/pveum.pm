@@ -148,6 +148,7 @@ our $cmddef = {
 	modify => [ 'PVE::API2::Domains', 'update', ['realm'] ],
 	delete => [ 'PVE::API2::Domains', 'delete', ['realm'] ],
 	list   => [ 'PVE::API2::Domains', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
+	sync   => [ 'PVE::API2::Domains', 'sync', ['realm'], ],
     },
 
     ticket => [ 'PVE::API2::AccessControl', 'create_ticket', ['username'], undef,
