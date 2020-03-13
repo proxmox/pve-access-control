@@ -57,6 +57,58 @@ sub properties {
 	    type => 'string',
 	    optional => 1,
 	},
+	filter => {
+	    description => "LDAP filter for user sync.",
+	    type => 'string',
+	    optional => 1,
+	    maxLength => 2048,
+	},
+	sync_attributes => {
+	    description => "Comma separated list of key=value pairs for specifying"
+	       ." which LDAP attributes map to which PVE user field. For example,"
+	       ." to map the LDAP attribute 'mail' to PVEs 'email', write "
+	       ." 'email=mail'. By default, each PVE user field is represented "
+	       ." by an LDAP attribute of the same name.",
+	    optional => 1,
+	    type => 'string',
+	    pattern => '\w+=[^,]+(,\s*\w+=[^,]+)*',
+	},
+	user_classes => {
+	    description => "The objectclasses for users.",
+	    type => 'string',
+	    default => 'inetorgperson, posixaccount, person, user',
+	    format => 'ldap-simple-attr-list',
+	    optional => 1,
+	},
+	group_dn => {
+	    description => "LDAP base domain name for group sync. If not set, the"
+		." base_dn will be used.",
+	    type => 'string',
+	    pattern => '\w+=[^,]+(,\s*\w+=[^,]+)*',
+	    optional => 1,
+	    maxLength => 256,
+	},
+	group_name_attr => {
+	    description => "LDAP attribute representing a groups name. If not set"
+		." or found, the first value of the DN will be used as name.",
+	    type => 'string',
+	    format => 'ldap-simple-attr',
+	    optional => 1,
+	    maxLength => 256,
+	},
+	group_filter => {
+	    description => "LDAP filter for group sync.",
+	    type => 'string',
+	    optional => 1,
+	    maxLength => 2048,
+	},
+	group_classes => {
+	    description => "The objectclasses for groups.",
+	    type => 'string',
+	    default => 'groupOfNames, group, univentionGroup, ipausergroup',
+	    format => 'ldap-simple-attr-list',
+	    optional => 1,
+	},
     };
 }
 
@@ -77,6 +129,13 @@ sub options {
 	capath => { optional => 1 },
 	cert => { optional => 1 },
 	certkey => { optional => 1 },
+	filter => { optional => 1 },
+	sync_attributes => { optional => 1 },
+	user_classes => { optional => 1 },
+	group_dn => { optional => 1 },
+	group_name_attr => { optional => 1 },
+	group_filter => { optional => 1 },
+	group_classes => { optional => 1 },
     };
 }
 
