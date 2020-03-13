@@ -2,10 +2,10 @@ package PVE::Auth::AD;
 
 use strict;
 use warnings;
-use PVE::Auth::Plugin;
+use PVE::Auth::LDAP;
 use PVE::LDAP;
 
-use base qw(PVE::Auth::Plugin);
+use base qw(PVE::Auth::LDAP);
 
 sub type {
     return 'ad';
@@ -81,7 +81,25 @@ sub options {
 	capath => { optional => 1 },
 	cert => { optional => 1 },
 	certkey => { optional => 1 },
+	base_dn => { optional => 1 },
+	bind_dn => { optional => 1 },
+	user_attr => { optional => 1 },
+	filter => { optional => 1 },
+	sync_attributes => { optional => 1 },
+	user_classes => { optional => 1 },
+	group_dn => { optional => 1 },
+	group_name_attr => { optional => 1 },
+	group_filter => { optional => 1 },
+	group_classes => { optional => 1 },
     };
+}
+
+sub get_users {
+    my ($class, $config, $realm) = @_;
+
+    $config->{user_attr} //= 'sAMAccountName';
+
+    return $class->SUPER::get_users($config, $realm);
 }
 
 sub authenticate_user {
