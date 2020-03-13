@@ -190,6 +190,138 @@ sub connect_and_bind {
     return $ldap;
 }
 
+# returns:
+# {
+#     'username@realm' => {
+# 	'attr1' => 'value1',
+# 	'attr2' => 'value2',
+# 	...
+#     },
+#     ...
+# }
+#
+# or in list context:
+# (
+#     {
+# 	'username@realm' => {
+# 	    'attr1' => 'value1',
+# 	    'attr2' => 'value2',
+# 	    ...
+# 	},
+# 	...
+#     },
+#     {
+# 	'uid=username,dc=....' => 'username@realm',
+# 	...
+#     }
+# )
+# the map of dn->username is needed for group membership sync
+sub get_users {
+    my ($class, $config, $realm) = @_;
+
+    my $ldap = $class->connect_and_bind($config, $realm);
+
+    my $user_name_attr = $config->{user_attr} // 'uid';
+    my $ldap_attribute_map = {
+	$user_name_attr => 'username',
+	enable => 'enable',
+	expire => 'expire',
+	firstname => 'firstname',
+	lastname => 'lastname',
+	email => 'email',
+	comment => 'comment',
+	keys => 'keys',
+    };
+
+    foreach my $attr (PVE::Tools::split_list($config->{sync_attributes})) {
+	my ($ours, $ldap) = ($attr =~ m/^\s*(\w+)=(.*)\s*$/);
+	$ldap_attribute_map->{$ldap} = $ours;
+    }
+
+    my $filter = $config->{filter};
+    my $basedn = $config->{base_dn};
+
+    $config->{user_classes} //= 'inetorgperson, posixaccount, person, user';
+    my $classes = [PVE::Tools::split_list($config->{user_classes})];
+
+    my $users = PVE::LDAP::query_users($ldap, $filter, [keys %$ldap_attribute_map], $basedn, $classes);
+
+    my $ret = {};
+    my $dnmap = {};
+
+    foreach my $user (@$users) {
+	my $user_attributes = $user->{attributes};
+	my $userid = $user_attributes->{$user_name_attr}->[0];
+	my $username = "$userid\@$realm";
+
+	# we cannot sync usernames that do not meet our criteria
+	eval { PVE::Auth::Plugin::verify_username($username) };
+	if (my $err = $@) {
+	    warn "$err";
+	    next;
+	}
+
+	$ret->{$username} = {};
+
+	foreach my $attr (keys %$user_attributes) {
+	    if (my $ours = $ldap_attribute_map->{$attr}) {
+		$ret->{$username}->{$ours} = $user_attributes->{$attr}->[0];
+	    }
+	}
+
+	if (wantarray) {
+	    my $dn = $user->{dn};
+	    $dnmap->{$dn} = $username;
+	}
+    }
+
+    return wantarray ? ($ret, $dnmap) : $ret;
+}
+
+# needs a map for dn -> username, we get this from the get_users call
+# otherwise we cannot determine the group membership
+sub get_groups {
+    my ($class, $config, $realm, $dnmap) = @_;
+
+    my $filter = $config->{group_filter};
+    my $basedn = $config->{group_dn} // $config->{base_dn};
+    my $attr = $config->{group_name_attr};
+    $config->{group_classes} //= 'groupOfNames, group, univentionGroup, ipausergroup';
+    my $classes = [PVE::Tools::split_list($config->{group_classes})];
+
+    my $ldap = $class->connect_and_bind($config, $realm);
+
+    my $groups = PVE::LDAP::query_groups($ldap, $basedn, $classes, $filter, $attr);
+
+    my $ret = {};
+
+    foreach my $group (@$groups) {
+	my $name = $group->{name};
+	if (!$name && $group->{dn} =~ m/^[^=]+=([^,]+),/){
+	    $name = PVE::Tools::trim($1);
+	}
+	if ($name) {
+	    $name .= "-$realm";
+
+	    # we cannot sync groups that do not meet our criteria
+	    eval { PVE::AccessControl::verify_groupname($name) };
+	    if (my $err = $@) {
+		warn "$err";
+		next;
+	    }
+
+	    $ret->{$name} = { users => {} };
+	    foreach my $member (@{$group->{members}}) {
+		if (my $user = $dnmap->{$member}) {
+		    $ret->{$name}->{users}->{$user} = 1;
+		}
+	    }
+	}
+    }
+
+    return $ret;
+}
+
 sub authenticate_user {
     my ($class, $config, $realm, $username, $password) = @_;
 
