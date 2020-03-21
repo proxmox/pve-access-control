@@ -245,6 +245,101 @@ __PACKAGE__->register_method ({
 	return undef;
     }});
 
+my $update_users = sub {
+    my ($usercfg, $realm, $synced_users, $opts) = @_;
+
+    print "syncing users\n";
+    $usercfg->{users} = {} if !defined($usercfg->{users});
+    my $users = $usercfg->{users};
+
+    my $oldusers = {};
+    if ($opts->{'full'}) {
+	print "full sync, deleting outdated existing users first\n";
+	foreach my $userid (sort keys %$users) {
+	    next if $userid !~ m/\@$realm$/;
+
+	    $oldusers->{$userid} = delete $users->{$userid};
+	    if ($opts->{'purge'} && !$synced_users->{$userid}) {
+		PVE::AccessControl::delete_user_acl($userid, $usercfg);
+		print "purged user '$userid' and all its ACL entries\n";
+	    } elsif (!defined($synced_users->{$userid})) {
+		print "remove user '$userid'\n";
+	    }
+	}
+    }
+
+    foreach my $userid (sort keys %$synced_users) {
+	my $synced_user = $synced_users->{$userid} // {};
+	if (!defined($users->{$userid})) {
+	    my $user = $users->{$userid} = $synced_user;
+
+	    my $olduser = $oldusers->{$userid} // {};
+	    if (defined(my $enabled = $olduser->{enable})) {
+		$user->{enable} = $enabled;
+	    } elsif ($opts->{enable}) {
+		$user->{enable} = 1;
+	    }
+
+	    if (defined($olduser->{tokens})) {
+		$user->{tokens} = $olduser->{tokens};
+	    }
+	    if (defined($oldusers->{$userid})) {
+		print "updated user '$userid'\n";
+	    } else {
+		print "added user '$userid'\n";
+	    }
+	} else {
+	    my $olduser = $users->{$userid};
+	    foreach my $attr (keys %$synced_user) {
+		$olduser->{$attr} = $synced_user->{$attr};
+	    }
+	    print "updated user '$userid'\n";
+	}
+    }
+};
+
+my $update_groups = sub {
+    my ($usercfg, $realm, $synced_groups, $opts) = @_;
+
+    print "syncing groups\n";
+    $usercfg->{groups} = {} if !defined($usercfg->{groups});
+    my $groups = $usercfg->{groups};
+    my $oldgroups = {};
+
+    if ($opts->{full}) {
+	print "full sync, deleting outdated existing groups first\n";
+	foreach my $groupid (sort keys %$groups) {
+	    next if $groupid !~ m/\-$realm$/;
+
+	    my $oldgroups->{$groupid} = delete $groups->{$groupid};
+	    if ($opts->{purge} && !$synced_groups->{$groupid}) {
+		print "purged group '$groupid' and all its ACL entries\n";
+		PVE::AccessControl::delete_group_acl($groupid, $usercfg)
+	    } elsif (!defined($synced_groups->{$groupid})) {
+		print "removed group '$groupid'\n";
+	    }
+	}
+    }
+
+    foreach my $groupid (sort keys %$synced_groups) {
+	my $synced_group = $synced_groups->{$groupid};
+	if (!defined($groups->{$groupid})) {
+	    $groups->{$groupid} = $synced_group;
+	    if (defined($oldgroups->{$groupid})) {
+		print "updated group '$groupid'\n";
+	    } else {
+		print "added group '$groupid'\n";
+	    }
+	} else {
+	    my $group = $groups->{$groupid};
+	    foreach my $attr (keys %$synced_group) {
+		$group->{$attr} = $synced_group->{$attr};
+	    }
+	    print "updated group '$groupid'\n";
+	}
+    }
+};
+
 __PACKAGE__->register_method ({
     name => 'sync',
     path => '{realm}/sync',
@@ -326,81 +421,12 @@ __PACKAGE__->register_method ({
 		my $usercfg = cfs_read_file("user.cfg");
 		print "got data from server, updating $whatstring\n";
 
-		if ($sync_users) {
-		    print "syncing users\n";
-		    my $oldusers = $usercfg->{users};
-
-		    my $oldtokens = {};
-		    my $oldenabled = {};
-
-		    if ($param->{full}) {
-			print "full sync, deleting existing users first\n";
-			foreach my $userid (keys %$oldusers) {
-			    next if $userid !~ m/\@$realm$/;
-			    # we save the old tokens 
-			    $oldtokens->{$userid} = $oldusers->{$userid}->{tokens};
-			    $oldenabled->{$userid} = $oldusers->{$userid}->{enable} // 0;
-			    delete $oldusers->{$userid};
-			    PVE::AccessControl::delete_user_acl($userid, $usercfg)
-				if $param->{purge} && !$users->{$userid};
-			    print "removed user '$userid'\n";
-			}
-		    }
-
-		    foreach my $userid (keys %$users) {
-			my $user = $users->{$userid};
-			if (!defined($oldusers->{$userid})) {
-			    $oldusers->{$userid} = $user;
-
-			    if (defined($oldenabled->{$userid})) {
-				$oldusers->{$userid}->{enable} = $oldenabled->{$userid};
-			    } elsif ($param->{enable}) {
-				$oldusers->{$userid}->{enable} = 1;
-			    }
-
-			    if (defined($oldtokens->{$userid})) {
-				$oldusers->{$userid}->{tokens} = $oldtokens->{$userid};
-			    }
-
-			    print "added user '$userid'\n";
-			} else {
-			    my $olduser = $oldusers->{$userid};
-			    foreach my $attr (keys %$user) {
-				$olduser->{$attr} = $user->{$attr};
-			    }
-			    print "updated user '$userid'\n";
-			}
-		    }
+		if ($scope eq 'users' || $scope eq 'both') {
+		    $update_users->($usercfg, $realm, $synced_users, $param);
 		}
 
-		if ($sync_groups) {
-		    print "syncing groups\n";
-		    my $oldgroups = $usercfg->{groups};
-
-		    if ($param->{full}) {
-			print "full sync, deleting existing groups first\n";
-			foreach my $groupid (keys %$oldgroups) {
-			    next if $groupid !~ m/\-$realm$/;
-			    delete $oldgroups->{$groupid};
-			    PVE::AccessControl::delete_group_acl($groupid, $usercfg)
-				if $param->{purge} && !$groups->{$groupid};
-			    print "removed group '$groupid'\n";
-			}
-		    }
-
-		    foreach my $groupid (keys %$groups) {
-			my $group = $groups->{$groupid};
-			if (!defined($oldgroups->{$groupid})) {
-			    $oldgroups->{$groupid} = $group;
-			    print "added group '$groupid'\n";
-			} else {
-			    my $oldgroup = $oldgroups->{$groupid};
-			    foreach my $attr (keys %$group) {
-				$oldgroup->{$attr} = $group->{$attr};
-			    }
-			    print "updated group '$groupid'\n";
-			}
-		    }
+		if ($scope eq 'groups' || $scope eq 'both') {
+		    $update_groups->($usercfg, $realm, $synced_groups, $param);
 		}
 
 		cfs_write_file("user.cfg", $usercfg);
