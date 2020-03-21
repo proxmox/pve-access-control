@@ -2,12 +2,14 @@ package PVE::Auth::Plugin;
 
 use strict;
 use warnings;
-use Encode;
+
 use Digest::SHA;
-use PVE::Tools;
-use PVE::SectionConfig;
-use PVE::JSONSchema qw(get_standard_option);
+use Encode;
+
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_lock_file);
+use PVE::JSONSchema qw(get_standard_option);
+use PVE::SectionConfig;
+use PVE::Tools;
 
 use base qw(PVE::SectionConfig);
 
