@@ -250,15 +250,16 @@ __PACKAGE__->register_method ({
     path => '{realm}/sync',
     method => 'POST',
     permissions => {
-	description => "You need 'Realm.AllocateUser' on '/access/realm/<realm>' on the realm  and 'User.Modify' permissions to '/access/groups/'.",
+	description => "'Realm.AllocateUser' on '/access/realm/<realm>' and "
+	    ." 'User.Modify' permissions to '/access/groups/'.",
 	check => [ 'and',
-		   [ 'userid-param', 'Realm.AllocateUser'],
-		   [ 'userid-group', ['User.Modify']],
-	    ],
+	    [ 'userid-param', 'Realm.AllocateUser' ],
+	    [ 'userid-group', ['User.Modify'] ],
+	],
     },
-    description => "Syncs users and/or groups from LDAP to user.cfg. ".
-		   "NOTE: Synced groups will have the name 'name-\$realm', so ".
-		   "make sure those groups do not exist to prevent overwriting.",
+    description => "Syncs users and/or groups from the configured LDAP to user.cfg."
+	." NOTE: Synced groups will have the name 'name-\$realm', so make sure"
+	." those groups do not exist to prevent overwriting.",
     protected => 1,
     parameters => {
 	additionalProperties => 0,
@@ -285,63 +286,45 @@ __PACKAGE__->register_method ({
 	    },
 	}
     },
-    returns => { type => 'string' },
+    returns => {
+	description => 'Worker Task-UPID',
+	type => 'string'
+    },
     code => sub {
 	my ($param) = @_;
 
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
 
-
 	my $realm = $param->{realm};
 	my $cfg = cfs_read_file($domainconfigfile);
-	my $ids = $cfg->{ids};
+	my $realmconfig = $cfg->{ids}->{$realm};
 
-	raise_param_exc({ 'realm' => 'Realm does not exist.' }) if !defined($ids->{$realm});
-	my $type = $ids->{$realm}->{type};
+	raise_param_exc({ 'realm' => 'Realm does not exist.' }) if !defined($realmconfig);
+	my $type = $realmconfig->{type};
 
 	if ($type ne 'ldap' && $type ne 'ad') {
-	    die "Only LDAP/AD realms can be synced.\n";
+	    die "Cannot sync realm type '$type'! Only LDAP/AD realms can be synced.\n";
 	}
+
 
 	my $scope = $param->{scope};
-	my $sync_users;
-	my $sync_groups;
+	my $whatstring = $scope eq 'both' ? "users and groups" : $scope;
 
-	my $errorstring = "syncing ";
-	if ($scope eq 'users') {
-	    $errorstring .= "users ";
-	    $sync_users = 1;
-	} elsif ($scope eq 'groups') {
-	    $errorstring .= "groups ";
-	    $sync_groups = 1;
-	} elsif ($scope eq 'both') {
-	    $errorstring .= "users and groups ";
-	    $sync_users = $sync_groups = 1;
-	}
-	$errorstring .= "failed.";
-
-	my $plugin = PVE::Auth::Plugin->lookup($ids->{$realm}->{type});
-
-	my $realmdata = $ids->{$realm};
-	my $users = {};
-	my $groups = {};
-
+	my $plugin = PVE::Auth::Plugin->lookup($type);
 
 	my $worker = sub {
-	    print "starting sync for $realm\n";
-	    if ($sync_groups) {
-		my $dnmap = {};
-		($users, $dnmap) = $plugin->get_users($realmdata, $realm);
-		$groups = $plugin->get_groups($realmdata, $realm, $dnmap);
-	    } else {
-		$users = $plugin->get_users($realmdata, $realm);
+	    print "starting sync for realm $realm\n";
+
+	    my ($synced_users, $dnmap) = $plugin->get_users($realmconfig, $realm);
+	    my $synced_groups = {};
+	    if ($scope eq 'groups' || $scope eq 'both') {
+		$synced_groups = $plugin->get_groups($realmconfig, $realm, $dnmap);
 	    }
 
-	    PVE::AccessControl::lock_user_config(
-		sub {
+	    PVE::AccessControl::lock_user_config(sub {
 		my $usercfg = cfs_read_file("user.cfg");
-		print "got data from server, modifying users/groups\n";
+		print "got data from server, updating $whatstring\n";
 
 		if ($sync_users) {
 		    print "syncing users\n";
@@ -419,9 +402,10 @@ __PACKAGE__->register_method ({
 			}
 		    }
 		}
+
 		cfs_write_file("user.cfg", $usercfg);
-		print "updated user.cfg\n";
-	    }, $errorstring);
+		print "successfully updated $whatstring configuration\n";
+	    }, "syncing $whatstring failed");
 	};
 
 	return $rpcenv->fork_worker('ldapsync', $realm, $authuser, $worker);
