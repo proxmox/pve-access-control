@@ -408,7 +408,7 @@ __PACKAGE__->register_method ({
 	    }, "syncing $whatstring failed");
 	};
 
-	return $rpcenv->fork_worker('ldapsync', $realm, $authuser, $worker);
+	return $rpcenv->fork_worker('auth-realm-sync', $realm, $authuser, $worker);
     }});
 
 1;
