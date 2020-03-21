@@ -3,9 +3,11 @@ package PVE::Auth::LDAP;
 use strict;
 use warnings;
 
-use PVE::Tools;
 use PVE::Auth::Plugin;
+use PVE::JSONSchema;
 use PVE::LDAP;
+use PVE::Tools;
+
 use base qw(PVE::Auth::Plugin);
 
 sub type {
@@ -109,6 +111,12 @@ sub properties {
 	    format => 'ldap-simple-attr-list',
 	    optional => 1,
 	},
+	'sync-defaults-options' => {
+	    description => "The default options for behavior of synchronizations.",
+	    type => 'string',
+	    format => 'realm-sync-options',
+	    optional => 1,
+	},
     };
 }
 
@@ -136,6 +144,7 @@ sub options {
 	group_name_attr => { optional => 1 },
 	group_filter => { optional => 1 },
 	group_classes => { optional => 1 },
+	'sync-defaults-options' => { optional => 1 },
     };
 }
 

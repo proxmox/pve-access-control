@@ -276,7 +276,7 @@ my $update_users = sub {
 	    my $olduser = $oldusers->{$userid} // {};
 	    if (defined(my $enabled = $olduser->{enable})) {
 		$user->{enable} = $enabled;
-	    } elsif ($opts->{enable}) {
+	    } elsif ($opts->{'enable-new'}) {
 		$user->{enable} = 1;
 	    }
 
@@ -340,6 +340,31 @@ my $update_groups = sub {
     }
 };
 
+my $parse_sync_opts = sub {
+    my ($param, $realmconfig) = @_;
+
+    my $sync_opts_fmt = PVE::JSONSchema::get_format('realm-sync-options');
+
+    my $res = {};
+    if (defined(my $cfg_opts = $realmconfig->{'sync-defaults-options'})) {
+	$res = PVE::JSONSchema::parse_property_string($sync_opts_fmt, $cfg_opts);
+    }
+
+    for my $opt (sort keys %$sync_opts_fmt) {
+	my $fmt = $sync_opts_fmt->{$opt};
+
+	if (exists $param->{$opt}) {
+	    $res->{$opt} = $param->{$opt};
+	} elsif (!exists $res->{$opt}) {
+	    raise_param_exc({
+		"$opt" => 'Not passed as parameter and not defined in realm default sync options.'
+	    }) if !$fmt->{optional};
+	    $res->{$opt} = $fmt->{default} if exists $fmt->{default};
+	}
+    }
+    return $res;
+};
+
 __PACKAGE__->register_method ({
     name => 'sync',
     path => '{realm}/sync',
@@ -358,28 +383,9 @@ __PACKAGE__->register_method ({
     protected => 1,
     parameters => {
 	additionalProperties => 0,
-	properties => {
-	    realm =>  get_standard_option('realm'),
-	    scope => {
-		description => "Select what to sync.",
-		type => 'string',
-		enum => [qw(users groups both)],
-	    },
-	    full => {
-		description => "If set, uses the LDAP Directory as source of truth, ".
-			       "deleting all information not contained there. ".
-			       "Otherwise only syncs information set explicitly.",
-		type => 'boolean',
-	    },
-	    enable => {
-		description => "Enable newly synced users.",
-		type => 'boolean',
-	    },
-	    purge => {
-		description => "Remove ACLs for users/groups that were removed from the config.",
-		type => 'boolean',
-	    },
-	}
+	properties => get_standard_option('realm-sync-options', {
+	    realm => get_standard_option('realm'),
+	})
     },
     returns => {
 	description => 'Worker Task-UPID',
@@ -402,8 +408,9 @@ __PACKAGE__->register_method ({
 	    die "Cannot sync realm type '$type'! Only LDAP/AD realms can be synced.\n";
 	}
 
+	my $opts = $parse_sync_opts->($param, $realmconfig); # can throw up
 
-	my $scope = $param->{scope};
+	my $scope = $opts->{scope};
 	my $whatstring = $scope eq 'both' ? "users and groups" : $scope;
 
 	my $plugin = PVE::Auth::Plugin->lookup($type);
@@ -422,11 +429,11 @@ __PACKAGE__->register_method ({
 		print "got data from server, updating $whatstring\n";
 
 		if ($scope eq 'users' || $scope eq 'both') {
-		    $update_users->($usercfg, $realm, $synced_users, $param);
+		    $update_users->($usercfg, $realm, $synced_users, $opts);
 		}
 
 		if ($scope eq 'groups' || $scope eq 'both') {
-		    $update_groups->($usercfg, $realm, $synced_groups, $param);
+		    $update_groups->($usercfg, $realm, $synced_groups, $opts);
 		}
 
 		cfs_write_file("user.cfg", $usercfg);

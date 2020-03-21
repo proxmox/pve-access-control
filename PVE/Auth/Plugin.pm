@@ -47,6 +47,37 @@ PVE::JSONSchema::register_standard_option('realm', {
     maxLength => 32,
 });
 
+my $realm_sync_options_desc = {
+    scope => {
+	description => "Select what to sync.",
+	type => 'string',
+	enum => [qw(users groups both)],
+	optional => '1',
+    },
+    full => {
+	description => "If set, uses the LDAP Directory as source of truth,"
+	    ." deleting users or groups not returned from the sync. Otherwise"
+	    ." only syncs information which is not already present, and does not"
+	    ." deletes or modifies anything else.",
+	type => 'boolean',
+	optional => '1',
+    },
+    'enable-new' => {
+	description => "Enable newly synced users immediately.",
+	type => 'boolean',
+	default => '1',
+	optional => '1',
+    },
+    purge => {
+	description => "Remove ACLs for users or groups which were removed from"
+	    ." the config during a sync.",
+	type => 'boolean',
+	optional => '1',
+    },
+};
+PVE::JSONSchema::register_standard_option('realm-sync-options', $realm_sync_options_desc);
+PVE::JSONSchema::register_format('realm-sync-options', $realm_sync_options_desc);
+
 PVE::JSONSchema::register_format('pve-userid', \&verify_username);
 sub verify_username {
     my ($username, $noerr) = @_;
