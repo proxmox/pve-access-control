@@ -91,6 +91,7 @@ sub options {
 	group_name_attr => { optional => 1 },
 	group_filter => { optional => 1 },
 	group_classes => { optional => 1 },
+	'sync-defaults-options' => { optional => 1 },
     };
 }
 
