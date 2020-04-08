@@ -37,6 +37,11 @@ sub properties {
 	    optional => 1,
 	    maxLength => 256,
 	},
+	password => {
+	    description => "LDAP bind password. Will be stored in '/etc/pve/priv/realm/<REALM>.pw'.",
+	    type => 'string',
+	    optional => 1,
+	},
 	verify => {
 	    description => "Verify the server's SSL certificate",
 	    type => 'boolean',
@@ -126,6 +131,7 @@ sub options {
 	server2 => { optional => 1 },
 	base_dn => {},
 	bind_dn => { optional => 1 },
+	password => { optional => 1 },
 	user_attr => {},
 	port => { optional => 1 },
 	secure => { optional => 1 },
@@ -185,7 +191,7 @@ sub connect_and_bind {
 
     if ($config->{bind_dn}) {
 	$bind_dn = $config->{bind_dn};
-	$bind_pass = PVE::Tools::file_read_firstline("/etc/pve/priv/ldap/${realm}.pw");
+	$bind_pass = ldap_get_credentials($realm);
 	die "missing password for realm $realm\n" if !defined($bind_pass);
     }
 
@@ -341,6 +347,83 @@ sub authenticate_user {
 
     $ldap->unbind();
     return 1;
+}
+
+my $ldap_pw_dir = "/etc/pve/priv/realm";
+
+sub ldap_cred_file_name {
+    my ($realmid) = @_;
+    return "${ldap_pw_dir}/${realmid}.pw";
+}
+
+sub get_cred_file {
+    my ($realmid) = @_;
+
+    my $cred_file = ldap_cred_file_name($realmid);
+    if (-e $cred_file) {
+	return $cred_file;
+    } elsif (-e "/etc/pve/priv/ldap/${realmid}.pw") {
+	# FIXME: remove fallback with 7.0 by doing a rename on upgrade from 6.x
+	return "/etc/pve/priv/ldap/${realmid}.pw";
+    }
+
+    return $cred_file;
+}
+
+sub ldap_set_credentials {
+    my ($password, $realmid) = @_;
+
+    my $cred_file = ldap_cred_file_name($realmid);
+    mkdir $ldap_pw_dir;
+
+    PVE::Tools::file_set_contents($cred_file, $password);
+
+    return $cred_file;
+}
+
+sub ldap_get_credentials {
+    my ($realmid) = @_;
+
+    if (my $cred_file = get_cred_file($realmid)) {
+	return PVE::Tools::file_read_firstline($cred_file);
+    }
+    return undef;
+}
+
+sub ldap_delete_credentials {
+    my ($realmid) = @_;
+
+    if (my $cred_file = get_cred_file($realmid)) {
+	unlink($cred_file) or warn "removing LDAP credentials '$cred_file' failed: $!\n";
+    }
+}
+
+sub on_add_hook {
+    my ($class, $realm, $config, %param) = @_;
+
+    if (defined($param{password})) {
+	ldap_set_credentials($param{password}, $realm);
+    } else {
+	ldap_delete_credentials($realm);
+    }
+}
+
+sub on_update_hook {
+    my ($class, $realm, $config, %param) = @_;
+
+    return if !exists($param{password});
+
+    if (defined($param{password})) {
+	ldap_set_credentials($param{password}, $realm);
+    } else {
+	ldap_delete_credentials($realm);
+    }
+}
+
+sub on_delete_hook {
+    my ($class, $realm, $config) = @_;
+
+    ldap_delete_credentials($realm);
 }
 
 1;

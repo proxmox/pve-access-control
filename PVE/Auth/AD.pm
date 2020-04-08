@@ -83,6 +83,7 @@ sub options {
 	certkey => { optional => 1 },
 	base_dn => { optional => 1 },
 	bind_dn => { optional => 1 },
+	password => { optional => 1 },
 	user_attr => { optional => 1 },
 	filter => { optional => 1 },
 	sync_attributes => { optional => 1 },
