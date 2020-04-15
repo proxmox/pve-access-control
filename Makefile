@@ -18,7 +18,7 @@ ZSHCOMPLDIR=${PREFIX}/share/zsh/vendor-completions/
 
 export PERLDIR=${PREFIX}/share/perl5
 
-GITVERSION:=$(shell cat .git/refs/heads/master)
+GITVERSION:=$(shell git rev-parse HEAD)
 
 DEB=${PACKAGE}_${DEB_VERSION_UPSTREAM_REVISION}_all.deb
 DSC=${PACKAGE}_${DEB_VERSION_UPSTREAM_REVISION}.dsc
