@@ -600,6 +600,11 @@ __PACKAGE__->register_method ({
 		type => 'string',
 		description => 'API token value used for authentication.',
 	    },
+	    'full-tokenid' => {
+		type => 'string',
+		format_description => '<userid>!<tokenid>',
+		description => 'The full token id.',
+	    },
 	},
     },
     code => sub {
@@ -611,7 +616,7 @@ __PACKAGE__->register_method ({
 	my $usercfg = cfs_read_file("user.cfg");
 
 	my $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid, 1);
-	my $value;
+	my ($full_tokenid, $value);
 
 	PVE::AccessControl::check_user_exist($usercfg, $userid);
 	raise_param_exc({ 'tokenid' => 'Token already exists.' }) if defined($token);
@@ -621,7 +626,7 @@ __PACKAGE__->register_method ({
 	    PVE::AccessControl::check_user_exist($usercfg, $userid);
 	    die "Token already exists.\n" if defined(PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid, 1));
 
-	    my $full_tokenid = PVE::AccessControl::join_tokenid($userid, $tokenid);
+	    $full_tokenid = PVE::AccessControl::join_tokenid($userid, $tokenid);
 	    $value = PVE::TokenConfig::generate_token($full_tokenid);
 
 	    $token = {};
@@ -635,7 +640,11 @@ __PACKAGE__->register_method ({
 
 	PVE::AccessControl::lock_user_config($generate_and_add_token, 'generating token failed');
 
-	return { info => $token, value => $value };
+	return {
+	    info => $token,
+	    value => $value,
+	    'full-tokenid' => $full_tokenid,
+	};
     }});
 
 
