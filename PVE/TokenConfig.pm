@@ -12,8 +12,9 @@ my $parse_token_cfg = sub {
     my ($filename, $raw) = @_;
 
     my $parsed = {};
-    my @lines = split(/\n/, $raw);
+    return $parsed if !defined($raw);
 
+    my @lines = split(/\n/, $raw);
     foreach my $line (@lines) {
 	next if $line =~ m/^\s*$/;
 
