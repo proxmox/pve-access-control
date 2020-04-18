@@ -88,6 +88,9 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	# always extract, add it with hook
+	my $password = extract_param($param, 'password');
+
 	PVE::Auth::Plugin::lock_domain_config(
 	    sub {
 
@@ -117,6 +120,13 @@ __PACKAGE__->register_method ({
 
 		$ids->{$realm} = $config;
 
+		my $opts = $plugin->options();
+		if (defined($password) && !defined($opts->{password})) {
+		    $password = undef;
+		    warn "ignoring password parameter";
+		}
+		$plugin->on_add_hook($realm, $config, password => $password);
+
 		cfs_write_file($domainconfigfile, $cfg);
 	    }, "add auth server failed");
 
@@ -137,6 +147,9 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	# always extract, update in hook
+	my $password = extract_param($param, 'password');
+
 	PVE::Auth::Plugin::lock_domain_config(
 	    sub {
 
@@ -154,8 +167,10 @@ __PACKAGE__->register_method ({
 		my $delete_str = extract_param($param, 'delete');
 		die "no options specified\n" if !$delete_str && !scalar(keys %$param);
 
+		my $delete_pw = 0;
 		foreach my $opt (PVE::Tools::split_list($delete_str)) {
 		    delete $ids->{$realm}->{$opt};
+		    $delete_pw = 1 if $opt eq 'password';
 		}
 
 		my $plugin = PVE::Auth::Plugin->lookup($ids->{$realm}->{type});
@@ -169,6 +184,13 @@ __PACKAGE__->register_method ({
 
 		foreach my $p (keys %$config) {
 		    $ids->{$realm}->{$p} = $config->{$p};
+		}
+
+		my $opts = $plugin->options();
+		if ($delete_pw || defined($password)) {
+		    $plugin->on_update_hook($realm, $config, password => $password);
+		} else {
+		    $plugin->on_update_hook($realm, $config);
 		}
 
 		cfs_write_file($domainconfigfile, $cfg);
@@ -233,10 +255,13 @@ __PACKAGE__->register_method ({
 
 		my $cfg = cfs_read_file($domainconfigfile);
 		my $ids = $cfg->{ids};
-
 		my $realm = $param->{realm};
 
-		die "domain '$realm' does not exist\n" if !$ids->{$realm};
+		die "authentication domain '$realm' does not exist\n" if !$ids->{$realm};
+
+		my $plugin = PVE::Auth::Plugin->lookup($ids->{$realm}->{type});
+
+		$plugin->on_delete_hook($realm, $ids->{$realm});
 
 		delete $ids->{$realm};
 

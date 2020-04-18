@@ -268,4 +268,32 @@ sub delete_user {
     # do nothing by default
 }
 
+# called during addition of realm (before the new domain config got written)
+# `password` is moved to %param to avoid writing it out to the config
+# die to abort additon if there are (grave) problems
+# NOTE: runs in a domain config *locked* context
+sub on_add_hook {
+    my ($class, $realm, $config, %param) = @_;
+    # do nothing by default
+}
+
+# called during domain configuration update (before the updated domain config got
+# written). `password` is moved to %param to avoid writing it out to the config
+# die to abort the update if there are (grave) problems
+# NOTE: runs in a domain config *locked* context
+sub on_update_hook {
+    my ($class, $realm, $config, %param) = @_;
+    # do nothing by default
+}
+
+# called during deletion of realms (before the new domain config got written)
+# and if the activate check on addition fails, to cleanup all storage traces
+# which on_add_hook may have created.
+# die to abort deletion if there are (very grave) problems
+# NOTE: runs in a storage config *locked* context
+sub on_delete_hook {
+    my ($class, $realm, $config) = @_;
+    # do nothing by default
+}
+
 1;
