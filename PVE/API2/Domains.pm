@@ -372,21 +372,18 @@ my $parse_sync_opts = sub {
     my $sync_opts_fmt = PVE::JSONSchema::get_format('realm-sync-options');
 
     my $res = {};
+    my $defaults = {};
     if (defined(my $cfg_opts = $realmconfig->{'sync-defaults-options'})) {
-	$res = PVE::JSONSchema::parse_property_string($sync_opts_fmt, $cfg_opts);
+	$defaults = PVE::JSONSchema::parse_property_string($sync_opts_fmt, $cfg_opts);
     }
 
     for my $opt (sort keys %$sync_opts_fmt) {
 	my $fmt = $sync_opts_fmt->{$opt};
 
-	if (exists $param->{$opt}) {
-	    $res->{$opt} = $param->{$opt};
-	} elsif (!exists $res->{$opt}) {
-	    raise_param_exc({
-		"$opt" => 'Not passed as parameter and not defined in realm default sync options.'
-	    }) if !$fmt->{optional};
-	    $res->{$opt} = $fmt->{default} if exists $fmt->{default};
-	}
+	$res->{$opt} = $param->{$opt} // $defaults->{$opt} // $fmt->{default};
+	raise_param_exc({
+	    "$opt" => 'Not passed as parameter and not defined in realm default sync options.'
+	}) if !defined($res->{$opt});
     }
     return $res;
 };
