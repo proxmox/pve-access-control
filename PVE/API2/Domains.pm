@@ -408,7 +408,13 @@ __PACKAGE__->register_method ({
 	additionalProperties => 0,
 	properties => get_standard_option('realm-sync-options', {
 	    realm => get_standard_option('realm'),
-	})
+	    'dry-run' => {
+		description => "If set, does not write anything.",
+		type => 'boolean',
+		optional => 1,
+		default => 0,
+	    },
+	}),
     },
     returns => {
 	description => 'Worker Task-UPID',
@@ -419,6 +425,9 @@ __PACKAGE__->register_method ({
 
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
+
+	my $write = !(extract_param($param, 'dry-run'));
+	my $dryrunstring = $write ? '' : ' (dry run)';
 
 	my $realm = $param->{realm};
 	my $cfg = cfs_read_file($domainconfigfile);
@@ -439,7 +448,7 @@ __PACKAGE__->register_method ({
 	my $plugin = PVE::Auth::Plugin->lookup($type);
 
 	my $worker = sub {
-	    print "starting sync for realm $realm\n";
+	    print "starting sync$dryrunstring for realm $realm\n";
 
 	    my ($synced_users, $dnmap) = $plugin->get_users($realmconfig, $realm);
 	    my $synced_groups = {};
@@ -459,12 +468,17 @@ __PACKAGE__->register_method ({
 		    $update_groups->($usercfg, $realm, $synced_groups, $opts);
 		}
 
-		cfs_write_file("user.cfg", $usercfg);
-		print "successfully updated $whatstring configuration\n";
+		if ($write) {
+		    cfs_write_file("user.cfg", $usercfg) if $write;
+		    print "successfully updated $whatstring configuration\n" if $write;
+		} else {
+		    print "NOTE: This is just a dry run. No actual data was written.\n";
+		}
 	    }, "syncing $whatstring failed");
 	};
 
-	return $rpcenv->fork_worker('auth-realm-sync', $realm, $authuser, $worker);
+	my $workerid = $write ? 'auth-realm-sync' : 'auth-realm-sync-test';
+	return $rpcenv->fork_worker($workerid, $realm, $authuser, $worker);
     }});
 
 1;
