@@ -122,6 +122,13 @@ sub properties {
 	    format => 'realm-sync-options',
 	    optional => 1,
 	},
+	mode => {
+	    description => "LDAP protocol mode.",
+	    type => 'string',
+	    enum => [ 'ldap', 'ldaps', 'ldap+starttls'],
+	    optional => 1,
+	    default => 'ldap',
+	},
     };
 }
 
@@ -151,7 +158,19 @@ sub options {
 	group_filter => { optional => 1 },
 	group_classes => { optional => 1 },
 	'sync-defaults-options' => { optional => 1 },
+	mode => { optional => 1 },
     };
+}
+
+sub get_scheme_and_port {
+    my ($class, $config) = @_;
+
+    my $scheme = $config->{mode} // ($config->{secure} ? 'ldaps' : 'ldap');
+
+    my $default_port = $scheme eq 'ldaps' ? 636 : 389;
+    my $port = $config->{port} // $default_port;
+
+    return ($scheme, $port);
 }
 
 sub connect_and_bind {
@@ -160,9 +179,7 @@ sub connect_and_bind {
     my $servers = [$config->{server1}];
     push @$servers, $config->{server2} if $config->{server2};
 
-    my $default_port = $config->{secure} ? 636: 389;
-    my $port = $config->{port} // $default_port;
-    my $scheme = $config->{secure} ? 'ldaps' : 'ldap';
+    my ($scheme, $port) = $class->get_scheme_and_port($config);
 
     my %ldap_args;
     if ($config->{verify}) {
@@ -180,7 +197,7 @@ sub connect_and_bind {
 	$ldap_args{verify} = 'none';
     }
 
-    if ($config->{secure}) {
+    if ($scheme ne 'ldap') {
 	$ldap_args{sslversion} = $config->{sslversion} || 'tlsv1_2';
     }
 

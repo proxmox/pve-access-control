@@ -27,7 +27,7 @@ sub properties {
 	    maxLength => 256,
 	},
 	secure => {
-	    description => "Use secure LDAPS protocol.",
+	    description => "Use secure LDAPS protocol. DEPRECATED: use 'mode' instead.",
 	    type => 'boolean',
 	    optional => 1,
 	},
@@ -93,6 +93,7 @@ sub options {
 	group_filter => { optional => 1 },
 	group_classes => { optional => 1 },
 	'sync-defaults-options' => { optional => 1 },
+	mode => { optional => 1 },
     };
 }
 
@@ -110,9 +111,7 @@ sub authenticate_user {
     my $servers = [$config->{server1}];
     push @$servers, $config->{server2} if $config->{server2};
 
-    my $default_port = $config->{secure} ? 636: 389;
-    my $port = $config->{port} // $default_port;
-    my $scheme = $config->{secure} ? 'ldaps' : 'ldap';
+    my ($scheme, $port) = $class->get_scheme_and_port($config);
 
     my %ad_args;
     if ($config->{verify}) {
@@ -130,7 +129,7 @@ sub authenticate_user {
 	$ad_args{verify} = 'none';
     }
 
-    if ($config->{secure}) {
+    if ($scheme ne 'ldap') {
 	$ad_args{sslversion} = $config->{sslversion} // 'tlsv1_2';
     }
 
