@@ -371,16 +371,17 @@ my $parse_sync_opts = sub {
 
     my $sync_opts_fmt = PVE::JSONSchema::get_format('realm-sync-options');
 
-    my $res = {};
-    my $defaults = {};
+    my $cfg_defaults = {};
     if (defined(my $cfg_opts = $realmconfig->{'sync-defaults-options'})) {
-	$defaults = PVE::JSONSchema::parse_property_string($sync_opts_fmt, $cfg_opts);
+	$cfg_defaults = PVE::JSONSchema::parse_property_string($sync_opts_fmt, $cfg_opts);
     }
 
+    my $res = {};
     for my $opt (sort keys %$sync_opts_fmt) {
 	my $fmt = $sync_opts_fmt->{$opt};
 
-	$res->{$opt} = $param->{$opt} // $defaults->{$opt} // $fmt->{default};
+	$res->{$opt} = $param->{$opt} // $cfg_defaults->{$opt} // $fmt->{default};
+
 	raise_param_exc({
 	    "$opt" => 'Not passed as parameter and not defined in realm default sync options.'
 	}) if !defined($res->{$opt});
