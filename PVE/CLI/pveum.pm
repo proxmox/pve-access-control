@@ -117,6 +117,9 @@ our $cmddef = {
 	delete => [ 'PVE::API2::User', 'delete_user', ['userid'] ],
 	list   => [ 'PVE::API2::User', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
 	permissions => [ 'PVE::API2::AccessControl', 'permissions', ['userid'], {}, $print_perm_result, $PVE::RESTHandler::standard_output_options],
+	tfa => {
+	    delete => [ 'PVE::API2::AccessControl', 'change_tfa', ['userid'], { action => 'delete', key => undef, config => undef, response => undef, }, ],
+	},
 	token => {
 	    add    => [ 'PVE::API2::User', 'generate_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
 	    modify    => [ 'PVE::API2::User', 'update_token_info', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
