@@ -32,36 +32,36 @@ eval {
 use base qw(PVE::RESTHandler);
 
 __PACKAGE__->register_method ({
-    subclass => "PVE::API2::User",  
+    subclass => "PVE::API2::User",
     path => 'users',
 });
 
 __PACKAGE__->register_method ({
-    subclass => "PVE::API2::Group",  
+    subclass => "PVE::API2::Group",
     path => 'groups',
 });
 
 __PACKAGE__->register_method ({
-    subclass => "PVE::API2::Role",  
+    subclass => "PVE::API2::Role",
     path => 'roles',
 });
 
 __PACKAGE__->register_method ({
-    subclass => "PVE::API2::ACL",  
+    subclass => "PVE::API2::ACL",
     path => 'acl',
 });
 
 __PACKAGE__->register_method ({
-    subclass => "PVE::API2::Domains",  
+    subclass => "PVE::API2::Domains",
     path => 'domains',
 });
 
 __PACKAGE__->register_method ({
-    name => 'index', 
-    path => '', 
+    name => 'index',
+    path => '',
     method => 'GET',
     description => "Directory index.",
-    permissions => { 
+    permissions => {
 	user => 'all',
     },
     parameters => {
@@ -80,7 +80,7 @@ __PACKAGE__->register_method ({
     },
     code => sub {
 	my ($param) = @_;
-    
+
 	my $res = [];
 
 	my $ma = __PACKAGE__->method_attributes();
@@ -214,8 +214,8 @@ my $compute_api_permission = sub {
 };
 
 __PACKAGE__->register_method ({
-    name => 'get_ticket', 
-    path => 'ticket', 
+    name => 'get_ticket',
+    path => 'ticket',
     method => 'GET',
     permissions => { user => 'world' },
     description => "Dummy. Useful for formatters which want to provide a login page.",
@@ -224,14 +224,14 @@ __PACKAGE__->register_method ({
     },
     returns => { type => "null" },
     code => sub { return undef; }});
-  
+
 __PACKAGE__->register_method ({
-    name => 'create_ticket', 
-    path => 'ticket', 
+    name => 'create_ticket',
+    path => 'ticket',
     method => 'POST',
-    permissions => { 
+    permissions => {
 	description => "You need to pass valid credientials.",
-	user => 'world' 
+	user => 'world'
     },
     protected => 1, # else we can't access shadow files
     allowtoken => 0, # we don't want tokens to create tickets
@@ -250,7 +250,7 @@ __PACKAGE__->register_method ({
 		optional => 1,
 		completion => \&PVE::AccessControl::complete_realm,
 	    }),
-	    password => { 
+	    password => {
 		description => "The secret password. This can also be a valid ticket.",
 		type => 'string',
 	    },
@@ -266,7 +266,7 @@ __PACKAGE__->register_method ({
 		optional => 1,
 		maxLength => 64,
 	    },
-	    privs => { 
+	    privs => {
 		description => "Verify ticket, and check if user have access 'privs' on 'path'",
 		type => 'string' , format => 'pve-priv-list',
 		requires => 'path',
@@ -287,7 +287,7 @@ __PACKAGE__->register_method ({
     },
     code => sub {
 	my ($param) = @_;
-    
+
 	my $username = $param->{username};
 	$username .= "\@$param->{realm}" if $param->{realm};
 
@@ -327,11 +327,11 @@ __PACKAGE__->register_method ({
 
 __PACKAGE__->register_method ({
     name => 'change_password',
-    path => 'password', 
+    path => 'password',
     method => 'PUT',
-    permissions => { 
+    permissions => {
 	description => "Each user is allowed to change his own password. A user can change the password of another user if he has 'Realm.AllocateUser' (on the realm of user <userid>) and 'User.Modify' permission on /access/groups/<group> on a group where user <userid> is member of.",
-	check => [ 'or', 
+	check => [ 'or',
 		   ['userid-param', 'self'],
 		   [ 'and',
 		     [ 'userid-param', 'Realm.AllocateUser'],
@@ -346,10 +346,10 @@ __PACKAGE__->register_method ({
 	additionalProperties => 0,
 	properties => {
 	    userid => get_standard_option('userid-completed'),
-	    password => { 
+	    password => {
 		description => "The new password.",
 		type => 'string',
-		minLength => 5, 
+		minLength => 5,
 		maxLength => 64,
 	    },
 	}
