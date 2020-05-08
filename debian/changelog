@@ -1,3 +1,13 @@
+libpve-access-control (6.1-1) pve; urgency=medium
+
+  * pveum: add tfa delete subcommand for deleting user-TFA
+
+  * LDAP: don't complain about missing credentials on realm removal
+
+  * LDAP: skip anonymous bind when client certificate and key is configured
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 08 May 2020 17:47:41 +0200
+
 libpve-access-control (6.0-7) pve; urgency=medium
 
   * fix #2575: die when trying to edit built-in roles
