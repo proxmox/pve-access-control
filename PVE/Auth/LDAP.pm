@@ -203,16 +203,16 @@ sub connect_and_bind {
 
     my $ldap = PVE::LDAP::ldap_connect($servers, $scheme, $port, \%ldap_args);
 
-    my $bind_dn;
-    my $bind_pass;
-
     if ($config->{bind_dn}) {
-	$bind_dn = $config->{bind_dn};
-	$bind_pass = ldap_get_credentials($realm);
+	my $bind_dn = $config->{bind_dn};
+	my $bind_pass = ldap_get_credentials($realm);
 	die "missing password for realm $realm\n" if !defined($bind_pass);
+	PVE::LDAP::ldap_bind($ldap, $bind_dn, $bind_pass);
+    } elsif ($config->{cert} && $config->{certkey}) {
+	warn "skipping anonymous bind with clientcert\n";
+    } else {
+	PVE::LDAP::ldap_bind($ldap);
     }
-
-    PVE::LDAP::ldap_bind($ldap, $bind_dn, $bind_pass);
 
     if (!$config->{base_dn}) {
 	my $root = $ldap->root_dse(attrs => [ 'defaultNamingContext' ]);
