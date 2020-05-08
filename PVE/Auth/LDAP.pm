@@ -411,6 +411,7 @@ sub ldap_delete_credentials {
     my ($realmid) = @_;
 
     if (my $cred_file = get_cred_file($realmid)) {
+	return if ! -e $cred_file; # nothing to do
 	unlink($cred_file) or warn "removing LDAP credentials '$cred_file' failed: $!\n";
     }
 }
