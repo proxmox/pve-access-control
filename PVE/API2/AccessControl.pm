@@ -176,11 +176,12 @@ my $compute_api_permission = sub {
 	access => qr/(User|Group)\.|Permissions\.Modify/,
 	storage => qr/Datastore\.|Permissions\.Modify/,
 	nodes => qr/Sys\.|Permissions\.Modify/,
-	dc => qr/Sys\.Audit/,
+	sdn => qr/SDN\./,
+	dc => qr/Sys\.Audit|SDN\./,
     };
     map { $res->{$_} = {} } keys %$priv_re_map;
 
-    my $required_paths = ['/', '/nodes', '/access/groups', '/vms', '/storage'];
+    my $required_paths = ['/', '/nodes', '/access/groups', '/vms', '/storage', '/sdn'];
 
     my $checked_paths = {};
     foreach my $path (@$required_paths, keys %{$usercfg->{acl}}) {
