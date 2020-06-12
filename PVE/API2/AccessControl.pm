@@ -176,7 +176,7 @@ my $compute_api_permission = sub {
 	access => qr/(User|Group)\.|Permissions\.Modify/,
 	storage => qr/Datastore\.|Permissions\.Modify/,
 	nodes => qr/Sys\.|Permissions\.Modify/,
-	sdn => qr/SDN\./,
+	sdn => qr/SDN\.|Permissions\.Modify/,
 	dc => qr/Sys\.Audit|SDN\./,
     };
     map { $res->{$_} = {} } keys %$priv_re_map;
