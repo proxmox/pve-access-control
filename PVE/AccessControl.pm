@@ -741,6 +741,7 @@ my $privgroups = {
 	],
 	user => [
 	    'VM.Config.CDROM', # change CDROM media
+	    'VM.Config.Cloudinit',
 	    'VM.Console',
 	    'VM.Backup',
 	    'VM.PowerMgmt',
