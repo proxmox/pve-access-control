@@ -48,6 +48,7 @@ my $pve_auth_key_files = {
 my $pve_auth_key_cache = {};
 
 my $ticket_lifetime = 3600 * 2; # 2 hours
+my $auth_graceperiod = 60 * 5; # 5 minutes
 my $authkey_lifetime = 3600 * 24; # rotate every 24 hours
 
 Crypt::OpenSSL::RSA->import_random_seed();
@@ -292,7 +293,7 @@ sub verify_csrf_prevention_token {
     }
 
     return PVE::Ticket::verify_csrf_prevention_token(
-	$secret, $username, $token, -300, $ticket_lifetime, $noerr);
+	$secret, $username, $token, -$auth_graceperiod, $ticket_lifetime, $noerr);
 }
 
 my $get_ticket_age_range = sub {
@@ -301,12 +302,12 @@ my $get_ticket_age_range = sub {
     my $key_age = $now - $mtime;
     $key_age = 0 if $key_age < 0;
 
-    my $min = -300;
+    my $min = -$auth_graceperiod;
     my $max = $ticket_lifetime;
 
     if ($rotated) {
 	# ticket creation after rotation is not allowed
-	$min = $key_age - 300;
+	$min = $key_age - $auth_graceperiod;
     } else {
 	if ($key_age > $authkey_lifetime && $authkey_lifetime > 0) {
 	    if (PVE::Cluster::check_cfs_quorum(1)) {
@@ -317,7 +318,7 @@ my $get_ticket_age_range = sub {
 	    }
 	}
 
-	$max = $key_age + 300 if $key_age < $ticket_lifetime;
+	$max = $key_age + $auth_graceperiod if $key_age < $ticket_lifetime;
     }
 
     return undef if $min > $ticket_lifetime;
