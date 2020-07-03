@@ -149,8 +149,21 @@ sub check_authkey {
 	warn "auth key pair missing, generating new one..\n"  if !$quiet;
 	return 0;
     } else {
-	if (time() - $mtime >= $authkey_lifetime) {
+	my $now = time();
+	if ($now - $mtime >= $authkey_lifetime) {
 	    warn "auth key pair too old, rotating..\n" if !$quiet;;
+	    return 0;
+	} elsif ($mtime > $now + $auth_graceperiod) {
+	    # a nodes RTC had a time set in the future during key generation -> ticket
+	    # validity is clamped to 0+5 min grace period until now >= mtime again
+	    my (undef, $old_mtime) = get_pubkey(1);
+	    if ($old_mtime && $mtime >= $old_mtime && $mtime - $old_mtime < $ticket_lifetime) {
+		warn "auth key pair generated in the future (key $mtime > host $now),"
+		    ." but old key still exists and in valid grace period so avoid automatic"
+		    ." fixup. Cluster time not in sync?\n" if !$quiet;
+		return 1;
+	    }
+	    warn "auth key pair generated in the future (key $mtime > host $now), rotating..\n" if !$quiet;
 	    return 0;
 	} else {
 	    warn "auth key new enough, skipping rotation\n" if !$quiet;;
