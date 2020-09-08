@@ -891,6 +891,28 @@ sub add_role_privs {
     }
 }
 
+sub lookup_username {
+    my ($username) = @_;
+
+    $username =~ m!^(${PVE::Auth::Plugin::user_regex})\@(${PVE::Auth::Plugin::realm_regex})$!;
+
+    my $realm = $2;
+    my $domain_cfg = cfs_read_file("domains.cfg");
+    my $casesensitive = $domain_cfg->{ids}->{$realm}->{'case-sensitive'} // 1;
+    my $usercfg = cfs_read_file('user.cfg');
+
+    if (!$casesensitive) {
+	my @matches = grep { lc $username eq lc $_ } (keys %{$usercfg->{users}});
+
+	die "ambiguous case insensitive match of username '$username', cannot safely grant access!\n"
+	    if scalar @matches > 1;
+
+	return $matches[0]
+    }
+
+    return $username;
+}
+
 sub normalize_path {
     my $path = shift;
 

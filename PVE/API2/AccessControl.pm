@@ -292,6 +292,7 @@ __PACKAGE__->register_method ({
 	my $username = $param->{username};
 	$username .= "\@$param->{realm}" if $param->{realm};
 
+	$username = PVE::AccessControl::lookup_username($username);
 	my $rpcenv = PVE::RPCEnvironment::get();
 
 	my $res;

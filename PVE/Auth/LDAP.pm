@@ -129,6 +129,12 @@ sub properties {
 	    optional => 1,
 	    default => 'ldap',
 	},
+        'case-sensitive' => {
+	    description => "username is case-sensitive",
+	    type => 'boolean',
+	    optional => 1,
+	    default => 1,
+	}
     };
 }
 
@@ -159,6 +165,7 @@ sub options {
 	group_classes => { optional => 1 },
 	'sync-defaults-options' => { optional => 1 },
 	mode => { optional => 1 },
+	'case-sensitive' => { optional => 1 },
     };
 }
 
