@@ -1,3 +1,13 @@
+libpve-access-control (6.1-3) pve; urgency=medium
+
+  * partially fix #2825: authkey: rotate if it was generated in the
+    future
+
+  * fix #2947: add an option to LDAP or AD realm to switch user lookup to case
+    insensitive
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 29 Sep 2020 08:54:13 +0200
+
 libpve-access-control (6.1-2) pve; urgency=medium
 
   * also check SDN permission path when computing coarse permissions heuristic
