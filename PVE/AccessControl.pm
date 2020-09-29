@@ -892,7 +892,7 @@ sub add_role_privs {
 }
 
 sub lookup_username {
-    my ($username) = @_;
+    my ($username, $noerr) = @_;
 
     $username =~ m!^(${PVE::Auth::Plugin::user_regex})\@(${PVE::Auth::Plugin::realm_regex})$!;
 
@@ -905,7 +905,7 @@ sub lookup_username {
 	my @matches = grep { lc $username eq lc $_ } (keys %{$usercfg->{users}});
 
 	die "ambiguous case insensitive match of username '$username', cannot safely grant access!\n"
-	    if scalar @matches > 1;
+	    if scalar @matches > 1 && !$noerr;
 
 	return $matches[0]
     }

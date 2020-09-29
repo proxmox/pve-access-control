@@ -234,8 +234,9 @@ __PACKAGE__->register_method ({
 
 	    my $usercfg = cfs_read_file("user.cfg");
 
-	    die "user '$username' already exists\n"
-		if $usercfg->{users}->{$username};
+	    # ensure "user exists" check works for case insensitive realms
+	    $username = PVE::AccessControl::lookup_username($username, 1);
+	    die "user '$username' already exists\n" if $usercfg->{users}->{$username};
 
 	    PVE::AccessControl::domain_set_password($realm, $ruid, $param->{password})
 		if defined($param->{password});
