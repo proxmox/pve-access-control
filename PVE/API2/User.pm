@@ -229,41 +229,39 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::AccessControl::lock_user_config(
-	    sub {
+	PVE::AccessControl::lock_user_config(sub {
+	    my ($username, $ruid, $realm) = PVE::AccessControl::verify_username($param->{userid});
 
-		my ($username, $ruid, $realm) = PVE::AccessControl::verify_username($param->{userid});
+	    my $usercfg = cfs_read_file("user.cfg");
 
-		my $usercfg = cfs_read_file("user.cfg");
+	    die "user '$username' already exists\n"
+		if $usercfg->{users}->{$username};
 
-		die "user '$username' already exists\n"
-		    if $usercfg->{users}->{$username};
+	    PVE::AccessControl::domain_set_password($realm, $ruid, $param->{password})
+		if defined($param->{password});
 
-		PVE::AccessControl::domain_set_password($realm, $ruid, $param->{password})
-		    if defined($param->{password});
+	    my $enable = defined($param->{enable}) ? $param->{enable} : 1;
+	    $usercfg->{users}->{$username} = { enable => $enable };
+	    $usercfg->{users}->{$username}->{expire} = $param->{expire} if $param->{expire};
 
-		my $enable = defined($param->{enable}) ? $param->{enable} : 1;
-		$usercfg->{users}->{$username} = { enable => $enable };
-		$usercfg->{users}->{$username}->{expire} = $param->{expire} if $param->{expire};
-
-		if ($param->{groups}) {
-		    foreach my $group (split_list($param->{groups})) {
-			if ($usercfg->{groups}->{$group}) {
-			    PVE::AccessControl::add_user_group($username, $usercfg, $group);
-			} else {
-			    die "no such group '$group'\n";
-			}
+	    if ($param->{groups}) {
+		foreach my $group (split_list($param->{groups})) {
+		    if ($usercfg->{groups}->{$group}) {
+			PVE::AccessControl::add_user_group($username, $usercfg, $group);
+		    } else {
+			die "no such group '$group'\n";
 		    }
 		}
+	    }
 
-		$usercfg->{users}->{$username}->{firstname} = $param->{firstname} if $param->{firstname};
-		$usercfg->{users}->{$username}->{lastname} = $param->{lastname} if $param->{lastname};
-		$usercfg->{users}->{$username}->{email} = $param->{email} if $param->{email};
-		$usercfg->{users}->{$username}->{comment} = $param->{comment} if $param->{comment};
-		$usercfg->{users}->{$username}->{keys} = $param->{keys} if $param->{keys};
+	    $usercfg->{users}->{$username}->{firstname} = $param->{firstname} if $param->{firstname};
+	    $usercfg->{users}->{$username}->{lastname} = $param->{lastname} if $param->{lastname};
+	    $usercfg->{users}->{$username}->{email} = $param->{email} if $param->{email};
+	    $usercfg->{users}->{$username}->{comment} = $param->{comment} if $param->{comment};
+	    $usercfg->{users}->{$username}->{keys} = $param->{keys} if $param->{keys};
 
-		cfs_write_file("user.cfg", $usercfg);
-	    }, "create user failed");
+	    cfs_write_file("user.cfg", $usercfg);
+	}, "create user failed");
 
 	return undef;
     }});
