@@ -27,7 +27,7 @@ sub authenticate_user {
     # user (www-data) need to be able to read /etc/passwd /etc/shadow
     die "no password\n" if !$password;
 
-    my $pamh = new Authen::PAM('common-auth', $username, sub {
+    my $pamh = new Authen::PAM('proxmox-ve-auth', $username, sub {
 	my @res;
 	while(@_) {
 	    my $msg_type = shift;
