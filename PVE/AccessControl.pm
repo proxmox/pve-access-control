@@ -930,7 +930,8 @@ sub normalize_path {
 }
 
 sub check_path {
-    return shift =~ m!^(
+    my ($path) = @_;
+    return $path =~ m!^(
 	/
 	|/access
 	|/access/groups
