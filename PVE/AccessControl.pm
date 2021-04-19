@@ -929,6 +929,24 @@ sub normalize_path {
     return $path;
 }
 
+sub check_path {
+    return shift =~ m!^(
+	/
+	|/access
+	|/access/groups
+	|/access/realm
+	|/nodes
+	|/nodes/[[:alnum:]\.\-\_]+
+	|/pool
+	|/pool/[[:alnum:]\.\-\_]+
+	|/sdn
+	|/storage
+	|/storage/[[:alnum:]\.\-\_]+
+	|/vms
+	|/vms/\d{3,}
+    )$!xs;
+}
+
 PVE::JSONSchema::register_format('pve-groupid', \&verify_groupname);
 sub verify_groupname {
     my ($groupname, $noerr) = @_;

@@ -141,6 +141,10 @@ __PACKAGE__->register_method ({
 	my $path = PVE::AccessControl::normalize_path($param->{path});
 	raise_param_exc({ path => "invalid ACL path '$param->{path}'" }) if !$path;
 
+	if (!$param->{delete} && !PVE::AccessControl::check_path($path)) {
+	    raise_param_exc({ path => "invalid ACL path '$param->{path}'" });
+	}
+
 	PVE::AccessControl::lock_user_config(
 	    sub {
 
