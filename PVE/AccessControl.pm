@@ -944,7 +944,7 @@ sub check_path {
 	|/storage
 	|/storage/[[:alnum:]\.\-\_]+
 	|/vms
-	|/vms/\d{3,}
+	|/vms/[1-9][0-9]{2,}
     )$!xs;
 }
 
