@@ -1,3 +1,13 @@
+libpve-access-control (6.4-1) pve; urgency=medium
+
+  * fix #1670: change PAM service name to project specific name
+
+  * fix #1500: permission path syntax check for access control
+
+  * pveum: add resource pool CLI commands
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 24 Apr 2021 19:48:21 +0200
+
 libpve-access-control (6.1-3) pve; urgency=medium
 
   * partially fix #2825: authkey: rotate if it was generated in the
