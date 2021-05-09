@@ -12,5 +12,5 @@
 %:
 	dh $@
 
-override-dh_missing:
+override_dh_missing:
 	dh_missing --fail-missing
