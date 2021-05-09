@@ -10,7 +10,6 @@ use PVE::API2::Group;
 use PVE::API2::Role;
 use PVE::API2::ACL;
 use PVE::API2::AccessControl;
-use PVE::API2::Pool;
 use PVE::API2::Domains;
 use PVE::CLIFormatter;
 use PVE::CLIHandler;
@@ -146,12 +145,6 @@ our $cmddef = {
 	delete => [ 'PVE::API2::ACL', 'update_acl', ['path'], { delete => 1 }],
 	list   => [ 'PVE::API2::ACL', 'read_acl', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
     },
-    pool => {
-	add => [ 'PVE::API2::Pool', 'create_pool', ['poolid'] ],
-	modify => [ 'PVE::API2::Pool', 'update_pool', ['poolid'] ],
-	delete => [ 'PVE::API2::Pool', 'delete_pool', ['poolid'] ],
-	list   => [ 'PVE::API2::Pool', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
-    },
     realm => {
 	add    => [ 'PVE::API2::Domains', 'create', ['realm'] ],
 	modify => [ 'PVE::API2::Domains', 'update', ['realm'] ],
@@ -183,5 +176,23 @@ our $cmddef = {
     aclmod => { alias => 'acl modify' },
     acldel => { alias => 'acl delete' },
 };
+
+# FIXME: HACK! The pool API is in pve-manager as it needs access to storage guest and RRD stats,
+# so we only add the pool commands if the API module is available (required for boots-trapping)
+my $have_pool_api;
+eval {
+    require PVE::API2::Pool;
+    PVE::API2::Pool->import();
+    $have_pool_api = 1;
+};
+
+if ($have_pool_api) {
+    $cmddef->{pool} = {
+	add => [ 'PVE::API2::Pool', 'create_pool', ['poolid'] ],
+	modify => [ 'PVE::API2::Pool', 'update_pool', ['poolid'] ],
+	delete => [ 'PVE::API2::Pool', 'delete_pool', ['poolid'] ],
+	list   => [ 'PVE::API2::Pool', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
+    };
+}
 
 1;
