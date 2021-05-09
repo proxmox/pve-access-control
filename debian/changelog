@@ -1,3 +1,9 @@
+libpve-access-control (7.0-1) bullseye; urgency=medium
+
+  * re-build for Debian 11 Bullseye based releases
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 09 May 2021 18:18:23 +0200
+
 libpve-access-control (6.4-1) pve; urgency=medium
 
   * fix #1670: change PAM service name to project specific name
