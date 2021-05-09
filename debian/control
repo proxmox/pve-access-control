@@ -2,12 +2,12 @@ Source: libpve-access-control
 Section: perl
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: debhelper (>= 10.0.0~),
+Build-Depends: debhelper (>= 12~),
                libauthen-pam-perl,
                libnet-ldap-perl,
                libpve-common-perl (>= 6.0-11),
                lintian,
-               perl (>= 5.10.0-19),
+               perl,
                libpve-cluster-perl,
                pve-cluster (>= 6.1-4),
                pve-doc-generator (>= 5.3-3),
@@ -28,7 +28,7 @@ Depends: libauthen-pam-perl,
          libpve-cluster-perl,
          libpve-u2f-server-perl (>= 1.0-2),
          libuuid-perl,
-         perl (>= 5.6.0-16),
+         perl,
          pve-cluster (>= 6.1-4),
          ${misc:Depends},
          ${perl:Depends},
