@@ -819,8 +819,12 @@ my $privgroups = {
 	admin => [
 	    'Pool.Allocate', # create/delete pools
 	],
-	user => [],
-	audit => [],
+	user => [
+	    'Pool.Audit',
+	],
+	audit => [
+	    'Pool.Audit',
+	],
     },
 };
 

@@ -96,6 +96,7 @@ privileges:
 	  VM.Config.Options: modify any other VM configuration 
 
 	Pool.Allocate: create/remove/modify a pool.
+	Pool.Audit: view a pool
 
 	Datastore.Allocate: create/remove/modify a data store.
 	Datastore.AllocateSpace: allocate space on a datastore
