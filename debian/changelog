@@ -1,3 +1,10 @@
+libpve-access-control (7.0-2) bullseye; urgency=medium
+
+  * fix #3402: add Pool.Audit privilege - custom roles containing
+    Pool.Allocate must be updated to include the new privilege.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 1 Jun 2021 11:28:38 +0200
+
 libpve-access-control (7.0-1) bullseye; urgency=medium
 
   * re-build for Debian 11 Bullseye based releases
