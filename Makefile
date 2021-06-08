@@ -36,7 +36,7 @@ ${DSC}: ${BUILDDIR}
 
 .PHONY: upload
 upload: ${DEB}
-	tar cf - ${DEB} | ssh repoman@repo.proxmox.com -- upload --product pve --dist buster --arch ${DEB_BUILD_ARCH}
+	tar cf - ${DEB} | ssh repoman@repo.proxmox.com -- upload --product pve --dist bullseye --arch ${DEB_BUILD_ARCH}
 
 .PHONY: clean
 clean:
