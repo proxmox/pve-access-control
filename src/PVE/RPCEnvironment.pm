@@ -3,15 +3,14 @@ package PVE::RPCEnvironment;
 use strict;
 use warnings;
 
-use PVE::RESTEnvironment;
-
+use PVE::AccessControl;
+use PVE::Cluster;
 use PVE::Exception qw(raise raise_perm_exc);
+use PVE::INotify;
+use PVE::ProcFSTools;
+use PVE::RESTEnvironment;
 use PVE::SafeSyslog;
 use PVE::Tools;
-use PVE::INotify;
-use PVE::Cluster;
-use PVE::ProcFSTools;
-use PVE::AccessControl;
 
 use base qw(PVE::RESTEnvironment);
 
