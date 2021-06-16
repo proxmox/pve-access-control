@@ -935,7 +935,9 @@ sub check_path {
 	/
 	|/access
 	|/access/groups
+	|/access/groups/[[:alnum:]\.\-\_]+
 	|/access/realm
+	|/access/realm/[[:alnum:]\.\-\_]+
 	|/nodes
 	|/nodes/[[:alnum:]\.\-\_]+
 	|/pool
