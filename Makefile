@@ -40,7 +40,7 @@ upload: ${DEB}
 
 .PHONY: clean
 clean:
-	rm -rf ${BUILDDIR} *.deb *.buildinfo *.changes ${PACKAGE}*.tar.gz *.dsc
+	rm -rf ${PACKAGE}-*/ *.deb *.buildinfo *.changes ${PACKAGE}*.tar.gz *.dsc
 	find . -name '*~' -exec rm {} ';'
 
 .PHONY: distclean
