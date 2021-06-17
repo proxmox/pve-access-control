@@ -53,12 +53,8 @@ my $authkey_lifetime = 3600 * 24; # rotate every 24 hours
 
 Crypt::OpenSSL::RSA->import_random_seed();
 
-cfs_register_file('user.cfg',
-		  \&parse_user_config,
-		  \&write_user_config);
-cfs_register_file('priv/tfa.cfg',
-		  \&parse_priv_tfa_config,
-		  \&write_priv_tfa_config);
+cfs_register_file('user.cfg', \&parse_user_config, \&write_user_config);
+cfs_register_file('priv/tfa.cfg', \&parse_priv_tfa_config, \&write_priv_tfa_config);
 
 sub verify_username {
     PVE::Auth::Plugin::verify_username(@_);
