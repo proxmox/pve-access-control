@@ -1,9 +1,9 @@
-libpve-access-control (6.4-2) buster; urgency=medium
+libpve-access-control (6.4-3) buster; urgency=medium
 
-  * api: acl: add missing `/access/realm/<realm>` and `/access/group/<group>`
-    to allowed ACL paths
+  * api: acl: add missing `/access/realm/<realm>`, `/access/group/<group>` and
+    `/sdn/zones/<zone>` to allowed ACL paths
 
- -- Proxmox Support Team <support@proxmox.com>  Wed, 16 Jun 2021 17:19:35 +0200
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 17 Jun 2021 13:57:41 +0200
 
 libpve-access-control (6.4-1) pve; urgency=medium
 
