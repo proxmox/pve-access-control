@@ -9,9 +9,10 @@ use PVE::RS::OpenId;
 use PVE::Exception qw(raise raise_perm_exc raise_param_exc);
 use PVE::SafeSyslog;
 use PVE::RPCEnvironment;
-use PVE::Cluster qw(cfs_read_file);
+use PVE::Cluster qw(cfs_read_file cfs_write_file);
 use PVE::AccessControl;
 use PVE::JSONSchema qw(get_standard_option);
+use PVE::Auth::Plugin;
 
 use PVE::RESTHandler;
 
@@ -179,8 +180,34 @@ __PACKAGE__->register_method ({
 
 	    my $username = "${unique_name}\@${realm}";
 
-	    # test if user exists and is enabled
-	    $rpcenv->check_user_enabled($username);
+	    # first, check if $username respects our naming conventions
+	    PVE::Auth::Plugin::verify_username($username);
+
+	    if ($config->{'autocreate'} && !$rpcenv->check_user_exist($username, 1)) {
+		PVE::AccessControl::lock_user_config(sub {
+		    my $usercfg = cfs_read_file("user.cfg");
+
+		    die "user '$username' already exists\n" if $usercfg->{users}->{$username};
+
+		    my $entry = { enable => 1 };
+		    if (defined(my $email = $info->{'email'})) {
+			$entry->{email} = $email;
+		    }
+		    if (defined(my $given_name = $info->{'given_name'})) {
+			$entry->{firstname} = $given_name;
+		    }
+		    if (defined(my $family_name = $info->{'family_name'})) {
+			$entry->{lastname} = $family_name;
+		    }
+
+		    $usercfg->{users}->{$username} = $entry;
+
+		    cfs_write_file("user.cfg", $usercfg);
+		}, "autocreate openid user failed");
+	    } else {
+		# test if user exists and is enabled
+		$rpcenv->check_user_enabled($username);
+	    }
 
 	    my $ticket = PVE::AccessControl::assemble_ticket($username);
 	    my $csrftoken = PVE::AccessControl::assemble_csrf_prevention_token($username);
