@@ -428,12 +428,10 @@ sub verify_token {
     check_user_enabled($usercfg, $username);
     check_token_exist($usercfg, $username, $token);
 
-    my $ctime = time();
-
     my $user = $usercfg->{users}->{$username};
-    die "account expired\n" if $user->{expire} && ($user->{expire} < $ctime);
-
     my $token_info = $user->{tokens}->{$token};
+
+    my $ctime = time();
     die "token expired\n" if $token_info->{expire} && ($token_info->{expire} < $ctime);
 
     die "invalid token value!\n" if !PVE::Cluster::verify_token($tokenid, $value);
@@ -579,6 +577,11 @@ sub check_user_enabled {
 
     die "user '$username' is disabled\n" if !$noerr;
 
+    my $ctime = time();
+    my $expire = $usercfg->{users}->{$username}->{expire};
+
+    die "account expired\n" if $expire && ($expire < $ctime);
+
     return undef;
 }
 
@@ -628,11 +631,6 @@ sub authenticate_user {
     my $usercfg = cfs_read_file('user.cfg');
 
     check_user_enabled($usercfg, $username);
-
-    my $ctime = time();
-    my $expire = $usercfg->{users}->{$username}->{expire};
-
-    die "account expired\n" if $expire && ($expire < $ctime);
 
     my $domain_cfg = cfs_read_file('domains.cfg');
 
