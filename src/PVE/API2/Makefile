@@ -5,7 +5,8 @@ API2_SOURCES= 		 	\
 	ACL.pm		 	\
 	Role.pm		 	\
 	Group.pm	 	\
-	User.pm
+	User.pm			\
+	OpenId.pm
 
 .PHONY: install
 install:

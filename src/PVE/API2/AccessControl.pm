@@ -19,9 +19,9 @@ use PVE::API2::User;
 use PVE::API2::Group;
 use PVE::API2::Role;
 use PVE::API2::ACL;
+use PVE::API2::OpenId;
 use PVE::Auth::Plugin;
 use PVE::OTP;
-use PVE::Tools;
 
 my $u2f_available = 0;
 eval {
@@ -54,6 +54,11 @@ __PACKAGE__->register_method ({
 __PACKAGE__->register_method ({
     subclass => "PVE::API2::Domains",
     path => 'domains',
+});
+
+__PACKAGE__->register_method ({
+    subclass => "PVE::API2::OpenId",
+    path => 'openid',
 });
 
 __PACKAGE__->register_method ({
@@ -165,55 +170,6 @@ my $create_ticket = sub {
     };
 };
 
-my $compute_api_permission = sub {
-    my ($rpcenv, $authuser) = @_;
-
-    my $usercfg = $rpcenv->{user_cfg};
-
-    my $res = {};
-    my $priv_re_map = {
-	vms => qr/VM\.|Permissions\.Modify/,
-	access => qr/(User|Group)\.|Permissions\.Modify/,
-	storage => qr/Datastore\.|Permissions\.Modify/,
-	nodes => qr/Sys\.|Permissions\.Modify/,
-	sdn => qr/SDN\.|Permissions\.Modify/,
-	dc => qr/Sys\.Audit|SDN\./,
-    };
-    map { $res->{$_} = {} } keys %$priv_re_map;
-
-    my $required_paths = ['/', '/nodes', '/access/groups', '/vms', '/storage', '/sdn'];
-
-    my $checked_paths = {};
-    foreach my $path (@$required_paths, keys %{$usercfg->{acl}}) {
-	next if $checked_paths->{$path};
-	$checked_paths->{$path} = 1;
-
-	my $path_perm = $rpcenv->permissions($authuser, $path);
-
-	my $toplevel = ($path =~ /^\/(\w+)/) ? $1 : 'dc';
-	if ($toplevel eq 'pool') {
-	    foreach my $priv (keys %$path_perm) {
-		if ($priv =~ m/^VM\./) {
-		    $res->{vms}->{$priv} = 1;
-		} elsif ($priv =~ m/^Datastore\./) {
-		    $res->{storage}->{$priv} = 1;
-		} elsif ($priv eq 'Permissions.Modify') {
-		    $res->{storage}->{$priv} = 1;
-		    $res->{vms}->{$priv} = 1;
-		}
-	    }
-	} else {
-	    my $priv_regex = $priv_re_map->{$toplevel} // next;
-	    foreach my $priv (keys %$path_perm) {
-		next if $priv !~ m/^($priv_regex)/;
-		$res->{$toplevel}->{$priv} = 1;
-	    }
-	}
-    }
-
-    return $res;
-};
-
 __PACKAGE__->register_method ({
     name => 'get_ticket',
     path => 'ticket',
@@ -314,7 +270,7 @@ __PACKAGE__->register_method ({
 	    die PVE::Exception->new("authentication failure\n", code => 401);
 	}
 
-	$res->{cap} = &$compute_api_permission($rpcenv, $username)
+	$res->{cap} = $rpcenv->compute_api_permission($username)
 	    if !defined($res->{NeedTFA});
 
 	my $clinfo = PVE::Cluster::get_clinfo();
@@ -659,7 +615,7 @@ __PACKAGE__->register_method({
 
 	return {
 	    ticket => PVE::AccessControl::assemble_ticket($authuser),
-	    cap => &$compute_api_permission($rpcenv, $authuser),
+	    cap => $rpcenv->compute_api_permission($authuser),
 	}
     }});
 

@@ -126,6 +126,55 @@ sub permissions {
     return &$compile_acl_path($self, $user, $path);
 }
 
+sub compute_api_permission {
+    my ($self, $authuser) = @_;
+
+    my $usercfg = $self->{user_cfg};
+
+    my $res = {};
+    my $priv_re_map = {
+	vms => qr/VM\.|Permissions\.Modify/,
+	access => qr/(User|Group)\.|Permissions\.Modify/,
+	storage => qr/Datastore\.|Permissions\.Modify/,
+	nodes => qr/Sys\.|Permissions\.Modify/,
+	sdn => qr/SDN\.|Permissions\.Modify/,
+	dc => qr/Sys\.Audit|SDN\./,
+    };
+    map { $res->{$_} = {} } keys %$priv_re_map;
+
+    my $required_paths = ['/', '/nodes', '/access/groups', '/vms', '/storage', '/sdn'];
+
+    my $checked_paths = {};
+    foreach my $path (@$required_paths, keys %{$usercfg->{acl}}) {
+	next if $checked_paths->{$path};
+	$checked_paths->{$path} = 1;
+
+	my $path_perm = $self->permissions($authuser, $path);
+
+	my $toplevel = ($path =~ /^\/(\w+)/) ? $1 : 'dc';
+	if ($toplevel eq 'pool') {
+	    foreach my $priv (keys %$path_perm) {
+		if ($priv =~ m/^VM\./) {
+		    $res->{vms}->{$priv} = 1;
+		} elsif ($priv =~ m/^Datastore\./) {
+		    $res->{storage}->{$priv} = 1;
+		} elsif ($priv eq 'Permissions.Modify') {
+		    $res->{storage}->{$priv} = 1;
+		    $res->{vms}->{$priv} = 1;
+		}
+	    }
+	} else {
+	    my $priv_regex = $priv_re_map->{$toplevel} // next;
+	    foreach my $priv (keys %$path_perm) {
+		next if $priv !~ m/^($priv_regex)/;
+		$res->{$toplevel}->{$priv} = 1;
+	    }
+	}
+    }
+
+    return $res;
+}
+
 sub get_effective_permissions {
     my ($self, $user) = @_;
 
