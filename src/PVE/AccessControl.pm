@@ -24,6 +24,7 @@ use PVE::Auth::AD;
 use PVE::Auth::LDAP;
 use PVE::Auth::PVE;
 use PVE::Auth::PAM;
+use PVE::Auth::OpenId;
 
 # load and initialize all plugins
 
@@ -31,6 +32,7 @@ PVE::Auth::AD->register();
 PVE::Auth::LDAP->register();
 PVE::Auth::PVE->register();
 PVE::Auth::PAM->register();
+PVE::Auth::OpenId->register();
 PVE::Auth::Plugin->init();
 
 # $authdir must be writable by root only!

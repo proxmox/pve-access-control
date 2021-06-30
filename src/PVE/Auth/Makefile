@@ -4,7 +4,8 @@ AUTH_SOURCES= 		 	\
 	PVE.pm		 	\
 	PAM.pm		 	\
 	AD.pm		 	\
-	LDAP.pm
+	LDAP.pm			\
+	OpenId.pm
 
 .PHONY: install
 install:
