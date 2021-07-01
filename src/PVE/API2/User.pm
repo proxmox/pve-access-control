@@ -149,7 +149,11 @@ __PACKAGE__->register_method ({
 		    items => $token_info_extend->({
 			tokenid => get_standard_option('token-subid'),
 		    }),
-		}
+		},
+		realmtype => {
+		    type => 'string',
+		    description => 'The type of the users realm',
+		},
 	    },
 	},
 	links => [ { rel => 'child', href => "{userid}" } ],
@@ -160,6 +164,9 @@ __PACKAGE__->register_method ({
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $usercfg = $rpcenv->{user_cfg};
 	my $authuser = $rpcenv->get_user();
+
+	my $domainscfg = cfs_read_file('domains.cfg');
+	my $domainids = $domainscfg->{ids};
 
 	my $res = [];
 
@@ -183,6 +190,12 @@ __PACKAGE__->register_method ({
 	    $entry->{groups} = join(',', @{$entry->{groups}}) if $entry->{groups};
 	    $entry->{tokens} = [ map { { tokenid => $_, %{$entry->{tokens}->{$_}} } } sort keys %{$entry->{tokens}} ]
 		if defined($entry->{tokens});
+
+	    my (undef, undef, $realm) = PVE::AccessControl::verify_username($user, 1);
+
+	    if (defined($realm) && $domainids->{$realm}) {
+		$entry->{realmtype} = $domainids->{$realm}->{type};
+	    }
 
 	    $entry->{userid} = $user;
 	    push @$res, $entry;
