@@ -1,3 +1,15 @@
+libpve-access-control (7.0-4) bullseye; urgency=medium
+
+  * realm: add OpenID configuration
+
+  * api: implement OpenID related endpoints
+
+  * implement opt-in OpenID autocreate user feature
+
+  * api: user: add 'realm-type' to user list response
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 02 Jul 2021 13:45:46 +0200
+
 libpve-access-control (7.0-3) bullseye; urgency=medium
 
   * api: acl: add missing `/access/realm/<realm>`, `/access/group/<group>` and
