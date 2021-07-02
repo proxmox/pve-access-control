@@ -150,9 +150,10 @@ __PACKAGE__->register_method ({
 			tokenid => get_standard_option('token-subid'),
 		    }),
 		},
-		realmtype => {
-		    type => 'string',
+		'realm-type' => {
+		    type => 'string', format => 'pve-realm',
 		    description => 'The type of the users realm',
+		    optional => 1, # it should always be there, but we use conditional code below, so..
 		},
 	    },
 	},
@@ -192,9 +193,8 @@ __PACKAGE__->register_method ({
 		if defined($entry->{tokens});
 
 	    my (undef, undef, $realm) = PVE::AccessControl::verify_username($user, 1);
-
-	    if (defined($realm) && $domainids->{$realm}) {
-		$entry->{realmtype} = $domainids->{$realm}->{type};
+	    if (defined($realm) && exists($domainids->{$realm})) {
+		$entry->{'realm-type'} = $domainids->{$realm}->{type};
 	    }
 
 	    $entry->{userid} = $user;
