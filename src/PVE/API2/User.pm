@@ -2,14 +2,15 @@ package PVE::API2::User;
 
 use strict;
 use warnings;
+
 use PVE::Exception qw(raise raise_perm_exc raise_param_exc);
 use PVE::Cluster qw (cfs_read_file cfs_write_file);
 use PVE::Tools qw(split_list extract_param);
-use PVE::AccessControl;
 use PVE::JSONSchema qw(get_standard_option register_standard_option);
-use PVE::TokenConfig;
-
 use PVE::SafeSyslog;
+
+use PVE::AccessControl;
+use PVE::TokenConfig;
 
 use PVE::RESTHandler;
 
@@ -176,12 +177,12 @@ __PACKAGE__->register_method ({
 	my $groups = $rpcenv->filter_groups($authuser, $privs, 1);
 	my $allowed_users = $rpcenv->group_member_join([keys %$groups]);
 
-	foreach my $user (keys %{$usercfg->{users}}) {
+	foreach my $user (sort keys %{$usercfg->{users}}) {
 	    if (!($canUserMod || $user eq $authuser)) {
 		next if !$allowed_users->{$user};
 	    }
 
-	    my $entry = &$extract_user_data($usercfg->{users}->{$user}, $param->{full});
+	    my $entry = $extract_user_data->($usercfg->{users}->{$user}, $param->{full});
 
 	    if (defined($param->{enabled})) {
 		next if $entry->{enable} && !$param->{enabled};
@@ -189,8 +190,12 @@ __PACKAGE__->register_method ({
 	    }
 
 	    $entry->{groups} = join(',', @{$entry->{groups}}) if $entry->{groups};
-	    $entry->{tokens} = [ map { { tokenid => $_, %{$entry->{tokens}->{$_}} } } sort keys %{$entry->{tokens}} ]
-		if defined($entry->{tokens});
+
+	    if (defined(my $tokens = $entry->{tokens})) {
+		$entry->{tokens} = [
+		    map { { tokenid => $_, %{$tokens->{$_}} } } sort keys %$tokens
+		];
+	    }
 
 	    my (undef, undef, $realm) = PVE::AccessControl::verify_username($user, 1);
 	    if (defined($realm) && exists($domainids->{$realm})) {
@@ -198,6 +203,7 @@ __PACKAGE__->register_method ({
 	    }
 
 	    $entry->{userid} = $user;
+
 	    push @$res, $entry;
 	}
 
