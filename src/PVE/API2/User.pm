@@ -10,6 +10,7 @@ use PVE::JSONSchema qw(get_standard_option register_standard_option);
 use PVE::SafeSyslog;
 
 use PVE::AccessControl;
+use PVE::Auth::Plugin;
 use PVE::TokenConfig;
 
 use PVE::RESTHandler;
@@ -197,9 +198,9 @@ __PACKAGE__->register_method ({
 		];
 	    }
 
-	    my (undef, undef, $realm) = PVE::AccessControl::verify_username($user, 1);
-	    if (defined($realm) && exists($domainids->{$realm})) {
-		$entry->{'realm-type'} = $domainids->{$realm}->{type};
+	    if ($user =~ /($PVE::Auth::Plugin::realm_regex)$/) {
+		my $realm = $1;
+		$entry->{'realm-type'} = $domainids->{$realm}->{type} if exists $domainids->{$realm};
 	    }
 
 	    $entry->{userid} = $user;
