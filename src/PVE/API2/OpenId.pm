@@ -97,6 +97,9 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	my $dcconf = PVE::Cluster::cfs_read_file('datacenter.cfg');
+	local $ENV{all_proxy} = $dcconf->{http_proxy};
+
 	my $realm = extract_param($param, 'realm');
 	my $redirect_url = extract_param($param, 'redirect-url');
 
@@ -149,6 +152,9 @@ __PACKAGE__->register_method ({
 
 	my $res;
 	eval {
+	    my $dcconf = PVE::Cluster::cfs_read_file('datacenter.cfg');
+	    local $ENV{all_proxy} = $dcconf->{http_proxy};
+
 	    my ($realm, $private_auth_state) = PVE::RS::OpenId::verify_public_auth_state(
 		$openid_state_path, $param->{'state'});
 
