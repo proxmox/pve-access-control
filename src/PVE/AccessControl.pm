@@ -944,6 +944,7 @@ sub check_path {
 	|/pool/[[:alnum:]\.\-\_]+
 	|/sdn
 	|/sdn/zones/[[:alnum:]\.\-\_]+
+	|/sdn/vnets/[[:alnum:]\.\-\_]+
 	|/storage
 	|/storage/[[:alnum:]\.\-\_]+
 	|/vms
