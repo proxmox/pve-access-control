@@ -218,10 +218,11 @@ __PACKAGE__->register_method ({
     method => 'POST',
     permissions => {
 	description => "You need 'Realm.AllocateUser' on '/access/realm/<realm>' on the realm of user <userid>, and 'User.Modify' permissions to '/access/groups/<group>' for any group specified (or 'User.Modify' on '/access/groups' if you pass no groups.",
-	check => [ 'and',
-		   [ 'userid-param', 'Realm.AllocateUser'],
-		   [ 'userid-group', ['User.Modify'], groups_param => 1],
-	    ],
+	check => [
+	    'and',
+	    [ 'userid-param', 'Realm.AllocateUser'],
+	    [ 'userid-group', ['User.Modify'], groups_param => 1],
+	],
     },
     description => "Create new user.",
     parameters => {
@@ -329,8 +330,7 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	my ($username, undef, $domain) =
-	    PVE::AccessControl::verify_username($param->{userid});
+	my ($username, undef, $domain) = PVE::AccessControl::verify_username($param->{userid});
 
 	my $usercfg = cfs_read_file("user.cfg");
 
@@ -371,41 +371,37 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	my ($username, $ruid, $realm) =
-	    PVE::AccessControl::verify_username($param->{userid});
+	my ($username, $ruid, $realm) = PVE::AccessControl::verify_username($param->{userid});
 
-	PVE::AccessControl::lock_user_config(
-	    sub {
+	PVE::AccessControl::lock_user_config(sub {
+	    my $usercfg = cfs_read_file("user.cfg");
 
-		my $usercfg = cfs_read_file("user.cfg");
+	    PVE::AccessControl::check_user_exist($usercfg, $username);
 
-		PVE::AccessControl::check_user_exist($usercfg, $username);
+	    $usercfg->{users}->{$username}->{enable} = $param->{enable} if defined($param->{enable});
+	    $usercfg->{users}->{$username}->{expire} = $param->{expire} if defined($param->{expire});
 
-		$usercfg->{users}->{$username}->{enable} = $param->{enable} if defined($param->{enable});
+	    PVE::AccessControl::delete_user_group($username, $usercfg)
+		if (!$param->{append} && defined($param->{groups}));
 
-		$usercfg->{users}->{$username}->{expire} = $param->{expire} if defined($param->{expire});
-
-		PVE::AccessControl::delete_user_group($username, $usercfg)
-		    if (!$param->{append} && defined($param->{groups}));
-
-		if ($param->{groups}) {
-		    foreach my $group (split_list($param->{groups})) {
-			if ($usercfg->{groups}->{$group}) {
-			    PVE::AccessControl::add_user_group($username, $usercfg, $group);
-			} else {
-			    die "no such group '$group'\n";
-			}
+	    if ($param->{groups}) {
+		foreach my $group (split_list($param->{groups})) {
+		    if ($usercfg->{groups}->{$group}) {
+			PVE::AccessControl::add_user_group($username, $usercfg, $group);
+		    } else {
+			die "no such group '$group'\n";
 		    }
 		}
+	    }
 
-		$usercfg->{users}->{$username}->{firstname} = $param->{firstname} if defined($param->{firstname});
-		$usercfg->{users}->{$username}->{lastname} = $param->{lastname} if defined($param->{lastname});
-		$usercfg->{users}->{$username}->{email} = $param->{email} if defined($param->{email});
-		$usercfg->{users}->{$username}->{comment} = $param->{comment} if defined($param->{comment});
-		$usercfg->{users}->{$username}->{keys} = $param->{keys} if defined($param->{keys});
+	    $usercfg->{users}->{$username}->{firstname} = $param->{firstname} if defined($param->{firstname});
+	    $usercfg->{users}->{$username}->{lastname} = $param->{lastname} if defined($param->{lastname});
+	    $usercfg->{users}->{$username}->{email} = $param->{email} if defined($param->{email});
+	    $usercfg->{users}->{$username}->{comment} = $param->{comment} if defined($param->{comment});
+	    $usercfg->{users}->{$username}->{keys} = $param->{keys} if defined($param->{keys});
 
-		cfs_write_file("user.cfg", $usercfg);
-	    }, "update user failed");
+	    cfs_write_file("user.cfg", $usercfg);
+	}, "update user failed");
 
 	return undef;
     }});
@@ -418,9 +414,9 @@ __PACKAGE__->register_method ({
     description => "Delete user.",
     permissions => {
 	check => [ 'and',
-		   [ 'userid-param', 'Realm.AllocateUser'],
-		   [ 'userid-group', ['User.Modify']],
-	    ],
+	    [ 'userid-param', 'Realm.AllocateUser'],
+	    [ 'userid-group', ['User.Modify']],
+	],
     },
     parameters => {
 	additionalProperties => 0,
@@ -435,30 +431,27 @@ __PACKAGE__->register_method ({
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
 
-	my ($userid, $ruid, $realm) =
-	    PVE::AccessControl::verify_username($param->{userid});
+	my ($userid, $ruid, $realm) = PVE::AccessControl::verify_username($param->{userid});
 
-	PVE::AccessControl::lock_user_config(
-	    sub {
+	PVE::AccessControl::lock_user_config(sub {
+	    my $usercfg = cfs_read_file("user.cfg");
 
-		my $usercfg = cfs_read_file("user.cfg");
+	    my $domain_cfg = cfs_read_file('domains.cfg');
+	    if (my $cfg = $domain_cfg->{ids}->{$realm}) {
+		my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
+		$plugin->delete_user($cfg, $realm, $ruid);
+	    }
 
-		my $domain_cfg = cfs_read_file('domains.cfg');
-		if (my $cfg = $domain_cfg->{ids}->{$realm}) {
-		    my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
-		    $plugin->delete_user($cfg, $realm, $ruid);
-		}
+	    # Remove TFA data before removing the user entry as the user entry tells us whether
+	    # we need ot update priv/tfa.cfg.
+	    PVE::AccessControl::user_set_tfa($userid, $realm, undef, undef, $usercfg, $domain_cfg);
 
-		# Remove TFA data before removing the user entry as the user entry tells us whether
-		# we need ot update priv/tfa.cfg.
-		PVE::AccessControl::user_set_tfa($userid, $realm, undef, undef, $usercfg, $domain_cfg);
+	    delete $usercfg->{users}->{$userid};
 
-		delete $usercfg->{users}->{$userid};
-
-		PVE::AccessControl::delete_user_group($userid, $usercfg);
-		PVE::AccessControl::delete_user_acl($userid, $usercfg);
-		cfs_write_file("user.cfg", $usercfg);
-	    }, "delete user failed");
+	    PVE::AccessControl::delete_user_group($userid, $usercfg);
+	    PVE::AccessControl::delete_user_acl($userid, $usercfg);
+	    cfs_write_file("user.cfg", $usercfg);
+	}, "delete user failed");
 
 	return undef;
     }});
@@ -504,14 +497,12 @@ __PACKAGE__->register_method ({
 
 	my ($username, undef, $realm) = PVE::AccessControl::verify_username($param->{userid});
 
-
 	my $domain_cfg = cfs_read_file('domains.cfg');
 	my $realm_cfg = $domain_cfg->{ids}->{$realm};
 	die "auth domain '$realm' does not exist\n" if !$realm_cfg;
 
 	my $realm_tfa = {};
-	$realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_cfg->{tfa})
-	    if $realm_cfg->{tfa};
+	$realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_cfg->{tfa}) if $realm_cfg->{tfa};
 
 	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
 	my $tfa = $tfa_cfg->{users}->{$username};
@@ -528,9 +519,10 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "Get user API tokens.",
     permissions => {
-	check => ['or',
-		    ['userid-param', 'self'],
-		    ['perm', '/access/users/{userid}', ['User.Modify']],
+	check => [
+	    'or',
+	    ['userid-param', 'self'],
+	    ['perm', '/access/users/{userid}', ['User.Modify']],
 	],
     },
     parameters => {
@@ -564,9 +556,10 @@ __PACKAGE__->register_method ({
     method => 'GET',
     description => "Get specific API token information.",
     permissions => {
-	check => ['or',
-		    ['userid-param', 'self'],
-		    ['perm', '/access/users/{userid}', ['User.Modify']],
+	check => [
+	    'or',
+	    ['userid-param', 'self'],
+	    ['perm', '/access/users/{userid}', ['User.Modify']],
 	],
     },
     parameters => {
@@ -595,9 +588,10 @@ __PACKAGE__->register_method ({
     description => "Generate a new API token for a specific user. NOTE: returns API token value, which needs to be stored as it cannot be retrieved afterwards!",
     protected => 1,
     permissions => {
-	check => ['or',
-		    ['userid-param', 'self'],
-		    ['perm', '/access/users/{userid}', ['User.Modify']],
+	check => [
+	    'or',
+	    ['userid-param', 'self'],
+	    ['perm', '/access/users/{userid}', ['User.Modify']],
 	],
     },
     parameters => {
@@ -674,9 +668,10 @@ __PACKAGE__->register_method ({
     description => "Update API token for a specific user.",
     protected => 1,
     permissions => {
-	check => ['or',
-		    ['userid-param', 'self'],
-		    ['perm', '/access/users/{userid}', ['User.Modify']],
+	check => [
+	    'or',
+	    ['userid-param', 'self'],
+	    ['perm', '/access/users/{userid}', ['User.Modify']],
 	],
     },
     parameters => {
@@ -699,7 +694,7 @@ __PACKAGE__->register_method ({
 	my $usercfg = cfs_read_file("user.cfg");
 	my $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
 
-	my $update_token = sub {
+	PVE::AccessControl::lock_user_config(sub {
 	    $usercfg = cfs_read_file("user.cfg");
 	    $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
 
@@ -711,9 +706,7 @@ __PACKAGE__->register_method ({
 
 	    $usercfg->{users}->{$userid}->{tokens}->{$tokenid} = $token;
 	    cfs_write_file("user.cfg", $usercfg);
-	};
-
-	PVE::AccessControl::lock_user_config($update_token, 'updating token info failed');
+	}, 'updating token info failed');
 
 	return $token;
     }});
@@ -726,9 +719,10 @@ __PACKAGE__->register_method ({
     description => "Remove API token for a specific user.",
     protected => 1,
     permissions => {
-	check => ['or',
-		    ['userid-param', 'self'],
-		    ['perm', '/access/users/{userid}', ['User.Modify']],
+	check => [
+	    'or',
+	    ['userid-param', 'self'],
+	    ['perm', '/access/users/{userid}', ['User.Modify']],
 	],
     },
     parameters => {
@@ -748,7 +742,7 @@ __PACKAGE__->register_method ({
 	my $usercfg = cfs_read_file("user.cfg");
 	my $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
 
-	my $update_token = sub {
+	PVE::AccessControl::lock_user_config(sub {
 	    $usercfg = cfs_read_file("user.cfg");
 
 	    PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
@@ -758,9 +752,7 @@ __PACKAGE__->register_method ({
 	    delete $usercfg->{users}->{$userid}->{tokens}->{$tokenid};
 
 	    cfs_write_file("user.cfg", $usercfg);
-	};
-
-	PVE::AccessControl::lock_user_config($update_token, 'deleting token failed');
+	}, 'deleting token failed');
 
 	return;
     }});
