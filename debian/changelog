@@ -1,3 +1,14 @@
+libpve-access-control (7.0-5) bullseye; urgency=medium
+
+  * acl: check path: add /sdn/vnets/* path
+
+  * fix #2302: allow deletion of users when realm enforces TFA
+
+  * api: delete user: disable user first to avoid surprise on error during the
+    various cleanup action required for user deletion (e.g., TFA, ACL, group)
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 27 Sep 2021 15:50:47 +0200
+
 libpve-access-control (7.0-4) bullseye; urgency=medium
 
   * realm: add OpenID configuration
