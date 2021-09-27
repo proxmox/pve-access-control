@@ -442,11 +442,11 @@ __PACKAGE__->register_method ({
 		$plugin->delete_user($cfg, $realm, $ruid);
 	    }
 
-	    # Remove TFA data before removing the user entry as the user entry tells us whether
-	    # we need ot update priv/tfa.cfg.
-	    PVE::AccessControl::user_set_tfa($userid, $realm, undef, undef, $usercfg, $domain_cfg);
-
+	    # Remove user from cache before removing the TFA entry so realms with TFA-enforcement
+	    # know that it's OK to drop any TFA entry in that case.
 	    delete $usercfg->{users}->{$userid};
+
+	    PVE::AccessControl::user_set_tfa($userid, $realm, undef, undef, $usercfg, $domain_cfg);
 
 	    PVE::AccessControl::delete_user_group($userid, $usercfg);
 	    PVE::AccessControl::delete_user_acl($userid, $usercfg);

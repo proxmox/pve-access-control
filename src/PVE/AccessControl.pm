@@ -1600,8 +1600,7 @@ sub user_set_tfa {
     }
 
     my $user_cfg = $cached_usercfg || cfs_read_file('user.cfg');
-    my $user = $user_cfg->{users}->{$userid}
-	or die "user '$userid' not found\n";
+    my $user = $user_cfg->{users}->{$userid};
 
     my $domain_cfg = $cached_domaincfg || cfs_read_file('domains.cfg');
     my $realm_cfg = $domain_cfg->{ids}->{$realm};
@@ -1612,6 +1611,7 @@ sub user_set_tfa {
 	$realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_tfa);
 	# If the realm has a TFA setting, we're only allowed to use that.
 	if (defined($data)) {
+	    die "user '$userid' not found\n" if !defined($user);
 	    my $required_type = $realm_tfa->{type};
 	    if ($required_type ne $type) {
 		die "realm '$realm' only allows TFA of type '$required_type\n";
@@ -1624,9 +1624,11 @@ sub user_set_tfa {
 	    # realm-configured tfa always uses a simple key list, so use the user.cfg
 	    $user->{keys} = $data->{keys};
 	} else {
-	    die "realm '$realm' does not allow removing the 2nd factor\n";
+	    # TFA is enforce by realm, only allow deletion if the whole user gets delete
+	    die "realm '$realm' does not allow removing the 2nd factor\n" if defined($user);
 	}
     } else {
+	die "user '$userid' not found\n" if !defined($user);
 	# Without a realm-enforced TFA setting the user can add a u2f or totp entry by themselves.
 	# The 'yubico' type requires yubico server settings, which have to be configured on the
 	# realm, so this is not supported here:
@@ -1650,10 +1652,10 @@ sub user_set_tfa {
 	delete $tfa_cfg->{users}->{$userid};
 	cfs_write_file('priv/tfa.cfg', $tfa_cfg);
 
-	delete $user->{keys};
+	delete $user->{keys} if defined($user);
     }
 
-    cfs_write_file('user.cfg', $user_cfg);
+    cfs_write_file('user.cfg', $user_cfg) if defined($user);
 }
 
 sub user_get_tfa {
