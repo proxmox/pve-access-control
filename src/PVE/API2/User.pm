@@ -451,11 +451,19 @@ __PACKAGE__->register_method ({
 	    # know that it's OK to drop any TFA entry in that case.
 	    delete $usercfg->{users}->{$userid};
 
-	    PVE::AccessControl::user_set_tfa($userid, $realm, undef, undef, $usercfg, $domain_cfg);
+	    my $partial_deletion = '';
+	    eval {
+		PVE::AccessControl::user_set_tfa($userid, $realm, undef, undef, $usercfg, $domain_cfg);
+		$partial_deletion = ' - but deleted related TFA';
 
-	    PVE::AccessControl::delete_user_group($userid, $usercfg);
-	    PVE::AccessControl::delete_user_acl($userid, $usercfg);
-	    cfs_write_file("user.cfg", $usercfg);
+		PVE::AccessControl::delete_user_group($userid, $usercfg);
+		$partial_deletion .= ', Groups';
+		PVE::AccessControl::delete_user_acl($userid, $usercfg);
+		$partial_deletion .= ', ACLs';
+
+		cfs_write_file("user.cfg", $usercfg);
+	    };
+	    die "$@$partial_deletion\n" if $@;
 	}, "delete user failed");
 
 	return undef;
