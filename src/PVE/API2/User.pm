@@ -436,6 +436,11 @@ __PACKAGE__->register_method ({
 	PVE::AccessControl::lock_user_config(sub {
 	    my $usercfg = cfs_read_file("user.cfg");
 
+	    # NOTE: disable the user first (transaction like), so if (e.g.) we fail in the middle of
+	    # TFA deletion the user will be still disabled and not just without TFA protection.
+	    $usercfg->{users}->{$userid}->{enable} = 0;
+	    cfs_write_file("user.cfg", $usercfg);
+
 	    my $domain_cfg = cfs_read_file('domains.cfg');
 	    if (my $cfg = $domain_cfg->{ids}->{$realm}) {
 		my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
