@@ -1628,7 +1628,7 @@ sub user_set_tfa {
 	    die "realm '$realm' does not allow removing the 2nd factor\n" if defined($user);
 	}
     } else {
-	die "user '$userid' not found\n" if !defined($user);
+	die "user '$userid' not found\n" if !defined($user) && defined($data);
 	# Without a realm-enforced TFA setting the user can add a u2f or totp entry by themselves.
 	# The 'yubico' type requires yubico server settings, which have to be configured on the
 	# realm, so this is not supported here:
