@@ -1,3 +1,9 @@
+libpve-access-control (7.0-6) bullseye; urgency=medium
+
+  * fix regression in user deletion when realm does not enforce TFA
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 21 Oct 2021 12:28:52 +0200
+
 libpve-access-control (7.0-5) bullseye; urgency=medium
 
   * acl: check path: add /sdn/vnets/* path
