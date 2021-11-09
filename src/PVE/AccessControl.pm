@@ -624,6 +624,7 @@ sub check_token_exist {
     return undef;
 }
 
+# deprecated
 sub verify_one_time_pw {
     my ($type, $username, $keys, $tfa_cfg, $otp) = @_;
 
@@ -715,7 +716,7 @@ sub authenticate_2nd_old : prototype($$$) {
 sub authenticate_2nd_new : prototype($$$$) {
     my ($username, $realm, $otp, $tfa_challenge) = @_;
 
-    return lock_tfa_config(sub {
+    my $result = lock_tfa_config(sub {
 	my ($tfa_cfg, $realm_tfa) = user_get_tfa($username, $realm, 1);
 
 	if (!defined($tfa_cfg)) {
@@ -724,11 +725,28 @@ sub authenticate_2nd_new : prototype($$$$) {
 
 	my $realm_type = $realm_tfa && $realm_tfa->{type};
 	if (defined($realm_type) && $realm_type eq 'yubico') {
-	    $tfa_cfg->set_yubico_config({
-		id => $realm_tfa->{id},
-		key => $realm_tfa->{key},
-		url => $realm_tfa->{url},
-	    });
+	    # Yubico auth will not be supported in rust for now...
+	    if (!defined($tfa_challenge)) {
+		my $challenge = { yubico => JSON::true };
+		# Even with yubico auth we do allow recovery keys to be used:
+		if (my $recovery = $tfa_cfg->recovery_state($username)) {
+		    $challenge->{recovery} = $recovery;
+		}
+		return to_json($challenge);
+	    }
+
+	    if ($otp =~ /^yubico:(.*)$/) {
+		$otp = $1;
+		# Defer to after unlocking the TFA config:
+		return sub {
+		    authenticate_yubico_new($tfa_cfg, $username, $realm_tfa, $tfa_challenge, $otp);
+		};
+	    }
+
+	    # Beside the realm configured auth we only allow recovery keys:
+	    if ($otp !~ /^recovery:/) {
+		die "realm requires yubico authentication\n";
+	    }
 	}
 
 	configure_u2f_and_wa($tfa_cfg);
@@ -755,6 +773,36 @@ sub authenticate_2nd_new : prototype($$$$) {
 
 	return $tfa_challenge;
     });
+
+    # Yubico auth returns the authentication sub:
+    if (ref($result) eq 'CODE') {
+	$result = $result->();
+    }
+
+    return $result;
+}
+
+sub authenticate_yubico_new : prototype($$$) {
+    my ($tfa_cfg, $username, $realm, $tfa_challenge, $otp) = @_;
+
+    $tfa_challenge = verify_ticket($tfa_challenge, 0, $username);
+    $tfa_challenge = from_json($tfa_challenge);
+
+    if (!$tfa_challenge->{yubico}) {
+	die "no such challenge\n";
+    }
+
+    my $keys = $tfa_cfg->get_yubico_keys($username);
+    die "no keys configured\n" if !defined($keys) || !length($keys);
+
+    # Defer to after unlocking the TFA config:
+
+    # fixme: proxy support?
+    my $proxy;
+    PVE::OTP::yubico_verify_otp($otp, $keys, $realm->{url}, $realm->{id}, $realm->{key}, $proxy);
+
+    # return `undef` to clear the tfa challenge.
+    return undef;
 }
 
 sub configure_u2f_and_wa : prototype($) {
