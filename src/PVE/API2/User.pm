@@ -485,6 +485,12 @@ __PACKAGE__->register_method ({
 	additionalProperties => 0,
 	properties => {
 	    userid => get_standard_option('userid-completed'),
+	    multiple => {
+		type => 'boolean',
+		description => 'Request all entries as an array.',
+		optional => 1,
+		default => 0,
+	    },
 	},
     },
     returns => {
@@ -499,8 +505,22 @@ __PACKAGE__->register_method ({
 	    user => {
 		type => 'string',
 		enum => [qw(oath u2f)],
-		description => "The type of TFA the user has set, if any.",
+		description =>
+		    "The type of TFA the user has set, if any."
+		    . " Only set if 'multiple' was not passed.",
 		optional => 1,
+	    },
+	    types => {
+		type => 'array',
+		description =>
+		    "Array of the user configured TFA types, if any."
+		    . " Only available if 'multiple' was not passed.",
+		optional => 1,
+		items => {
+		    type => 'string',
+		    enum => [qw(totp u2f yubico webauthn recovedry)],
+		    description => 'A TFA type.',
+		},
 	    },
 	},
 	type => "object"
@@ -514,15 +534,24 @@ __PACKAGE__->register_method ({
 	my $realm_cfg = $domain_cfg->{ids}->{$realm};
 	die "auth domain '$realm' does not exist\n" if !$realm_cfg;
 
+	my $res = {};
 	my $realm_tfa = {};
 	$realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_cfg->{tfa}) if $realm_cfg->{tfa};
+	$res->{realm} = $realm_tfa->{type} if $realm_tfa->{type};
 
 	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
-	my $tfa = $tfa_cfg->{users}->{$username};
-
-	my $res = {};
-	$res->{realm} = $realm_tfa->{type} if $realm_tfa->{type};
-	$res->{user} = $tfa->{type} if $tfa->{type};
+	if ($param->{multiple}) {
+	    my $tfa = $tfa_cfg->get_user($username);
+	    my $user = [];
+	    foreach my $type (keys %$tfa) {
+		next if !scalar($tfa->{$type}->@*);
+		push @$user, $type;
+	    }
+	    $res->{user} = $user;
+	} else {
+	    my $tfa = $tfa_cfg->{users}->{$username};
+	    $res->{user} = $tfa->{type} if $tfa->{type};
+	}
 	return $res;
     }});
 
