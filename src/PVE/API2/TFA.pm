@@ -119,6 +119,22 @@ my sub root_permission_check : prototype($$$$) {
     return wantarray ? ($userid, $realm) : $userid;
 }
 
+my sub set_user_tfa_enabled : prototype($$) {
+    my ($userid, $enabled) = @_;
+
+    PVE::AccessControl::lock_user_config(sub {
+	my $user_cfg = cfs_read_file('user.cfg');
+	my $user = $user_cfg->{users}->{$userid};
+	my $keys = $user->{keys};
+	if ($keys && $keys !~ /^x(?:!.*)?$/) {
+	    die "user contains tfa keys directly in user.cfg,"
+		." please remove them and add them via the TFA panel instead\n";
+	}
+	$user->{keys} = $enabled ? 'x' : undef;
+	cfs_write_file("user.cfg", $user_cfg);
+    }, "enabling TFA for the user failed");
+}
+
 ### OLD API
 
 __PACKAGE__->register_method({
@@ -291,11 +307,15 @@ __PACKAGE__->register_method ({
 	my $userid =
 	    root_permission_check($rpcenv, $authuser, $param->{userid}, $param->{password});
 
-	return PVE::AccessControl::lock_tfa_config(sub {
+	my $has_entries_left = PVE::AccessControl::lock_tfa_config(sub {
 	    my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
-	    $tfa_cfg->api_delete_tfa($userid, $param->{id});
+	    my $has_entries_left = $tfa_cfg->api_delete_tfa($userid, $param->{id});
 	    cfs_write_file('priv/tfa.cfg', $tfa_cfg);
+	    return $has_entries_left;
 	});
+	if (!$has_entries_left) {
+	    set_user_tfa_enabled($userid, 0);
+	}
     }});
 
 __PACKAGE__->register_method ({
@@ -403,6 +423,8 @@ __PACKAGE__->register_method ({
 	if ($type eq 'yubico') {
 	    $value = validate_yubico_otp($userid, $realm, $value);
 	}
+
+	set_user_tfa_enabled($userid, 1);
 
 	return PVE::AccessControl::lock_tfa_config(sub {
 	    my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
