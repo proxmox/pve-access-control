@@ -12,6 +12,7 @@ use PVE::API2::ACL;
 use PVE::API2::AccessControl;
 use PVE::API2::Domains;
 use PVE::API2::TFA;
+use PVE::Cluster qw(cfs_read_file cfs_write_file);
 use PVE::CLIFormatter;
 use PVE::CLIHandler;
 use PVE::JSONSchema qw(get_standard_option);
@@ -111,6 +112,43 @@ __PACKAGE__->register_method({
 	return PVE::API2::AccessControl->permissions($param);
     }});
 
+__PACKAGE__->register_method({
+    name => 'delete_tfa',
+    path => 'delete_tfa',
+    method => 'PUT',
+    description => 'Delete TFA entries from a user.',
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid'),
+	    id => {
+		description => "The TFA ID, if none provided, all TFA entries will be deleted.",
+		type => 'string',
+		optional => 1,
+	    },
+	},
+    },
+    returns => { type => 'null' },
+    code => sub {
+	my ($param) = @_;
+
+	my $userid = extract_param($param, "userid");
+	my $tfa_id = extract_param($param, "id");
+
+	PVE::AccessControl::assert_new_tfa_config_available();
+
+	PVE::AccessControl::lock_tfa_config(sub {
+	    my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
+	    if (defined($tfa_id)) {
+		$tfa_cfg->api_delete_tfa($userid, $tfa_id);
+	    } else {
+		$tfa_cfg->remove_user($userid);
+	    }
+	    cfs_write_file('priv/tfa.cfg', $tfa_cfg);
+	});
+	return;
+    }});
+
 our $cmddef = {
     user => {
 	add    => [ 'PVE::API2::User', 'create_user', ['userid'] ],
@@ -119,7 +157,7 @@ our $cmddef = {
 	list   => [ 'PVE::API2::User', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
 	permissions => [ 'PVE::API2::AccessControl', 'permissions', ['userid'], {}, $print_perm_result, $PVE::RESTHandler::standard_output_options],
 	tfa => {
-	    delete => [ 'PVE::API2::TFA', 'change_tfa', ['userid'], { action => 'delete', key => undef, config => undef, response => undef, }, ],
+	    delete => [ __PACKAGE__, 'delete_tfa', ['userid'] ],
 	},
 	token => {
 	    add    => [ 'PVE::API2::User', 'generate_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
