@@ -1740,6 +1740,16 @@ sub assert_new_tfa_config_available() {
     # FIXME: Assert cluster-wide new-tfa-config support!
 }
 
+sub user_remove_tfa : prototype($) {
+    my ($userid) = @_;
+
+    assert_new_tfa_config_available();
+
+    my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
+    $tfa_cfg->remove_user($userid);
+    cfs_write_file('priv/tfa.cfg', $tfa_cfg);
+}
+
 sub user_get_tfa : prototype($$$) {
     my ($username, $realm, $new_format) = @_;
 

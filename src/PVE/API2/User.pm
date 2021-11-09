@@ -453,7 +453,7 @@ __PACKAGE__->register_method ({
 
 	    my $partial_deletion = '';
 	    eval {
-		PVE::AccessControl::user_set_tfa($userid, $realm, undef, undef, $usercfg, $domain_cfg);
+		PVE::AccessControl::user_remove_tfa($userid);
 		$partial_deletion = ' - but deleted related TFA';
 
 		PVE::AccessControl::delete_user_group($userid, $usercfg);
