@@ -77,6 +77,17 @@ sub lock_user_config {
     }
 }
 
+sub lock_tfa_config {
+    my ($code, $errmsg) = @_;
+
+    my $res = cfs_lock_file("priv/tfa.cfg", undef, $code);
+    if (my $err = $@) {
+	$errmsg ? die "$errmsg: $err" : die $err;
+    }
+
+    return $res;
+}
+
 my $cache_read_key = sub {
     my ($type) = @_;
 
@@ -1719,6 +1730,10 @@ my $USER_CONTROLLED_TFA_TYPES = {
     u2f => 1,
     oath => 1,
 };
+
+sub assert_new_tfa_config_available() {
+    # FIXME: Assert cluster-wide new-tfa-config support!
+}
 
 sub user_get_tfa : prototype($$$) {
     my ($username, $realm, $new_format) = @_;
