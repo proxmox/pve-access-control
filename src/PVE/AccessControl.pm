@@ -806,14 +806,19 @@ sub authenticate_yubico_new : prototype($$$) {
     my $keys = $tfa_cfg->get_yubico_keys($username);
     die "no keys configured\n" if !defined($keys) || !length($keys);
 
-    # Defer to after unlocking the TFA config:
-
-    # fixme: proxy support?
-    my $proxy;
-    PVE::OTP::yubico_verify_otp($otp, $keys, $realm->{url}, $realm->{id}, $realm->{key}, $proxy);
+    authenticate_yubico_do($otp, $keys, $realm);
 
     # return `undef` to clear the tfa challenge.
     return undef;
+}
+
+sub authenticate_yubico_do : prototype($$$) {
+    my ($value, $keys, $realm) = @_;
+
+    # fixme: proxy support?
+    my $proxy = undef;
+
+    PVE::OTP::yubico_verify_otp($value, $keys, $realm->{url}, $realm->{id}, $realm->{key}, $proxy);
 }
 
 sub configure_u2f_and_wa : prototype($) {

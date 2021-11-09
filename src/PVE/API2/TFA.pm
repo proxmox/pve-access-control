@@ -395,8 +395,14 @@ __PACKAGE__->register_method ({
 
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
-	my $userid =
+	my ($userid, $realm) =
 	    root_permission_check($rpcenv, $authuser, $param->{userid}, $param->{password});
+
+	my $type = delete $param->{type};
+	my $value = delete $param->{value};
+	if ($type eq 'yubico') {
+	    $value = validate_yubico_otp($userid, $realm, $value);
+	}
 
 	return PVE::AccessControl::lock_tfa_config(sub {
 	    my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
@@ -406,9 +412,9 @@ __PACKAGE__->register_method ({
 		$userid,
 		$param->{description},
 		$param->{totp},
-		$param->{value},
+		$value,
 		$param->{challenge},
-		$param->{type},
+		$type,
 	    );
 
 	    cfs_write_file('priv/tfa.cfg', $tfa_cfg);
@@ -416,6 +422,28 @@ __PACKAGE__->register_method ({
 	    return $response;
 	});
     }});
+
+sub validate_yubico_otp : prototype($$) {
+    my ($userid, $realm, $value) = @_;
+
+    my $domain_cfg = cfs_read_file('domains.cfg');
+    my $realm_cfg = $domain_cfg->{ids}->{$realm};
+    die "auth domain '$realm' does not exist\n" if !$realm_cfg;
+
+    my $realm_tfa = $realm_cfg->{tfa};
+    die "no yubico otp configuration available for realm $realm\n"
+	if !$realm_tfa;
+
+    $realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_tfa);
+    die "realm is not setup for Yubico OTP\n"
+	if !$realm_tfa || $realm_tfa->{type} ne 'yubico';
+
+    my $public_key = substr($value, 0, 12);
+
+    PVE::AccessControl::authenticate_yubico_do($value, $public_key, $realm_tfa);
+
+    return $public_key;
+}
 
 __PACKAGE__->register_method ({
     name => 'update_tfa_entry',
