@@ -6,6 +6,7 @@ API2_SOURCES= 		 	\
 	Role.pm		 	\
 	Group.pm	 	\
 	User.pm			\
+	TFA.pm			\
 	OpenId.pm
 
 .PHONY: install

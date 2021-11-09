@@ -20,6 +20,7 @@ use PVE::API2::Group;
 use PVE::API2::Role;
 use PVE::API2::ACL;
 use PVE::API2::OpenId;
+use PVE::API2::TFA;
 use PVE::Auth::Plugin;
 use PVE::OTP;
 
@@ -59,6 +60,11 @@ __PACKAGE__->register_method ({
 __PACKAGE__->register_method ({
     subclass => "PVE::API2::OpenId",
     path => 'openid',
+});
+
+__PACKAGE__->register_method ({
+    subclass => "PVE::API2::TFA",
+    path => 'tfa',
 });
 
 __PACKAGE__->register_method ({
@@ -464,211 +470,6 @@ sub verify_user_tfa_config {
     PVE::OTP::oath_verify_otp($value, $secret, $step, $digits);
 }
 
-__PACKAGE__->register_method ({
-    name => 'change_tfa',
-    path => 'tfa',
-    method => 'PUT',
-    permissions => {
-	description => 'A user can change their own u2f or totp token.',
-	check => [ 'or',
-		   ['userid-param', 'self'],
-		   [ 'and',
-		     [ 'userid-param', 'Realm.AllocateUser'],
-		     [ 'userid-group', ['User.Modify']]
-		   ]
-	    ],
-    },
-    protected => 1, # else we can't access shadow files
-    allowtoken => 0, # we don't want tokens to change the regular user's TFA settings
-    description => "Change user u2f authentication.",
-    parameters => {
-	additionalProperties => 0,
-	properties => {
-	    userid => get_standard_option('userid', {
-		completion => \&PVE::AccessControl::complete_username,
-	    }),
-	    password => {
-		optional => 1, # Only required if not root@pam
-		description => "The current password.",
-		type => 'string',
-		minLength => 5,
-		maxLength => 64,
-	    },
-	    action => {
-		description => 'The action to perform',
-		type => 'string',
-		enum => [qw(delete new confirm)],
-	    },
-	    response => {
-		optional => 1,
-		description =>
-		    'Either the the response to the current u2f registration challenge,'
-		    .' or, when adding TOTP, the currently valid TOTP value.',
-		type => 'string',
-	    },
-	    key => {
-		optional => 1,
-		description => 'When adding TOTP, the shared secret value.',
-		type => 'string',
-		format => 'pve-tfa-secret',
-	    },
-	    config => {
-		optional => 1,
-		description => 'A TFA configuration. This must currently be of type TOTP of not set at all.',
-		type => 'string',
-		format => 'pve-tfa-config',
-		maxLength => 128,
-	    },
-	}
-    },
-    returns => { type => 'object' },
-    code => sub {
-	my ($param) = @_;
-
-	die "TODO!\n";
-
-	my $rpcenv = PVE::RPCEnvironment::get();
-	my $authuser = $rpcenv->get_user();
-
-	my $action = delete $param->{action};
-	my $response = delete $param->{response};
-	my $password = delete($param->{password}) // '';
-	my $key = delete($param->{key});
-	my $config = delete($param->{config});
-
-	my ($userid, $ruid, $realm) = PVE::AccessControl::verify_username($param->{userid});
-	$rpcenv->check_user_exist($userid);
-
-	# Only root may modify root
-	raise_perm_exc() if $userid eq 'root@pam' && $authuser ne 'root@pam';
-
-	# Regular users need to confirm their password to change u2f settings.
-	if ($authuser ne 'root@pam') {
-	    raise_param_exc({ 'password' => 'password is required to modify u2f data' })
-		if !defined($password);
-	    my $domain_cfg = cfs_read_file('domains.cfg');
-	    my $cfg = $domain_cfg->{ids}->{$realm};
-	    die "auth domain '$realm' does not exist\n" if !$cfg;
-	    my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
-	    $plugin->authenticate_user($cfg, $realm, $ruid, $password);
-	}
-
-	if ($action eq 'delete') {
-	    PVE::AccessControl::user_set_tfa($userid, $realm, undef, undef);
-	    PVE::Cluster::log_msg('info', $authuser, "deleted u2f data for user '$userid'");
-	} elsif ($action eq 'new') {
-	    if (defined($config)) {
-		$config = PVE::Auth::Plugin::parse_tfa_config($config);
-		my $type = delete($config->{type});
-		my $tfa_cfg = {
-		    keys => $key,
-		    config => $config,
-		};
-		verify_user_tfa_config($type, $tfa_cfg, $response);
-		PVE::AccessControl::user_set_tfa($userid, $realm, $type, $tfa_cfg);
-	    } else {
-		# The default is U2F:
-		my $u2f = get_u2f_instance($rpcenv);
-		my $challenge = $u2f->registration_challenge()
-		    or raise("failed to get u2f challenge");
-		$challenge = decode_json($challenge);
-		PVE::AccessControl::user_set_tfa($userid, $realm, 'u2f', $challenge);
-		return $challenge;
-	    }
-	} elsif ($action eq 'confirm') {
-	    raise_param_exc({ 'response' => "confirm action requires the 'response' parameter to be set" })
-		if !defined($response);
-
-	    my ($type, $u2fdata) = PVE::AccessControl::user_get_tfa($userid, $realm, 'FIXME');
-	    raise("no u2f data available")
-		if (!defined($type) || $type ne 'u2f');
-
-	    my $challenge = $u2fdata->{challenge}
-		or raise("no active challenge");
-
-	    my $u2f = get_u2f_instance($rpcenv);
-	    $u2f->set_challenge($challenge);
-	    my ($keyHandle, $publicKey) = $u2f->registration_verify($response);
-	    PVE::AccessControl::user_set_tfa($userid, $realm, 'u2f', {
-		keyHandle => $keyHandle,
-		publicKey => $publicKey, # already base64 encoded
-	    });
-	} else {
-	    die "invalid action: $action\n";
-	}
-
-	return {};
-    }});
-
-__PACKAGE__->register_method({
-    name => 'verify_tfa',
-    path => 'tfa',
-    method => 'POST',
-    permissions => { user => 'all' },
-    protected => 1, # else we can't access shadow files
-    allowtoken => 0, # we don't want tokens to access TFA information
-    description => 'Finish a u2f challenge.',
-    parameters => {
-	additionalProperties => 0,
-	properties => {
-	    response => {
-		type => 'string',
-		description => 'The response to the current authentication challenge.',
-	    },
-	}
-    },
-    returns => {
-	type => 'object',
-	properties => {
-	    ticket => { type => 'string' },
-	    # cap
-	}
-    },
-    code => sub {
-	my ($param) = @_;
-
-	my $rpcenv = PVE::RPCEnvironment::get();
-	my $authuser = $rpcenv->get_user();
-	my ($username, undef, $realm) = PVE::AccessControl::verify_username($authuser);
-
-	my ($tfa_type, $tfa_data) = PVE::AccessControl::user_get_tfa($username, $realm, 0);
-	if (!defined($tfa_type)) {
-	    raise('no u2f data available');
-	}
-
-	eval {
-	    if ($tfa_type eq 'u2f') {
-		my $challenge = $rpcenv->get_u2f_challenge()
-		   or raise('no active challenge');
-
-		my $keyHandle = $tfa_data->{keyHandle};
-		my $publicKey = $tfa_data->{publicKey};
-		raise("incomplete u2f setup")
-		    if !defined($keyHandle) || !defined($publicKey);
-
-		my $u2f = get_u2f_instance($rpcenv, $publicKey, $keyHandle);
-		$u2f->set_challenge($challenge);
-
-		my ($counter, $present) = $u2f->auth_verify($param->{response});
-		# Do we want to do anything with these?
-	    } else {
-		# sanity check before handing off to the verification code:
-		my $keys = $tfa_data->{keys} or die "missing tfa keys\n";
-		my $config = $tfa_data->{config} or die "bad tfa entry\n";
-		PVE::AccessControl::verify_one_time_pw($tfa_type, $authuser, $keys, $config, $param->{response});
-	    }
-	};
-	if (my $err = $@) {
-	    my $clientip = $rpcenv->get_client_ip() || '';
-	    syslog('err', "authentication verification failure; rhost=$clientip user=$authuser msg=$err");
-	    die PVE::Exception->new("authentication failure\n", code => 401);
-	}
-
-	return {
-	    ticket => PVE::AccessControl::assemble_ticket($authuser),
-	    cap => $rpcenv->compute_api_permission($authuser),
-	}
-    }});
 
 __PACKAGE__->register_method({
     name => 'permissions',

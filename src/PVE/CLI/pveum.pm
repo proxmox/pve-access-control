@@ -11,6 +11,7 @@ use PVE::API2::Role;
 use PVE::API2::ACL;
 use PVE::API2::AccessControl;
 use PVE::API2::Domains;
+use PVE::API2::TFA;
 use PVE::CLIFormatter;
 use PVE::CLIHandler;
 use PVE::JSONSchema qw(get_standard_option);
@@ -118,7 +119,7 @@ our $cmddef = {
 	list   => [ 'PVE::API2::User', 'index', [], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
 	permissions => [ 'PVE::API2::AccessControl', 'permissions', ['userid'], {}, $print_perm_result, $PVE::RESTHandler::standard_output_options],
 	tfa => {
-	    delete => [ 'PVE::API2::AccessControl', 'change_tfa', ['userid'], { action => 'delete', key => undef, config => undef, response => undef, }, ],
+	    delete => [ 'PVE::API2::TFA', 'change_tfa', ['userid'], { action => 'delete', key => undef, config => undef, response => undef, }, ],
 	},
 	token => {
 	    add    => [ 'PVE::API2::User', 'generate_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
