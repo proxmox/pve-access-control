@@ -105,8 +105,8 @@ __PACKAGE__->register_method ({
     }});
 
 
-my $verify_auth = sub {
-    my ($rpcenv, $username, $pw_or_ticket, $otp, $path, $privs) = @_;
+my sub verify_auth : prototype($$$$$$$) {
+    my ($rpcenv, $username, $pw_or_ticket, $otp, $path, $privs, $new_format) = @_;
 
     my $normpath = PVE::AccessControl::normalize_path($path);
 
@@ -117,7 +117,12 @@ my $verify_auth = sub {
     } elsif (PVE::AccessControl::verify_vnc_ticket($pw_or_ticket, $username, $normpath, 1)) {
 	# valid vnc ticket
     } else {
-	$username = PVE::AccessControl::authenticate_user($username, $pw_or_ticket, $otp);
+	$username = PVE::AccessControl::authenticate_user(
+	    $username,
+	    $pw_or_ticket,
+	    $otp,
+	    $new_format,
+	);
     }
 
     my $privlist = [ PVE::Tools::split_list($privs) ];
@@ -128,22 +133,45 @@ my $verify_auth = sub {
     return { username => $username };
 };
 
-my $create_ticket = sub {
-    my ($rpcenv, $username, $pw_or_ticket, $otp) = @_;
+my sub create_ticket_do : prototype($$$$$$) {
+    my ($rpcenv, $username, $pw_or_ticket, $otp, $new_format, $tfa_challenge) = @_;
 
-    my ($ticketuser, undef, $tfa_info) = PVE::AccessControl::verify_ticket($pw_or_ticket, 1);
+    die "TFA response should be in 'password', not 'otp' when 'tfa-challenge' is set\n"
+	if defined($otp) && defined($tfa_challenge);
+
+    my ($ticketuser, undef, $tfa_info);
+    if (!defined($tfa_challenge)) {
+	# We only verify this ticket if we're not responding to a TFA challenge, as in that case
+	# it is a TFA-data ticket and will be verified by `authenticate_user`.
+
+	($ticketuser, undef, $tfa_info) = PVE::AccessControl::verify_ticket($pw_or_ticket, 1);
+    }
+
     if (defined($ticketuser) && ($ticketuser eq 'root@pam' || $ticketuser eq $username)) {
 	if (defined($tfa_info)) {
 	    die "incomplete ticket\n";
 	}
 	# valid ticket. Note: root@pam can create tickets for other users
     } else {
-	($username, $tfa_info) = PVE::AccessControl::authenticate_user($username, $pw_or_ticket, $otp);
+	($username, $tfa_info) = PVE::AccessControl::authenticate_user(
+	    $username,
+	    $pw_or_ticket,
+	    $otp,
+	    $new_format,
+	    $tfa_challenge,
+	);
     }
 
     my %extra;
     my $ticket_data = $username;
-    if (defined($tfa_info)) {
+    my $aad;
+    if ($new_format) {
+	if (defined($tfa_info)) {
+	    $extra{NeedTFA} = 1;
+	    $ticket_data = "!tfa!$tfa_info";
+	    $aad = $username;
+	}
+    } elsif (defined($tfa_info)) {
 	$extra{NeedTFA} = 1;
 	if ($tfa_info->{type} eq 'u2f') {
 	    my $u2finfo = $tfa_info->{data};
@@ -159,7 +187,7 @@ my $create_ticket = sub {
 	}
     }
 
-    my $ticket = PVE::AccessControl::assemble_ticket($ticket_data);
+    my $ticket = PVE::AccessControl::assemble_ticket($ticket_data, $aad);
     my $csrftoken = PVE::AccessControl::assemble_csrf_prevention_token($username);
 
     return {
@@ -230,6 +258,20 @@ __PACKAGE__->register_method ({
 		optional => 1,
 		maxLength => 64,
 	    },
+	    'new-format' => {
+		type => 'boolean',
+		description =>
+		    'With webauthn the format of half-authenticated tickts changed.'
+		    .' New clients should pass 1 here and not worry about the old format.'
+		    .' The old format is deprecated and will be retired with PVE-8.0',
+		optional => 1,
+		default => 0,
+	    },
+	    'tfa-challenge' => {
+		type => 'string',
+                description => "The signed TFA challenge string the user wants to respond to.",
+		optional => 1,
+	    },
 	}
     },
     returns => {
@@ -257,10 +299,17 @@ __PACKAGE__->register_method ({
 	    $rpcenv->check_user_enabled($username);
 
 	    if ($param->{path} && $param->{privs}) {
-		$res = &$verify_auth($rpcenv, $username, $param->{password}, $param->{otp},
-				     $param->{path}, $param->{privs});
+		$res = verify_auth($rpcenv, $username, $param->{password}, $param->{otp},
+				   $param->{path}, $param->{privs}, $param->{'new-format'});
 	    } else {
-		$res = &$create_ticket($rpcenv, $username, $param->{password}, $param->{otp});
+		$res = create_ticket_do(
+		    $rpcenv,
+		    $username,
+		    $param->{password},
+		    $param->{otp},
+		    $param->{'new-format'},
+		    $param->{'tfa-challenge'},
+		);
 	    }
 	};
 	if (my $err = $@) {
@@ -476,6 +525,8 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	die "TODO!\n";
+
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
 
@@ -528,7 +579,7 @@ __PACKAGE__->register_method ({
 	    raise_param_exc({ 'response' => "confirm action requires the 'response' parameter to be set" })
 		if !defined($response);
 
-	    my ($type, $u2fdata) = PVE::AccessControl::user_get_tfa($userid, $realm);
+	    my ($type, $u2fdata) = PVE::AccessControl::user_get_tfa($userid, $realm, 'FIXME');
 	    raise("no u2f data available")
 		if (!defined($type) || $type ne 'u2f');
 
@@ -580,7 +631,7 @@ __PACKAGE__->register_method({
 	my $authuser = $rpcenv->get_user();
 	my ($username, undef, $realm) = PVE::AccessControl::verify_username($authuser);
 
-	my ($tfa_type, $tfa_data) = PVE::AccessControl::user_get_tfa($username, $realm);
+	my ($tfa_type, $tfa_data) = PVE::AccessControl::user_get_tfa($username, $realm, 0);
 	if (!defined($tfa_type)) {
 	    raise('no u2f data available');
 	}

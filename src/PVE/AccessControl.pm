@@ -338,16 +338,23 @@ my $get_ticket_age_range = sub {
     return ($min, $max);
 };
 
-sub assemble_ticket {
-    my ($data) = @_;
+sub assemble_ticket : prototype($;$) {
+    my ($data, $aad) = @_;
 
     my $rsa_priv = get_privkey();
 
-    return PVE::Ticket::assemble_rsa_ticket($rsa_priv, 'PVE', $data);
+    return PVE::Ticket::assemble_rsa_ticket($rsa_priv, 'PVE', $data, $aad);
 }
 
-sub verify_ticket {
-    my ($ticket, $noerr) = @_;
+# Returns the username, "age" and tfa info.
+#
+# Note that for the new-style outh, tfa info is never set, as it only uses the `/ticket` api call
+# via the new 'tfa-challenge' parameter, so this part can go with PVE-8.
+#
+# New-style auth still uses this function, but sets `$tfa_ticket` to true when validating the tfa
+# ticket.
+sub verify_ticket : prototype($;$$) {
+    my ($ticket, $noerr, $tfa_ticket_aad) = @_;
 
     my $now = time();
 
@@ -361,7 +368,7 @@ sub verify_ticket {
 	return undef if !defined($min);
 
 	return PVE::Ticket::verify_rsa_ticket(
-	    $rsa_pub, 'PVE', $ticket, undef, $min, $max, 1);
+	    $rsa_pub, 'PVE', $ticket, $tfa_ticket_aad, $min, $max, 1);
     };
 
     my ($data, $age) = $check->();
@@ -382,7 +389,21 @@ sub verify_ticket {
 	return $auth_failure->();
     }
 
+    if ($tfa_ticket_aad) {
+	# We're validating a ticket-call's 'tfa-challenge' parameter, so just return its data.
+	if ($data =~ /^!tfa!(.*)$/) {
+	    return $1;
+	}
+	die "bad ticket\n";
+    }
+
     my ($username, $tfa_info);
+    if ($data =~ /^!tfa!(.*)$/) {
+	# PBS style half-authenticated ticket, contains a json string form of a `TfaChallenge`
+	# object.
+	# This type of ticket does not contain the user name.
+	return { type => 'new', data => $1 };
+    }
     if ($data =~ m{^u2f!([^!]+)!([0-9a-zA-Z/.=_\-+]+)$}) {
 	# Ticket for u2f-users:
 	($username, my $challenge) = ($1, $2);
@@ -623,8 +644,8 @@ sub verify_one_time_pw {
 
 # password should be utf8 encoded
 # Note: some plugins delay/sleep if auth fails
-sub authenticate_user {
-    my ($username, $password, $otp) = @_;
+sub authenticate_user : prototype($$$$;$) {
+    my ($username, $password, $otp, $new_format, $tfa_challenge) = @_;
 
     die "no username specified\n" if !$username;
 
@@ -641,9 +662,28 @@ sub authenticate_user {
     my $cfg = $domain_cfg->{ids}->{$realm};
     die "auth domain '$realm' does not exist\n" if !$cfg;
     my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
+
+    if ($tfa_challenge) {
+	# This is the 2nd factor, use the password for the OTP response.
+	my $tfa_challenge = authenticate_2nd_new($username, $realm, $password, $tfa_challenge);
+	return wantarray ? ($username, $tfa_challenge) : $username;
+    }
+
     $plugin->authenticate_user($cfg, $realm, $ruid, $password);
 
-    my ($type, $tfa_data) = user_get_tfa($username, $realm);
+    if ($new_format) {
+	# This is the first factor with an optional immediate 2nd factor for TOTP:
+	my $tfa_challenge = authenticate_2nd_new($username, $realm, $otp, $tfa_challenge);
+	return wantarray ? ($username, $tfa_challenge) : $username;
+    } else {
+	return authenticate_2nd_old($username, $realm, $otp);
+    }
+}
+
+sub authenticate_2nd_old : prototype($$$) {
+    my ($username, $realm, $otp) = @_;
+
+    my ($type, $tfa_data) = user_get_tfa($username, $realm, 0);
     if ($type) {
 	if ($type eq 'u2f') {
 	    # Note that if the user did not manage to complete the initial u2f registration
@@ -669,6 +709,77 @@ sub authenticate_user {
     }
 
     return wantarray ? ($username, $tfa_data) : $username;
+}
+
+# Returns a tfa challenge or undef.
+sub authenticate_2nd_new : prototype($$$$) {
+    my ($username, $realm, $otp, $tfa_challenge) = @_;
+
+    return lock_tfa_config(sub {
+	my ($tfa_cfg, $realm_tfa) = user_get_tfa($username, $realm, 1);
+
+	if (!defined($tfa_cfg)) {
+	    return undef;
+	}
+
+	my $realm_type = $realm_tfa && $realm_tfa->{type};
+	if (defined($realm_type) && $realm_type eq 'yubico') {
+	    $tfa_cfg->set_yubico_config({
+		id => $realm_tfa->{id},
+		key => $realm_tfa->{key},
+		url => $realm_tfa->{url},
+	    });
+	}
+
+	configure_u2f_and_wa($tfa_cfg);
+
+	my $must_save = 0;
+	if (defined($tfa_challenge)) {
+	    $tfa_challenge = verify_ticket($tfa_challenge, 0, $username);
+	    $must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $otp);
+	    $tfa_challenge = undef;
+	} else {
+	    $tfa_challenge = $tfa_cfg->authentication_challenge($username);
+	    if (defined($otp)) {
+		if (defined($tfa_challenge)) {
+		    $must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $otp);
+		} else {
+		    die "no such challenge\n";
+		}
+	    }
+	}
+
+	if ($must_save) {
+	    cfs_write_file('priv/tfa.cfg', $tfa_cfg);
+	}
+
+	return $tfa_challenge;
+    });
+}
+
+sub configure_u2f_and_wa : prototype($) {
+    my ($tfa_cfg) = @_;
+
+    my $dc = cfs_read_file('datacenter.cfg');
+    if (my $u2f = $dc->{u2f}) {
+	my $origin = $u2f->{origin};
+	if (!defined($origin)) {
+	    my $rpcenv = PVE::RPCEnvironment::get();
+	    $origin = $rpcenv->get_request_host(1);
+	    if ($origin) {
+		$origin = "https://$origin";
+	    } else {
+		die "failed to figure out u2f origin\n";
+	    }
+	}
+	$tfa_cfg->set_u2f_config({
+	    origin => $origin,
+	    appid => $u2f->{appid},
+	});
+    }
+    if (my $wa = $dc->{webauthn}) {
+	$tfa_cfg->set_webauthn_config($wa);
+    }
 }
 
 sub domain_set_password {
@@ -1630,8 +1741,8 @@ sub user_set_tfa {
     cfs_write_file('user.cfg', $user_cfg) if defined($user);
 }
 
-sub user_get_tfa {
-    my ($username, $realm) = @_;
+sub user_get_tfa : prototype($$$) {
+    my ($username, $realm, $new_format) = @_;
 
     my $user_cfg = cfs_read_file('user.cfg');
     my $user = $user_cfg->{users}->{$username}
@@ -1662,16 +1773,20 @@ sub user_get_tfa {
 	});
     } else {
 	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
-	my $tfa = $tfa_cfg->{users}->{$username};
-	return if !$tfa; # should not happen (user.cfg wasn't cleaned up?)
+	if ($new_format) {
+	    return ($tfa_cfg, $realm_tfa);
+	} else {
+	    my $tfa = $tfa_cfg->{users}->{$username};
+	    return if !$tfa; # should not happen (user.cfg wasn't cleaned up?)
 
-	if ($realm_tfa) {
-	    # if the realm has a tfa setting we need to verify the type:
-	    die "auth domain '$realm' and user have mismatching TFA settings\n"
-		if $realm_tfa && $realm_tfa->{type} ne $tfa->{type};
+	    if ($realm_tfa) {
+		# if the realm has a tfa setting we need to verify the type:
+		die "auth domain '$realm' and user have mismatching TFA settings\n"
+		    if $realm_tfa && $realm_tfa->{type} ne $tfa->{type};
+	    }
+
+	    return ($tfa->{type}, $tfa->{data});
 	}
-
-	return ($tfa->{type}, $tfa->{data});
     }
 }
 
