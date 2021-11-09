@@ -19,6 +19,8 @@ use PVE::Tools qw(run_command lock_file file_get_contents split_list safe_print)
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_write_file cfs_lock_file);
 use PVE::JSONSchema qw(register_standard_option get_standard_option);
 
+use PVE::RS::TFA;
+
 use PVE::Auth::Plugin;
 use PVE::Auth::AD;
 use PVE::Auth::LDAP;
@@ -1353,33 +1355,21 @@ sub write_user_config {
     return $data;
 }
 
-# The TFA configuration in priv/tfa.cfg format contains one line per user of
-# the form:
-#     USER:TYPE:DATA
-# DATA is a base64 encoded json string and its format depends on the type.
+# Creates a `PVE::RS::TFA` instance from the raw config data.
+# Its contained hash will also support the legacy functionality.
 sub parse_priv_tfa_config {
     my ($filename, $raw) = @_;
 
-    my $users = {};
-    my $cfg = { users => $users };
-
     $raw = '' if !defined($raw);
-    while ($raw =~ /^\s*(.+?)\s*$/gm) {
-	my $line = $1;
-	my ($user, $type, $data) = split(/:/, $line, 3);
+    my $cfg = PVE::RS::TFA->new($raw);
 
+    # Purge invalid users:
+    foreach my $user ($cfg->users()->@*) {
 	my (undef, undef, $realm) = PVE::Auth::Plugin::verify_username($user, 1);
 	if (!$realm) {
 	    warn "user tfa config - ignore user '$user' - invalid user name\n";
-	    next;
+	    $cfg->remove_user($user);
 	}
-
-	$data = decode_json(decode_base64($data));
-
-	$users->{$user} = {
-	    type => $type,
-	    data => $data,
-	};
     }
 
     return $cfg;
@@ -1388,27 +1378,9 @@ sub parse_priv_tfa_config {
 sub write_priv_tfa_config {
     my ($filename, $cfg) = @_;
 
-    my $output = '';
-
-    my $users = $cfg->{users};
-    foreach my $user (sort keys %$users) {
-	my $info = $users->{$user};
-	next if !%$info; # skip empty entries
-
-	$info = {%$info}; # copy to verify contents:
-
-	my $type = delete $info->{type};
-	my $data = delete $info->{data};
-
-	if (my @keys = keys %$info) {
-	    die "invalid keys in TFA config for user $user: " . join(', ', @keys) . "\n";
-	}
-
-	$data = encode_base64(encode_json($data), '');
-	$output .= "${user}:${type}:${data}\n";
-    }
-
-    return $output;
+    # FIXME: Only allow this if the complete cluster has been upgraded to understand the json
+    # config format.
+    return $cfg->write();
 }
 
 sub roles {
