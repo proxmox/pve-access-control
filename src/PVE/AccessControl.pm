@@ -749,29 +749,41 @@ sub authenticate_2nd_new : prototype($$$$) {
 	}
 
 	my $realm_type = $realm_tfa && $realm_tfa->{type};
-	if (defined($realm_type) && $realm_type eq 'yubico') {
-	    # Yubico auth will not be supported in rust for now...
-	    if (!defined($tfa_challenge)) {
-		my $challenge = { yubico => JSON::true };
-		# Even with yubico auth we do allow recovery keys to be used:
-		if (my $recovery = $tfa_cfg->recovery_state($username)) {
-		    $challenge->{recovery} = $recovery;
+	$realm_type = 'totp' if $realm_type eq 'oath'; # we used to call it that
+	# verify realm type unless using recovery keys:
+	if (defined($realm_type)) {
+	    if ($realm_type eq 'yubico') {
+		# Yubico auth will not be supported in rust for now...
+		if (!defined($tfa_challenge)) {
+		    my $challenge = { yubico => JSON::true };
+		    # Even with yubico auth we do allow recovery keys to be used:
+		    if (my $recovery = $tfa_cfg->recovery_state($username)) {
+			$challenge->{recovery} = $recovery;
+		    }
+		    return to_json($challenge);
 		}
-		return to_json($challenge);
+
+		if ($otp =~ /^yubico:(.*)$/) {
+		    $otp = $1;
+		    # Defer to after unlocking the TFA config:
+		    return sub {
+			authenticate_yubico_new(
+			    $tfa_cfg, $username, $realm_tfa, $tfa_challenge, $otp,
+			);
+		    };
+		}
 	    }
 
-	    if ($otp =~ /^yubico:(.*)$/) {
-		$otp = $1;
-		# Defer to after unlocking the TFA config:
-		return sub {
-		    authenticate_yubico_new($tfa_cfg, $username, $realm_tfa, $tfa_challenge, $otp);
-		};
+	    my $response_type;
+	    if (defined($otp)) {
+		if ($otp !~ /^([^:]+):/) {
+		    die "bad otp response\n";
+		}
+		$response_type = $1;
 	    }
 
-	    # Beside the realm configured auth we only allow recovery keys:
-	    if ($otp !~ /^recovery:/) {
-		die "realm requires yubico authentication\n";
-	    }
+	    die "realm requires $realm_type authentication\n"
+		if $response_type && $response_type ne 'recovery' && $response_type ne $realm_type;
 	}
 
 	configure_u2f_and_wa($tfa_cfg);
