@@ -1581,8 +1581,8 @@ sub parse_priv_tfa_config {
 sub write_priv_tfa_config {
     my ($filename, $cfg) = @_;
 
-    # FIXME: Only allow this if the complete cluster has been upgraded to understand the json
-    # config format.
+    assert_new_tfa_config_available();
+
     return $cfg->write();
 }
 
@@ -1765,7 +1765,31 @@ my $USER_CONTROLLED_TFA_TYPES = {
 };
 
 sub assert_new_tfa_config_available() {
-    # FIXME: Assert cluster-wide new-tfa-config support!
+    PVE::Cluster::cfs_update();
+    my $version_info = PVE::Cluster::get_node_kv('version-info');
+    die "cannot update tfa config, please make sure all cluster nodes are up to date\n"
+	if !$version_info;
+    my $members = PVE::Cluster::get_members();
+    my $old = '';
+    foreach my $node (keys $members->%*) {
+	my $info = $version_info->{$node};
+	if (!$info) {
+	    $old .= "cluster node '$node' is too old, did not broadcast its version info\n";
+	    next;
+	}
+	$info = from_json($info);
+	my $ver = $info->{version};
+	if ($ver !~ /^(\d+\.\d+)-(\d+)$/) {
+	    $old .= "cluster node '$node' provided an invalid version string: '$ver'\n";
+	    next;
+	}
+	my ($maj, $rel) = ($1, $2);
+	if (!($maj > 7.0 || ($maj == 7.0 && $rel >= 15))) {
+	    $old .= "cluster node '$node' is too old\n";
+	    next;
+	}
+    }
+    die $old if length($old);
 }
 
 sub user_remove_tfa : prototype($) {
