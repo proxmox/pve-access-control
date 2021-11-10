@@ -12,6 +12,7 @@ use Digest::SHA;
 use IO::File;
 use File::stat;
 use JSON;
+use Scalar::Util 'weaken';
 
 use PVE::OTP;
 use PVE::Ticket;
@@ -68,10 +69,20 @@ sub pve_verify_realm {
     PVE::Auth::Plugin::pve_verify_realm(@_);
 }
 
+# Locking both config files together is only ever allowed in one order:
+#  1) tfa config
+#  2) user config
+# If we permit the other way round, too, we might end up deadlocking!
+my $user_config_locked;
 sub lock_user_config {
     my ($code, $errmsg) = @_;
 
+    my $locked = 1;
+    $user_config_locked = \$locked;
+    weaken $user_config_locked; # make this scope guard signal safe...
+
     cfs_lock_file("user.cfg", undef, $code);
+    $user_config_locked = undef;
     if (my $err = $@) {
 	$errmsg ? die "$errmsg: $err" : die $err;
     }
@@ -79,6 +90,9 @@ sub lock_user_config {
 
 sub lock_tfa_config {
     my ($code, $errmsg) = @_;
+
+    die "tfa config lock cannot be acquired while holding user config lock\n"
+	if ($user_config_locked && $$user_config_locked);
 
     my $res = cfs_lock_file("priv/tfa.cfg", undef, $code);
     if (my $err = $@) {
