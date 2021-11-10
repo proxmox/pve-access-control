@@ -7,12 +7,14 @@ use Crypt::OpenSSL::Random;
 use Crypt::OpenSSL::RSA;
 use Net::SSLeay;
 use Net::IP;
+use MIME::Base32;
 use MIME::Base64;
 use Digest::SHA;
 use IO::File;
 use File::stat;
 use JSON;
 use Scalar::Util 'weaken';
+use URI::Escape;
 
 use PVE::OTP;
 use PVE::Ticket;
@@ -1776,6 +1778,78 @@ sub user_remove_tfa : prototype($) {
     cfs_write_file('priv/tfa.cfg', $tfa_cfg);
 }
 
+my sub add_old_yubico_keys : prototype($$$) {
+    my ($userid, $tfa_cfg, $keys) = @_;
+
+    my $count = 0;
+    foreach my $key (split_list($keys)) {
+	my $description = "<old userconfig key $count>";
+	++$count;
+	$tfa_cfg->add_yubico_entry($userid, $description, $key);
+    }
+}
+
+my sub normalize_totp_secret : prototype($) {
+    my ($key) = @_;
+
+    my $binkey;
+    # See PVE::OTP::oath_verify_otp:
+    if ($key =~ /^v2-0x([0-9a-fA-F]+)$/) {
+	# v2, hex
+	$binkey = pack('H*', $1);
+    } elsif ($key =~ /^v2-([A-Z2-7=]+)$/) {
+	# v2, base32
+	$binkey = MIME::Base32::decode_rfc3548($1);
+    } elsif ($key =~ /^[A-Z2-7=]{16}$/) {
+	$binkey = MIME::Base32::decode_rfc3548($key);
+    } elsif ($key =~ /^[A-Fa-f0-9]{40}$/) {
+	$binkey = pack('H*', $key);
+    } else {
+	return undef;
+    }
+
+    return MIME::Base32::encode_rfc3548($binkey);
+}
+
+my sub add_old_totp_keys : prototype($$$$) {
+    my ($userid, $tfa_cfg, $realm_tfa, $keys) = @_;
+
+    my $issuer = 'Proxmox%20VE';
+    my $account = uri_escape("Old key for $userid");
+    my $digits = $realm_tfa->{digits} || 6;
+    my $step = $realm_tfa->{step} || 30;
+    my $uri = "otpauth://totp/$issuer:$account?digits=$digits&period=$step&algorithm=SHA1&secret=";
+
+    my $count = 0;
+    foreach my $key (split_list($keys)) {
+	$key = normalize_totp_secret($key);
+	# and just skip invalid keys:
+	next if !defined($key);
+
+	my $description = "<old userconfig key $count>";
+	++$count;
+	eval { $tfa_cfg->add_totp_entry($userid, $description, $uri . $key) };
+	warn $@ if $@;
+    }
+}
+
+sub add_old_keys_to_realm_tfa : prototype($$$$) {
+    my ($userid, $tfa_cfg, $realm_tfa, $keys) = @_;
+
+    # if there's no realm tfa configured, we don't know what the keys mean, so we just ignore
+    # them...
+    return if !$realm_tfa;
+
+    my $type = $realm_tfa->{type};
+    if ($type eq 'oath') {
+	add_old_totp_keys($userid, $tfa_cfg, $realm_tfa, $keys);
+    } elsif ($type eq 'yubico') {
+	add_old_yubico_keys($userid, $tfa_cfg, $keys);
+    } else {
+	# invalid keys, we'll just drop them now...
+    }
+}
+
 sub user_get_tfa : prototype($$$) {
     my ($username, $realm, $new_format) = @_;
 
@@ -1798,6 +1872,14 @@ sub user_get_tfa : prototype($$$) {
 	die "missing required 2nd keys\n";
     }
 
+    if ($new_format) {
+	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
+	if (defined($keys) && $keys !~ /^x(?:!.*)$/) {
+	    add_old_keys_to_realm_tfa($username, $tfa_cfg, $realm_tfa, $keys);
+	}
+	return ($tfa_cfg, $realm_tfa);
+    }
+
     # new style config starts with an 'x' and optionally contains a !<type> suffix
     if ($keys !~ /^x(?:!.*)?$/) {
 	# old style config, find the type via the realm
@@ -1808,20 +1890,16 @@ sub user_get_tfa : prototype($$$) {
 	});
     } else {
 	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
-	if ($new_format) {
-	    return ($tfa_cfg, $realm_tfa);
-	} else {
-	    my $tfa = $tfa_cfg->{users}->{$username};
-	    return if !$tfa; # should not happen (user.cfg wasn't cleaned up?)
+	my $tfa = $tfa_cfg->{users}->{$username};
+	return if !$tfa; # should not happen (user.cfg wasn't cleaned up?)
 
-	    if ($realm_tfa) {
-		# if the realm has a tfa setting we need to verify the type:
-		die "auth domain '$realm' and user have mismatching TFA settings\n"
-		    if $realm_tfa && $realm_tfa->{type} ne $tfa->{type};
-	    }
-
-	    return ($tfa->{type}, $tfa->{data});
+	if ($realm_tfa) {
+	    # if the realm has a tfa setting we need to verify the type:
+	    die "auth domain '$realm' and user have mismatching TFA settings\n"
+		if $realm_tfa && $realm_tfa->{type} ne $tfa->{type};
 	}
+
+	return ($tfa->{type}, $tfa->{data});
     }
 }
 

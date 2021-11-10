@@ -119,18 +119,29 @@ my sub root_permission_check : prototype($$$$) {
     return wantarray ? ($userid, $realm) : $userid;
 }
 
-my sub set_user_tfa_enabled : prototype($$) {
-    my ($userid, $enabled) = @_;
+# Set TFA to enabled if $tfa_cfg is passed, or to disabled if $tfa_cfg is undef,
+# When enabling we also merge the old user.cfg keys into the $tfa_cfg.
+my sub set_user_tfa_enabled : prototype($$$) {
+    my ($userid, $realm, $tfa_cfg) = @_;
 
     PVE::AccessControl::lock_user_config(sub {
 	my $user_cfg = cfs_read_file('user.cfg');
 	my $user = $user_cfg->{users}->{$userid};
 	my $keys = $user->{keys};
-	if ($keys && $keys !~ /^x(?:!.*)?$/) {
-	    die "user contains tfa keys directly in user.cfg,"
-		." please remove them and add them via the TFA panel instead\n";
+	# When enabling, we convert old-old keys,
+	# When disabling, we shouldn't actually have old keys anymore, so if they are there,
+	# they'll be removed.
+	if ($tfa_cfg && $keys && $keys !~ /^x(?:!.*)?$/) {
+	    my $domain_cfg = cfs_read_file('domains.cfg');
+	    my $realm_cfg = $domain_cfg->{ids}->{$realm};
+	    die "auth domain '$realm' does not exist\n" if !$realm_cfg;
+
+	    my $realm_tfa = $realm_cfg->{tfa};
+	    $realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_tfa) if $realm_tfa;
+
+	    PVE::AccessControl::add_old_keys_to_realm_tfa($userid, $tfa_cfg, $realm_tfa, $keys);
 	}
-	$user->{keys} = $enabled ? 'x' : undef;
+	$user->{keys} = $tfa_cfg ? 'x' : undef;
 	cfs_write_file("user.cfg", $user_cfg);
     }, "enabling TFA for the user failed");
 }
@@ -314,7 +325,7 @@ __PACKAGE__->register_method ({
 	    return $has_entries_left;
 	});
 	if (!$has_entries_left) {
-	    set_user_tfa_enabled($userid, 0);
+	    set_user_tfa_enabled($userid, undef, undef);
 	}
     }});
 
@@ -424,10 +435,11 @@ __PACKAGE__->register_method ({
 	    $value = validate_yubico_otp($userid, $realm, $value);
 	}
 
-	set_user_tfa_enabled($userid, 1);
-
 	return PVE::AccessControl::lock_tfa_config(sub {
 	    my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
+
+	    set_user_tfa_enabled($userid, $realm, $tfa_cfg);
+
 	    PVE::AccessControl::configure_u2f_and_wa($tfa_cfg);
 
 	    my $response = $tfa_cfg->api_add_tfa_entry(
