@@ -1769,7 +1769,7 @@ sub assert_new_tfa_config_available() {
     my $version_info = PVE::Cluster::get_node_kv('version-info');
     die "cannot update tfa config, please make sure all cluster nodes are up to date\n"
 	if !$version_info;
-    my $members = PVE::Cluster::get_members();
+    my $members = PVE::Cluster::get_members() or return; # get_members returns undef on no cluster
     my $old = '';
     foreach my $node (keys $members->%*) {
 	my $info = $version_info->{$node};
