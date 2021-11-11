@@ -507,6 +507,8 @@ my $assemble_short_lived_ticket = sub {
 my $verify_short_lived_ticket = sub {
     my ($ticket, $prefix, $username, $path, $noerr) = @_;
 
+    $path = normalize_path($path);
+
     my $secret_data = "$username:$path";
 
     my ($rsa_pub, $rsa_mtime) = get_pubkey();
