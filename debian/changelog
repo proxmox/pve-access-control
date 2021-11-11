@@ -1,3 +1,20 @@
+libpve-access-control (7.0-7) bullseye; urgency=medium
+
+  * fix #3513: pass configured proxy to OpenID
+
+  * use rust based parser for TFA config
+
+  * use PBS-like auth api call flow,
+
+  * merge old user.cfg keys to tfa config when adding entries
+
+  * implement version checks for new tfa config writer to ensure all
+    cluster nodes are ready to avoid login issues
+
+  * tickets: add tunnel ticket
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 11 Nov 2021 18:17:49 +0100
+
 libpve-access-control (7.0-6) bullseye; urgency=medium
 
   * fix regression in user deletion when realm does not enforce TFA
