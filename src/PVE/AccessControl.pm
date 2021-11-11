@@ -1779,7 +1779,7 @@ sub assert_new_tfa_config_available() {
 	}
 	$info = from_json($info);
 	my $ver = $info->{version};
-	if ($ver !~ /^(\d+\.\d+)-(\d+)$/) {
+	if ($ver !~ /^(\d+\.\d+)-(\d+)/) {
 	    $old .= "cluster node '$node' provided an invalid version string: '$ver'\n";
 	    next;
 	}
