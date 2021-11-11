@@ -1774,22 +1774,22 @@ sub assert_new_tfa_config_available() {
     foreach my $node (keys $members->%*) {
 	my $info = $version_info->{$node};
 	if (!$info) {
-	    $old .= "cluster node '$node' is too old, did not broadcast its version info\n";
+	    $old .= "  cluster node '$node' is too old, did not broadcast its version info\n";
 	    next;
 	}
 	$info = from_json($info);
 	my $ver = $info->{version};
 	if ($ver !~ /^(\d+\.\d+)-(\d+)/) {
-	    $old .= "cluster node '$node' provided an invalid version string: '$ver'\n";
+	    $old .= "  cluster node '$node' provided an invalid version string: '$ver'\n";
 	    next;
 	}
 	my ($maj, $rel) = ($1, $2);
 	if (!($maj > 7.0 || ($maj == 7.0 && $rel >= 15))) {
-	    $old .= "cluster node '$node' is too old\n";
+	    $old .= "  cluster node '$node' is too old ($ver < 7.0-15)\n";
 	    next;
 	}
     }
-    die $old if length($old);
+    die "cannot update tfa config, following nodes are not up to date:\n$old" if length($old);
 }
 
 sub user_remove_tfa : prototype($) {
