@@ -3,6 +3,8 @@ package PVE::API2::TFA;
 use strict;
 use warnings;
 
+use HTTP::Status qw(:constants);
+
 use PVE::AccessControl;
 use PVE::Cluster qw(cfs_read_file cfs_write_file);
 use PVE::JSONSchema qw(get_standard_option);
@@ -280,7 +282,7 @@ __PACKAGE__->register_method ({
 	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
 	my $id = $param->{id};
 	my $entry = $tfa_cfg->api_get_tfa_entry($param->{userid}, $id);
-	raise("No such tfa entry '$id'", 404) if !$entry;
+	raise("No such tfa entry '$id'", code => HTTP::Status::HTTP_NOT_FOUND) if !$entry;
 	return $entry;
     }});
 
