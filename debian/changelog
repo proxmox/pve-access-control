@@ -1,3 +1,9 @@
+libpve-access-control (7.1-1) bullseye; urgency=medium
+
+  * tfa: map HTTP 404 error in get_tfa_entry correctly
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 15 Nov 2021 15:33:22 +0100
+
 libpve-access-control (7.0-7) bullseye; urgency=medium
 
   * fix #3513: pass configured proxy to OpenID
