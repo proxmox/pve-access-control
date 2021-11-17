@@ -1,3 +1,9 @@
+libpve-access-control (7.1-2) bullseye; urgency=medium
+
+  * catch incompatible tfa entries with a nice error
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 17 Nov 2021 13:44:45 +0100
+
 libpve-access-control (7.1-1) bullseye; urgency=medium
 
   * tfa: map HTTP 404 error in get_tfa_entry correctly
