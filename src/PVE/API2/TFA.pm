@@ -185,6 +185,9 @@ __PACKAGE__->register_method({
 	if (!defined($tfa_type)) {
 	    raise('no u2f data available');
 	}
+	if ($tfa_type eq 'incompatible') {
+	    raise('tfa entries incompatible with old login api');
+	}
 
 	eval {
 	    if ($tfa_type eq 'u2f') {

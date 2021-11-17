@@ -741,7 +741,9 @@ sub authenticate_2nd_old : prototype($$$) {
 
     my ($type, $tfa_data) = user_get_tfa($username, $realm, 0);
     if ($type) {
-	if ($type eq 'u2f') {
+	if ($type eq 'incompatible') {
+	    die "old login api disabled, user has incompatible TFA entries\n";
+	} elsif ($type eq 'u2f') {
 	    # Note that if the user did not manage to complete the initial u2f registration
 	    # challenge we have a hash containing a 'challenge' entry in the user's tfa.cfg entry:
 	    $tfa_data = undef if exists $tfa_data->{challenge};
