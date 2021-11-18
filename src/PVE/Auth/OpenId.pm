@@ -21,39 +21,39 @@ sub properties {
 	    maxLength => 256,
 	},
 	"client-id" => {
-            description => "OpenID Client ID",
-            type => 'string',
+	    description => "OpenID Client ID",
+	    type => 'string',
 	    maxLength => 256,
-       },
-       "client-key" => {
+	},
+	"client-key" => {
 	    description => "OpenID Client Key",
 	    type => 'string',
 	    optional => 1,
 	    maxLength => 256,
-       },
-       autocreate => {
-	   description => "Automatically create users if they do not exist.",
-	   optional => 1,
-	   type => 'boolean',
-	   default => 0,
-       },
-       "username-claim" => {
-	   description => "OpenID claim used to generate the unique username.",
-	   type => 'string',
-	   optional => 1,
-       },
+	},
+	autocreate => {
+	    description => "Automatically create users if they do not exist.",
+	    optional => 1,
+	    type => 'boolean',
+	    default => 0,
+	},
+	"username-claim" => {
+	    description => "OpenID claim used to generate the unique username.",
+	    type => 'string',
+	    optional => 1,
+	},
    };
 }
 
 sub options {
     return {
 	"issuer-url" => {},
-	 "client-id" => {},
-	 "client-key" => { optional => 1 },
-	 autocreate => { optional => 1 },
-	 "username-claim" => { optional => 1, fixed => 1 },
-	 default => { optional => 1 },
-	 comment => { optional => 1 },
+	"client-id" => {},
+	"client-key" => { optional => 1 },
+	autocreate => { optional => 1 },
+	"username-claim" => { optional => 1, fixed => 1 },
+	default => { optional => 1 },
+	comment => { optional => 1 },
     };
 }
 
