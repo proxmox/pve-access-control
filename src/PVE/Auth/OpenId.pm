@@ -42,6 +42,13 @@ sub properties {
 	    type => 'string',
 	    optional => 1,
 	},
+	prompt => {
+	    description => "Specifies whether the Authorization Server prompts the End-User for"
+	        ." reauthentication and consent.",
+	    type => 'string',
+	    pattern => '(?:none|login|consent|select_account|\S+)', # \S+ is the extension variant
+	    optional => 1,
+	},
    };
 }
 
@@ -52,6 +59,7 @@ sub options {
 	"client-key" => { optional => 1 },
 	autocreate => { optional => 1 },
 	"username-claim" => { optional => 1, fixed => 1 },
+	prompt => { optional => 1 },
 	default => { optional => 1 },
 	comment => { optional => 1 },
     };

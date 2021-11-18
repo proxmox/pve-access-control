@@ -36,6 +36,7 @@ my $lookup_openid_auth = sub {
 	client_id => $config->{'client-id'},
 	client_key => $config->{'client-key'},
     };
+    $openid_config->{prompt} = $config->{'prompt'} if defined($config->{'prompt'});
 
     my $openid = PVE::RS::OpenId->discover($openid_config, $redirect_url);
     return ($config, $openid);
