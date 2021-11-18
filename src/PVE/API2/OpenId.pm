@@ -165,22 +165,19 @@ __PACKAGE__->register_method ({
 	    my $info = $openid->verify_authorization_code($param->{code}, $private_auth_state);
 	    my $subject = $info->{'sub'};
 
-	    die "missing openid claim 'sub'\n" if !defined($subject);
-
-	    my $unique_name = $subject; # default
+	    my $unique_name;
 	    if (defined(my $user_attr = $config->{'username-claim'})) {
-		if ($user_attr eq 'subject') {
+		if (defined($info->{$user_attr})) {
+		    $unique_name = $info->{$user_attr};
+		} elsif ($user_attr eq 'subject') { # stay compat with old versions
 		    $unique_name = $subject;
-		} elsif ($user_attr eq 'username') {
+		} elsif ($user_attr eq 'username') { # stay compat with old versions
 		    my $username = $info->{'preferred_username'};
 		    die "missing claim 'preferred_username'\n" if !defined($username);
 		    $unique_name =  $username;
-		} elsif ($user_attr eq 'email') {
-		    my $email = $info->{'email'};
-		    die "missing claim 'email'\n" if !defined($email);
-		    $unique_name = $email;
 		} else {
-		    die "got unexpected value for 'username-claim': '${user_attr}'\n";
+		    # neither the attr nor fallback are defined in info..
+		    die "missing configured claim '$user_attr'\n";
 		}
 	    }
 

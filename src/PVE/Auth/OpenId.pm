@@ -40,7 +40,6 @@ sub properties {
        "username-claim" => {
 	   description => "OpenID claim used to generate the unique username.",
 	   type => 'string',
-	   enum => ['subject', 'username', 'email'],
 	   optional => 1,
        },
    };
