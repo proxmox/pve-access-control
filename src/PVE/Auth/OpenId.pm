@@ -49,6 +49,13 @@ sub properties {
 	    pattern => '(?:none|login|consent|select_account|\S+)', # \S+ is the extension variant
 	    optional => 1,
 	},
+	scopes => {
+	    description => "Specifies the scopes (user details) that should be authorized and"
+	        ." returned, for example 'email' or 'profile'.",
+	    type => 'string', # format => 'some-safe-id-list', # FIXME: TODO
+	    default => "email profile",
+	    optional => 1,
+	},
    };
 }
 
@@ -60,6 +67,7 @@ sub options {
 	autocreate => { optional => 1 },
 	"username-claim" => { optional => 1, fixed => 1 },
 	prompt => { optional => 1 },
+	scopes => { optional => 1 },
 	default => { optional => 1 },
 	comment => { optional => 1 },
     };
