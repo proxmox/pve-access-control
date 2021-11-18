@@ -56,6 +56,12 @@ sub properties {
 	    default => "email profile",
 	    optional => 1,
 	},
+	'acr-values' => {
+	    description => "Specifies the Authentication Context Class Reference values that the"
+		."Authorization Server is being requested to use for the Auth Request.",
+	    type => 'string', # format => 'some-safe-id-list', # FIXME: TODO
+	    optional => 1,
+	},
    };
 }
 
@@ -68,6 +74,7 @@ sub options {
 	"username-claim" => { optional => 1, fixed => 1 },
 	prompt => { optional => 1 },
 	scopes => { optional => 1 },
+	"acr-values" => { optional => 1 },
 	default => { optional => 1 },
 	comment => { optional => 1 },
     };

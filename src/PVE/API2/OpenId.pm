@@ -41,6 +41,10 @@ my $lookup_openid_auth = sub {
     my $scopes = $config->{'scopes'} // 'email profile';
     $openid_config->{scopes} = [ PVE::Tools::split_list($scopes) ];
 
+    if (defined(my $acr = $config->{'acr-values'})) {
+	$openid_config->{acr_values} = [ PVE::Tools::split_list($acr) ];
+    }
+
     my $openid = PVE::RS::OpenId->discover($openid_config, $redirect_url);
     return ($config, $openid);
 };
