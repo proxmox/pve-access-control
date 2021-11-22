@@ -882,25 +882,30 @@ sub authenticate_yubico_do : prototype($$$) {
 sub configure_u2f_and_wa : prototype($) {
     my ($tfa_cfg) = @_;
 
+    my $rpc_origin;
+    my $get_origin = sub {
+	return $rpc_origin if defined($rpc_origin);
+	my $rpcenv = PVE::RPCEnvironment::get();
+	if (my $origin = $rpcenv->get_request_host(1)) {
+	    $rpc_origin = "https://$origin";
+	    return $rpc_origin;
+	}
+	die "failed to figure out origin\n";
+    };
+
     my $dc = cfs_read_file('datacenter.cfg');
     if (my $u2f = $dc->{u2f}) {
-	my $origin = $u2f->{origin};
-	if (!defined($origin)) {
-	    my $rpcenv = PVE::RPCEnvironment::get();
-	    $origin = $rpcenv->get_request_host(1);
-	    if ($origin) {
-		$origin = "https://$origin";
-	    } else {
-		die "failed to figure out u2f origin\n";
-	    }
-	}
 	$tfa_cfg->set_u2f_config({
-	    origin => $origin,
+	    origin => $u2f->{origin} // $get_origin->(),
 	    appid => $u2f->{appid},
 	});
     }
     if (my $wa = $dc->{webauthn}) {
-	$tfa_cfg->set_webauthn_config($wa);
+	$tfa_cfg->set_webauthn_config({
+	    origin => $wa->{origin} // $get_origin->(),
+	    rp => $wa->{rp},
+	    id => $wa->{id},
+	});
     }
 }
 
