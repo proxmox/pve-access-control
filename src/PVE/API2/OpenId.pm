@@ -174,19 +174,19 @@ __PACKAGE__->register_method ({
 	    my $subject = $info->{'sub'};
 
 	    my $unique_name;
-	    if (defined(my $user_attr = $config->{'username-claim'})) {
-		if (defined($info->{$user_attr})) {
-		    $unique_name = $info->{$user_attr};
-		} elsif ($user_attr eq 'subject') { # stay compat with old versions
-		    $unique_name = $subject;
-		} elsif ($user_attr eq 'username') { # stay compat with old versions
-		    my $username = $info->{'preferred_username'};
-		    die "missing claim 'preferred_username'\n" if !defined($username);
-		    $unique_name =  $username;
-		} else {
-		    # neither the attr nor fallback are defined in info..
-		    die "missing configured claim '$user_attr'\n";
-		}
+
+	    my $user_attr = $config->{'username-claim'} // 'sub';
+	    if (defined($info->{$user_attr})) {
+		$unique_name = $info->{$user_attr};
+	    } elsif ($user_attr eq 'subject') { # stay compat with old versions
+		$unique_name = $subject;
+	    } elsif ($user_attr eq 'username') { # stay compat with old versions
+		my $username = $info->{'preferred_username'};
+		die "missing claim 'preferred_username'\n" if !defined($username);
+		$unique_name =  $username;
+	    } else {
+		# neither the attr nor fallback are defined in info..
+		die "missing configured claim '$user_attr' in returned info object\n";
 	    }
 
 	    my $username = "${unique_name}\@${realm}";
