@@ -101,7 +101,7 @@ my $TFA_UPDATE_INFO_SCHEMA = {
 my sub root_permission_check : prototype($$$$) {
     my ($rpcenv, $authuser, $userid, $password) = @_;
 
-    ($userid, my $ruid, my $realm) = PVE::AccessControl::verify_username($userid);
+    ($userid, undef, my $realm) = PVE::AccessControl::verify_username($userid);
     $rpcenv->check_user_exist($userid);
 
     raise_perm_exc() if $userid eq 'root@pam' && $authuser ne 'root@pam';
@@ -111,11 +111,14 @@ my sub root_permission_check : prototype($$$$) {
 	raise_param_exc({ 'password' => 'password is required to modify TFA data' })
 	    if !defined($password);
 
+	($authuser, my $auth_username, my $auth_realm) =
+	    PVE::AccessControl::verify_username($authuser);
+
 	my $domain_cfg = cfs_read_file('domains.cfg');
-	my $cfg = $domain_cfg->{ids}->{$realm};
-	die "auth domain '$realm' does not exist\n" if !$cfg;
+	my $cfg = $domain_cfg->{ids}->{$auth_realm};
+	die "auth domain '$auth_realm' does not exist\n" if !$cfg;
 	my $plugin = PVE::Auth::Plugin->lookup($cfg->{type});
-	$plugin->authenticate_user($cfg, $realm, $ruid, $password);
+	$plugin->authenticate_user($cfg, $auth_realm, $auth_username, $password);
     }
 
     return wantarray ? ($userid, $realm) : $userid;
