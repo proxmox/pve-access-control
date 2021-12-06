@@ -781,9 +781,9 @@ sub authenticate_2nd_new : prototype($$$$) {
 	}
 
 	my $realm_type = $realm_tfa && $realm_tfa->{type};
-	$realm_type = 'totp' if $realm_type eq 'oath'; # we used to call it that
 	# verify realm type unless using recovery keys:
 	if (defined($realm_type)) {
+	    $realm_type = 'totp' if $realm_type eq 'oath'; # we used to call it that
 	    if ($realm_type eq 'yubico') {
 		# Yubico auth will not be supported in rust for now...
 		if (!defined($tfa_challenge)) {
