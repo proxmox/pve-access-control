@@ -374,10 +374,24 @@ __PACKAGE__->register_method ({
 
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
-	my $top_level_allowed = ($authuser eq 'root@pam');
 
 	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
-	return $tfa_cfg->api_list_tfa($authuser, $top_level_allowed);
+	my $entries = $tfa_cfg->api_list_tfa($authuser, 1);
+
+	my $privs = [ 'User.Modify', 'Sys.Audit' ];
+	if ($rpcenv->check_any($authuser, "/access/groups", $privs, 1)) {
+	    # can modify all
+	    return $entries;
+	}
+
+	my $groups = $rpcenv->filter_groups($authuser, $privs, 1);
+	my $allowed_users = $rpcenv->group_member_join([keys %$groups]);
+	return [
+	    grep {
+		my $userid = $_->{userid};
+		$userid eq $authuser || $allowed_users->{$userid}
+	    } $entries->@*
+	];
     }});
 
 __PACKAGE__->register_method ({
