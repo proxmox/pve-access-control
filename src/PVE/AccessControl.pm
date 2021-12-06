@@ -895,17 +895,23 @@ sub configure_u2f_and_wa : prototype($) {
 
     my $dc = cfs_read_file('datacenter.cfg');
     if (my $u2f = $dc->{u2f}) {
-	$tfa_cfg->set_u2f_config({
-	    origin => $u2f->{origin} // $get_origin->(),
-	    appid => $u2f->{appid},
-	});
+	eval {
+	    $tfa_cfg->set_u2f_config({
+		origin => $u2f->{origin} // $get_origin->(),
+		appid => $u2f->{appid},
+	    });
+	};
+	warn "u2f unavailable, configuration error: $@\n" if $@;
     }
     if (my $wa = $dc->{webauthn}) {
-	$tfa_cfg->set_webauthn_config({
-	    origin => $wa->{origin} // $get_origin->(),
-	    rp => $wa->{rp},
-	    id => $wa->{id},
-	});
+	eval {
+	    $tfa_cfg->set_webauthn_config({
+		origin => $wa->{origin} // $get_origin->(),
+		rp => $wa->{rp},
+		id => $wa->{id},
+	    });
+	};
+	warn "webauthn unavailable, configuration error: $@\n" if $@;
     }
 }
 
