@@ -7,9 +7,10 @@ use HTTP::Status qw(:constants);
 
 use PVE::AccessControl;
 use PVE::Cluster qw(cfs_read_file cfs_write_file);
-use PVE::JSONSchema qw(get_standard_option);
 use PVE::Exception qw(raise raise_perm_exc raise_param_exc);
+use PVE::JSONSchema qw(get_standard_option);
 use PVE::RPCEnvironment;
+use PVE::SafeSyslog;
 
 use PVE::API2::AccessControl; # for old login api get_u2f_instance method
 
