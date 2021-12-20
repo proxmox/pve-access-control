@@ -397,8 +397,8 @@ __PACKAGE__->register_method ({
 	description => "'Realm.AllocateUser' on '/access/realm/<realm>' and "
 	    ." 'User.Modify' permissions to '/access/groups/'.",
 	check => [ 'and',
-	    [ 'userid-param', 'Realm.AllocateUser' ],
-	    [ 'userid-group', ['User.Modify'] ],
+	    ['perm', '/access/realm/{realm}', ['Realm.AllocateUser']],
+	    ['perm', '/access/groups', ['User.Modify']],
 	],
     },
     description => "Syncs users and/or groups from the configured LDAP to user.cfg."
