@@ -62,6 +62,9 @@ check_roles('carol@pam!token', '/vms/200', 'NoAccess');
 check_roles('max@pve!token', '/vms/200', 'storage_manager');
 check_roles('max@pve!token2', '/vms/200', 'customer');
 
+# check intersection -> token has Administrator, but user only vm_admin
+check_permission('max@pve!token2', '/vms/300', 'Permissions.Modify,VM.Allocate,VM.Audit,VM.Console');
+
 print "all tests passed\n";
 
 exit (0);
