@@ -185,6 +185,7 @@ sub get_effective_permissions {
 	'/access/groups' => 1,
 	'/nodes' => 1,
 	'/pools' => 1,
+	'/sdn' => 1,
 	'/storage' => 1,
 	'/vms' => 1,
     };
