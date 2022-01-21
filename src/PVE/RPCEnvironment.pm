@@ -155,6 +155,8 @@ sub compute_api_permission {
 	my $toplevel = ($path =~ /^\/(\w+)/) ? $1 : 'dc';
 	if ($toplevel eq 'pool') {
 	    foreach my $priv (keys %$path_perm) {
+		next if !defined($path_perm->{$priv});
+
 		if ($priv =~ m/^VM\./) {
 		    $res->{vms}->{$priv} = 1;
 		} elsif ($priv =~ m/^Datastore\./) {
@@ -167,6 +169,8 @@ sub compute_api_permission {
 	} else {
 	    my $priv_regex = $priv_re_map->{$toplevel} // next;
 	    foreach my $priv (keys %$path_perm) {
+		next if !defined($path_perm->{$priv});
+
 		next if $priv !~ m/^($priv_regex)/;
 		$res->{$toplevel}->{$priv} = 1;
 	    }
@@ -212,6 +216,9 @@ sub get_effective_permissions {
     my $perms = {};
     foreach my $path (keys %$paths) {
 	my $path_perms = $self->permissions($user, $path);
+	foreach my $priv (keys %$path_perms) {
+	    delete $path_perms->{$priv} if !defined($path_perms->{$priv});
+	}
 	# filter paths where user has NO permissions
 	$perms->{$path} = $path_perms if %$path_perms;
     }
