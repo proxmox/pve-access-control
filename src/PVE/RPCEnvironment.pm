@@ -86,6 +86,11 @@ my $compile_acl_path = sub {
 	$privs = { map { $_ => $user_privs->{$_} && $privs->{$_} } @$filtered_privs };
     }
 
+    foreach my $priv (keys %$privs) {
+	# safeguard, this should never happen anyway
+	delete $privs->{$priv} if !defined($privs->{$priv});
+    }
+
     $data->{privs}->{$path} = $privs;
 
     return $privs;
