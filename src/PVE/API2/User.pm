@@ -221,7 +221,7 @@ __PACKAGE__->register_method ({
 	check => [
 	    'and',
 	    [ 'userid-param', 'Realm.AllocateUser'],
-	    [ 'userid-group', ['User.Modify'], groups_param => 1],
+	    [ 'userid-group', ['User.Modify'], groups_param => 'create'],
 	],
     },
     description => "Create new user.",
@@ -345,7 +345,7 @@ __PACKAGE__->register_method ({
     path => '{userid}',
     method => 'PUT',
     permissions => {
-	check => ['userid-group', ['User.Modify'], groups_param => 1 ],
+	check => ['userid-group', ['User.Modify'], groups_param => 'update' ],
     },
     description => "Update user configuration.",
     parameters => {

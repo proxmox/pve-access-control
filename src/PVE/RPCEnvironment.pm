@@ -408,17 +408,25 @@ sub exec_api2_perm_check {
     } elsif ($test eq 'userid-group') {
 	my $userid = $param->{userid};
 	my ($t, $privs, %options) = @$check;
-	return 0 if !$options{groups_param} && !$self->check_user_exist($userid, $noerr);
+
+	my $check_existing_user = !$options{groups_param} || $options{groups_param} ne 'create';
+	return 0 if $check_existing_user && !$self->check_user_exist($userid, $noerr);
+
+	# check permission for ALL groups (and thus ALL users)
 	if (!$self->check_any($username, "/access/groups", $privs, 1)) {
+	    # list of groups $username has any of $privs on
 	    my $groups = $self->filter_groups($username, $privs, 1);
 	    if ($options{groups_param}) {
+		# does $username have any of $privs on all new/updated/.. groups?
 		my @group_param = PVE::Tools::split_list($param->{groups});
 		raise_perm_exc("/access/groups, " . join("|", @$privs)) if !scalar(@group_param);
 		foreach my $pg (@group_param) {
 		    raise_perm_exc("/access/groups/$pg, " . join("|", @$privs))
 			if !$groups->{$pg};
 		}
-	    } else {
+	    }
+	    if ($check_existing_user) {
+		# does $username have any of $privs on any existing group of $userid
 		my $allowed_users = $self->group_member_join([keys %$groups]);
 		if (!$allowed_users->{$userid}) {
 		    return 0 if $noerr;
