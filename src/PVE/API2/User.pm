@@ -323,6 +323,7 @@ __PACKAGE__->register_method ({
 	    tokens => {
 		optional => 1,
 		type => 'object',
+		additionalProperties => get_standard_option('token-info'),
 	    },
 	},
 	type => "object"
