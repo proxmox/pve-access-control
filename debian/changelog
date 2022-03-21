@@ -1,3 +1,11 @@
+libpve-access-control (7.1-7) bullseye; urgency=medium
+
+  * userid-group check: distinguish create and update
+
+  * api: get user: declare token schema
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 21 Mar 2022 16:15:23 +0100
+
 libpve-access-control (7.1-6) bullseye; urgency=medium
 
   * fix #3768: warn on bad u2f or webauthn settings
