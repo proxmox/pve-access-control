@@ -450,12 +450,12 @@ sub exec_api2_perm_check {
 	} else {
 	    die "unknown userid-param test";
 	}
-     } elsif ($test eq 'perm-modify') {
+    } elsif ($test eq 'perm-modify') {
 	my ($t, $tmplpath) = @$check;
 	my $path = PVE::Tools::template_replace($tmplpath, $param);
 	$path = PVE::AccessControl::normalize_path($path);
 	return $self->check_perm_modify($username, $path, $noerr);
-   } else {
+    } else {
 	die "unknown permission test";
     }
 };
