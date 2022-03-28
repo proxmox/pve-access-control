@@ -12,3 +12,4 @@ check:
 	perl -I.. perm-test6.pl
 	perl -I.. perm-test7.pl
 	perl -I.. perm-test8.pl
+	perl -I.. realm_sync_test.pl
