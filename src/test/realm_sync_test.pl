@@ -150,8 +150,6 @@ my $tests = [
 	"non-full without purge",
 	{
 	    realm => 'syncedrealm',
-	    full => 0,
-	    purge => 0,
 	    scope => 'both',
 	},
 	{
@@ -198,8 +196,7 @@ my $tests = [
 	"full without purge",
 	{
 	    realm => 'syncedrealm',
-	    full => 1,
-	    purge => 0,
+	    'remove-vanished' => 'entry;properties',
 	    scope => 'both',
 	},
 	{
@@ -240,8 +237,7 @@ my $tests = [
 	"non-full with purge",
 	{
 	    realm => 'syncedrealm',
-	    full => 0,
-	    purge => 1,
+	    'remove-vanished' => 'acl',
 	    scope => 'both',
 	},
 	{
@@ -286,8 +282,7 @@ my $tests = [
 	"full with purge",
 	{
 	    realm => 'syncedrealm',
-	    full => 1,
-	    purge => 1,
+	    'remove-vanished' => 'acl;entry;properties',
 	    scope => 'both',
 	},
 	{
