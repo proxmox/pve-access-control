@@ -317,6 +317,46 @@ my $tests = [
 	    },
 	},
     ],
+    [
+	"don't delete properties, but users and acls",
+	{
+	    realm => 'syncedrealm',
+	    'remove-vanished' => 'acl;entry',
+	    scope => 'both',
+	},
+	{
+	    users => {
+		'root@pam' => { username => 'root', },
+		'user1@syncedrealm' => {
+		    username => 'user1',
+		    enable => 1,
+		    'keys' => 'some',
+		},
+		'user2@syncedrealm' => {
+		    username => 'user2',
+		    enable => 1,
+		},
+		'user4@syncedrealm' => {
+		    username => 'user4',
+		    enable => 1,
+		},
+	    },
+	    groups => {
+		'group1-syncedrealm' => {
+		    users => {
+			'user1@syncedrealm' => 1,
+		    },
+		},
+		'group3-syncedrealm' => { users => {}, },
+	    },
+	    acl => {
+		'/' => {
+		    users => {},
+		    groups => {},
+		},
+	    },
+	},
+    ],
 ];
 
 for my $test (@$tests) {
