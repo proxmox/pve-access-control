@@ -17,6 +17,40 @@ my $domainconfigfile = "domains.cfg";
 
 use base qw(PVE::RESTHandler);
 
+# maps old 'full'/'purge' parameters to new 'remove-vanished'
+# TODO remove when we delete the 'full'/'purge' parameters
+my $map_remove_vanished = sub {
+    my ($opt, $delete_deprecated) = @_;
+
+    if (!defined($opt->{'remove-vanished'}) && ($opt->{full} || $opt->{purge})) {
+	my $props = [];
+	push @$props, 'entry', 'properties' if $opt->{full};
+	push @$props, 'acl' if $opt->{purge};
+	$opt->{'remove-vanished'} = join(';', @$props);
+    }
+
+    if ($delete_deprecated) {
+	delete $opt->{full};
+	delete $opt->{purge};
+    }
+
+    return $opt;
+};
+
+my $map_sync_default_options = sub {
+    my ($cfg, $delete_deprecated) = @_;
+
+    my $opt = $cfg->{'sync-defaults-options'};
+    return if !defined($opt);
+    my $sync_opts_fmt = PVE::JSONSchema::get_format('realm-sync-options');
+
+    my $old_opt = PVE::JSONSchema::parse_property_string($sync_opts_fmt, $opt);
+
+    my $new_opt = $map_remove_vanished->($old_opt, $delete_deprecated);
+
+    $cfg->{'sync-defaults-options'} = PVE::JSONSchema::print_property_string($new_opt, $sync_opts_fmt);
+};
+
 __PACKAGE__->register_method ({
     name => 'index',
     path => '',
@@ -109,6 +143,10 @@ __PACKAGE__->register_method ({
 		die "unable to create builtin type '$type'\n"
 		    if ($type eq 'pam' || $type eq 'pve');
 
+		if ($type eq 'ad' || $type eq 'ldap') {
+		    $map_sync_default_options->($param, 1);
+		}
+
 		my $plugin = PVE::Auth::Plugin->lookup($type);
 		my $config = $plugin->check_config($realm, $param, 1, 1);
 
@@ -173,7 +211,12 @@ __PACKAGE__->register_method ({
 		    $delete_pw = 1 if $opt eq 'password';
 		}
 
-		my $plugin = PVE::Auth::Plugin->lookup($ids->{$realm}->{type});
+		my $type = $ids->{$realm}->{type};
+		if ($type eq 'ad' || $type eq 'ldap') {
+		    $map_sync_default_options->($param, 1);
+		}
+
+		my $plugin = PVE::Auth::Plugin->lookup($type);
 		my $config = $plugin->check_config($realm, $param, 0, 1);
 
 		if ($config->{default}) {
@@ -225,6 +268,11 @@ __PACKAGE__->register_method ({
 	my $data = $cfg->{ids}->{$realm};
 	die "domain '$realm' does not exist\n" if !$data;
 
+	my $type = $data->{type};
+	if ($type eq 'ad' || $type eq 'ldap') {
+	    $map_sync_default_options->($data);
+	}
+
 	$data->{digest} = $cfg->{digest};
 
 	return $data;
@@ -275,51 +323,50 @@ my $update_users = sub {
     my ($usercfg, $realm, $synced_users, $opts) = @_;
 
     print "syncing users\n";
+    print "remove-vanished: $opts->{'remove-vanished'}\n" if defined($opts->{'remove-vanished'});
+
     $usercfg->{users} = {} if !defined($usercfg->{users});
     my $users = $usercfg->{users};
+    my $to_remove = { map { $_ => 1 } split(';', $opts->{'remove-vanished'} // '') };
 
-    my $oldusers = {};
-    if ($opts->{'full'}) {
-	print "full sync, deleting outdated existing users first\n";
-	foreach my $userid (sort keys %$users) {
-	    next if $userid !~ m/\@$realm$/;
+    print "deleting outdated existing users first\n" if $to_remove->{entry};
+    foreach my $userid (sort keys %$users) {
+	next if $userid !~ m/\@$realm$/;
+	next if defined($synced_users->{$userid});
 
-	    $oldusers->{$userid} = delete $users->{$userid};
-	    if ($opts->{'purge'} && !$synced_users->{$userid}) {
-		PVE::AccessControl::delete_user_acl($userid, $usercfg);
-		print "purged user '$userid' and all its ACL entries\n";
-	    } elsif (!defined($synced_users->{$userid})) {
-		print "remove user '$userid'\n";
-	    }
+	if ($to_remove->{entry}) {
+	    print "remove user '$userid'\n";
+	    delete $users->{$userid};
+	}
+
+	if ($to_remove->{acl}) {
+	    print "purge users '$userid' ACL entries\n";
+	    PVE::AccessControl::delete_user_acl($userid, $usercfg);
 	}
     }
 
     foreach my $userid (sort keys %$synced_users) {
 	my $synced_user = $synced_users->{$userid} // {};
-	if (!defined($users->{$userid})) {
+	my $olduser = $users->{$userid};
+	if ($to_remove->{properties} || !defined($olduser)) {
+	    # we use the synced user, but want to keep some properties on update
+	    if (defined($olduser)) {
+		print "overwriting user '$userid'\n";
+	    } else {
+		$olduser = {};
+		print "adding user '$userid'\n";
+	    }
 	    my $user = $users->{$userid} = $synced_user;
 
-	    my $olduser = $oldusers->{$userid} // {};
-	    if (defined(my $enabled = $olduser->{enable})) {
-		$user->{enable} = $enabled;
-	    } elsif ($opts->{'enable-new'}) {
-		$user->{enable} = 1;
-	    }
+	    my $enabled = $olduser->{enable} // $opts->{'enable-new'};
+	    $user->{enable} = $enabled if defined($enabled);
+	    $user->{tokens} = $olduser->{tokens} if defined($olduser->{tokens});
 
-	    if (defined($olduser->{tokens})) {
-		$user->{tokens} = $olduser->{tokens};
-	    }
-	    if (defined($oldusers->{$userid})) {
-		print "updated user '$userid'\n";
-	    } else {
-		print "added user '$userid'\n";
-	    }
 	} else {
-	    my $olduser = $users->{$userid};
 	    foreach my $attr (keys %$synced_user) {
 		$olduser->{$attr} = $synced_user->{$attr};
 	    }
-	    print "updated user '$userid'\n";
+	    print "updating user '$userid'\n";
 	}
     }
 };
@@ -328,40 +375,43 @@ my $update_groups = sub {
     my ($usercfg, $realm, $synced_groups, $opts) = @_;
 
     print "syncing groups\n";
+    print "remove-vanished: $opts->{'remove-vanished'}\n" if defined($opts->{'remove-vanished'});
+
     $usercfg->{groups} = {} if !defined($usercfg->{groups});
     my $groups = $usercfg->{groups};
-    my $oldgroups = {};
+    my $to_remove = { map { $_ => 1 } split(';', $opts->{'remove-vanished'} // '') };
 
-    if ($opts->{full}) {
-	print "full sync, deleting outdated existing groups first\n";
-	foreach my $groupid (sort keys %$groups) {
-	    next if $groupid !~ m/\-$realm$/;
+    print "deleting outdated existing groups first\n" if $to_remove->{entry};
+    foreach my $groupid (sort keys %$groups) {
+	next if $groupid !~ m/\-$realm$/;
+	next if defined($synced_groups->{$groupid});
 
-	    my $oldgroups->{$groupid} = delete $groups->{$groupid};
-	    if ($opts->{purge} && !$synced_groups->{$groupid}) {
-		print "purged group '$groupid' and all its ACL entries\n";
-		PVE::AccessControl::delete_group_acl($groupid, $usercfg)
-	    } elsif (!defined($synced_groups->{$groupid})) {
-		print "removed group '$groupid'\n";
-	    }
+	if ($to_remove->{entry}) {
+	    print "remove group '$groupid'\n";
+	    delete $groups->{$groupid};
+	}
+
+	if ($to_remove->{acl}) {
+	    print "purge groups '$groupid' ACL entries\n";
+	    PVE::AccessControl::delete_group_acl($groupid, $usercfg);
 	}
     }
 
     foreach my $groupid (sort keys %$synced_groups) {
 	my $synced_group = $synced_groups->{$groupid};
-	if (!defined($groups->{$groupid})) {
-	    $groups->{$groupid} = $synced_group;
-	    if (defined($oldgroups->{$groupid})) {
-		print "updated group '$groupid'\n";
+	my $oldgroup = $groups->{$groupid};
+	if ($to_remove->{properties} || !defined($oldgroup)) {
+	    if (defined($oldgroup)) {
+		print "overwriting group '$groupid'\n";
 	    } else {
-		print "added group '$groupid'\n";
+		print "adding group '$groupid'\n";
 	    }
+	    $groups->{$groupid} = $synced_group;
 	} else {
-	    my $group = $groups->{$groupid};
 	    foreach my $attr (keys %$synced_group) {
-		$group->{$attr} = $synced_group->{$attr};
+		$oldgroup->{$attr} = $synced_group->{$attr};
 	    }
-	    print "updated group '$groupid'\n";
+	    print "updating group '$groupid'\n";
 	}
     }
 };
@@ -381,11 +431,15 @@ my $parse_sync_opts = sub {
 	my $fmt = $sync_opts_fmt->{$opt};
 
 	$res->{$opt} = $param->{$opt} // $cfg_defaults->{$opt} // $fmt->{default};
-
-	raise_param_exc({
-	    "$opt" => 'Not passed as parameter and not defined in realm default sync options.'
-	}) if !defined($res->{$opt});
     }
+
+    $map_remove_vanished->($res, 1);
+
+    # only scope has no implicit value
+    raise_param_exc({
+	"scope" => 'Not passed as parameter and not defined in realm default sync options.'
+    }) if !defined($res->{scope});
+
     return $res;
 };
 

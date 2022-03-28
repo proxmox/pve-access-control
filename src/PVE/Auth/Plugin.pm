@@ -49,6 +49,8 @@ PVE::JSONSchema::register_standard_option('realm', {
     maxLength => 32,
 });
 
+my $remove_options = "(?:acl|properties|entry)";
+
 my $realm_sync_options_desc = {
     scope => {
 	description => "Select what to sync.",
@@ -56,11 +58,24 @@ my $realm_sync_options_desc = {
 	enum => [qw(users groups both)],
 	optional => '1',
     },
+    'remove-vanished' => {
+	description => "A semicolon-seperated list of things to remove when they or the user"
+	    ." vanishes during a sync. The following values are possible: 'entry' removes the"
+	    ." user/group when not returned from the sync. 'properties' removes the set"
+	    ." properties on existing user/group that do not appear in the source (even custom ones)."
+	    ." 'acl' removes acls when the user/group is not returned from the sync.",
+	type => 'string',
+	typetext => "[acl];[properties];[entry]",
+	pattern => "(?:$remove_options\;)*$remove_options",
+	optional => '1',
+    },
+    # TODO check/rewrite in pve7to8, and remove with 8.0
     full => {
-	description => "If set, uses the LDAP Directory as source of truth,"
-	    ." deleting users or groups not returned from the sync. Otherwise"
-	    ." only syncs information which is not already present, and does not"
-	    ." deletes or modifies anything else.",
+	description => "DEPRECATED: use 'remove-vanished' instead. If set, uses the LDAP Directory as source of truth,"
+	    ." deleting users or groups not returned from the sync and removing"
+	    ." all locally modified properties of synced users. If not set,"
+	    ." only syncs information which is present in the synced data, and does not"
+	    ." delete or modify anything else.",
 	type => 'boolean',
 	optional => '1',
     },
@@ -71,8 +86,8 @@ my $realm_sync_options_desc = {
 	optional => '1',
     },
     purge => {
-	description => "Remove ACLs for users or groups which were removed from"
-	    ." the config during a sync.",
+	description => "DEPRECATED: use 'remove-vanished' instead. Remove ACLs for users or"
+	    ." groups which were removed from the config during a sync.",
 	type => 'boolean',
 	optional => '1',
     },

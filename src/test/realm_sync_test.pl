@@ -276,9 +276,7 @@ my $tests = [
 	    },
 	    acl => {
 		'/' => {
-		    users => {
-			'user3@syncedrealm' => {},
-		    },
+		    users => {},
 		    groups => {},
 		},
 	    },
