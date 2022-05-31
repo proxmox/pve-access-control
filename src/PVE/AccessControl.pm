@@ -653,14 +653,14 @@ sub check_user_enabled {
     my $data = check_user_exist($usercfg, $username, $noerr);
     return undef if !$data;
 
-    return 1 if $data->{enable};
-
-    die "user '$username' is disabled\n" if !$noerr;
-
     my $ctime = time();
     my $expire = $usercfg->{users}->{$username}->{expire};
 
     die "account expired\n" if $expire && ($expire < $ctime);
+
+    return 1 if $data->{enable};
+
+    die "user '$username' is disabled\n" if !$noerr;
 
     return undef;
 }
