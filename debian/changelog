@@ -1,3 +1,9 @@
+libpve-access-control (7.2-1) bullseye; urgency=medium
+
+  * user check: fix expiration/enable order
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 31 May 2022 13:43:37 +0200
+
 libpve-access-control (7.1-8) bullseye; urgency=medium
 
   * fix #3668: realm-sync: replace 'full' & 'purge' with 'remove-
