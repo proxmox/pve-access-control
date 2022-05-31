@@ -484,7 +484,7 @@ sub verify_token {
     my $token_info = $user->{tokens}->{$token};
 
     my $ctime = time();
-    die "token expired\n" if $token_info->{expire} && ($token_info->{expire} < $ctime);
+    die "token '$token' access expired\n" if $token_info->{expire} && ($token_info->{expire} < $ctime);
 
     die "invalid token value!\n" if !PVE::Cluster::verify_token($tokenid, $value);
 
@@ -662,7 +662,7 @@ sub check_user_enabled {
     my $expire = $usercfg->{users}->{$username}->{expire};
 
     if ($expire && $expire < $ctime) {
-	die "account expired\n" if !$noerr;
+	die "user '$username' access expired\n" if !$noerr;
 	return undef;
     }
 
