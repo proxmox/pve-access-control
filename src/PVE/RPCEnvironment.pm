@@ -82,7 +82,7 @@ my $compile_acl_path = sub {
     if ($username && $username ne 'root@pam') {
 	# intersect user and token permissions
 	my $user_privs = $cache->{$username}->{privs}->{$path};
-	my $filtered_privs = [ grep { $user_privs->{$_} } keys %$privs ];
+	my $filtered_privs = [ grep { defined($user_privs->{$_}) } keys %$privs ];
 	$privs = { map { $_ => $user_privs->{$_} && $privs->{$_} } @$filtered_privs };
     }
 
