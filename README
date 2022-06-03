@@ -154,11 +154,19 @@ permission:
 ACL and Objects:
 ================
  
-An access control list (ACL) is a list of permissions attached to an object. The list specifies who or what is allowed to access the object and what operations are allowed to be performed on the object.
+An access control list (ACL) is a list of permissions attached to an object.
+The list specifies who or what is allowed to access the object and what
+operations are allowed to be performed on the object.
 
-Object: A Virtual machine, Network (bridge, venet), Hosts, Host Memory, Storage, ...
+Object: A Virtual machine, Network (bridge, venet), Hosts, Host Memory,
+Storage, ...
 
-We can identify our objects by an unique (file system like) path, which also defines a tree like hierarchy relation. ACL can be inherited. Permissions are inherited if the propagate flag is set on the parent. Child permissions always overwrite inherited permissions. User permission takes precedence over all group permissions. If multiple group permission apply the resulting role is the union of all those group privileges.
+We can identify our objects by an unique (file system like) path, which also
+defines a tree like hierarchy relation. ACL can be inherited. Permissions are
+inherited if the propagate flag is set on the parent. Child permissions always
+overwrite inherited permissions. User permission takes precedence over all
+group permissions. If multiple group permission apply the resulting role is the
+union of all those group privileges.
 
 There is at most one object permission per user or group
 
