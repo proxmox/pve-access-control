@@ -1,3 +1,15 @@
+libpve-access-control (7.2-2) bullseye; urgency=medium
+
+  * permissions: merge propagation flag for multiple roles on a path that
+    share privilege  in a deterministic way, to avoid that it gets lost
+    depending on perl's random sort, which would result in returing less
+    privileges than an auth-id actually had.
+
+  * permissions: avoid that token and user privilege intersection is to strict
+    for user permissions that have propagation disabled.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 03 Jun 2022 14:02:30 +0200
+
 libpve-access-control (7.2-1) bullseye; urgency=medium
 
   * user check: fix expiration/enable order
