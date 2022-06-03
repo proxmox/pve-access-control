@@ -37,7 +37,7 @@ LDAP: example.com
 
 There are 2 special authentication domains name 'pve' and 'pam':
 
- * pve: stores paswords to "/etc/pve/priv/shadow.cfg" (SHA256 crypt); 
+ * pve: stores passwords to "/etc/pve/priv/shadow.cfg" (SHA256 crypt); 
 
  * pam: use unix 'pam'
 
@@ -132,7 +132,7 @@ privileges:
 
 role:
 
-	defines a sets of priviledges
+	defines a sets of privileges
 
 	predefined roles:
 
@@ -158,7 +158,7 @@ An access control list (ACL) is a list of permissions attached to an object. The
 
 Object: A Virtual machine, Network (bridge, venet), Hosts, Host Memory, Storage, ...
 
-We can identify our objects by an unique (file system like) path, which also defines a tree like hierarchy relation. ACL can be inherited. Permissions are inherited if the propagate flag is set on the parent. Child permissions always overwrite inherited permissions. User permission takes precedence over all group permissions. If multiple group permission apply the resulting role is the union of all those group priviledges.
+We can identify our objects by an unique (file system like) path, which also defines a tree like hierarchy relation. ACL can be inherited. Permissions are inherited if the propagate flag is set on the parent. Child permissions always overwrite inherited permissions. User permission takes precedence over all group permissions. If multiple group permission apply the resulting role is the union of all those group privileges.
 
 There is at most one object permission per user or group
 

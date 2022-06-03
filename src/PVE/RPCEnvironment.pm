@@ -582,7 +582,7 @@ sub init_request {
     }
 }
 
-# hacks: to provide better backwards compatibiliy
+# hacks: to provide better backwards compatibility
 
 # old code uses PVE::RPCEnvironment::get();
 # new code should use PVE::RPCEnvironment->get();

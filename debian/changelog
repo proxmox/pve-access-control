@@ -181,7 +181,7 @@ libpve-access-control (6.0-7) pve; urgency=medium
 
   * add realm sub commands to pveum CLI tool
 
-  * api: domains: add user group sync API enpoint
+  * api: domains: add user group sync API endpoint
 
   * allow one to sync and import users and groups from LDAP/AD based realms
 
@@ -266,7 +266,7 @@ libpve-access-control (5.1-10) unstable; urgency=medium
 libpve-access-control (5.1-9) unstable; urgency=medium
 
   * store the tfa type in user.cfg allowing to get it without proxying the call
-    to a higher priviledged daemon.
+    to a higher privileged daemon.
 
   * tfa: realm required TFA should lock out users without TFA configured, as it
     was done before Proxmox VE 5.4
@@ -652,7 +652,7 @@ libpve-access-control (3.0-4) unstable; urgency=low
 
 libpve-access-control (3.0-3) unstable; urgency=low
 
-  * Add new role PVETemplateUser (and VM.Clone priviledge)
+  * Add new role PVETemplateUser (and VM.Clone privilege)
 
  -- Proxmox Support Team <support@proxmox.com>  Mon, 29 Apr 2013 11:42:15 +0200
 
@@ -719,7 +719,7 @@ libpve-access-control (1.0-19) unstable; urgency=low
 
 libpve-access-control (1.0-18) unstable; urgency=low
 
-  * fix bug #151: corretly parse username inside ticket
+  * fix bug #151: correctly parse username inside ticket
   
   * fix bug #152: allow user to change his own password
 
@@ -814,7 +814,7 @@ libpve-access-control (1.0-4) unstable; urgency=low
 libpve-access-control (1.0-3) unstable; urgency=low
 
   * add support for delayed parameter parsing - We need that to disable
-    file upload for normal API request (avoid DOS attacs)
+    file upload for normal API request (avoid DOS attacks)
 
  -- Proxmox Support Team <support@proxmox.com>  Fri, 02 Dec 2011 09:56:10 +0100
 

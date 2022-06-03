@@ -590,7 +590,7 @@ sub read_x509_subject_spice {
     my $subject = Net::SSLeay::X509_NAME_oneline($nameobj);
     Net::SSLeay::X509_free($x509);
 
-    # remote-viewer wants comma as seperator (not '/')
+    # remote-viewer wants comma as separator (not '/')
     $subject =~ s!^/!!;
     $subject =~ s!/(\w+=)!,$1!g;
 

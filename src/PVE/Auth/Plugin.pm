@@ -285,7 +285,7 @@ sub delete_user {
 
 # called during addition of realm (before the new domain config got written)
 # `password` is moved to %param to avoid writing it out to the config
-# die to abort additon if there are (grave) problems
+# die to abort addition if there are (grave) problems
 # NOTE: runs in a domain config *locked* context
 sub on_add_hook {
     my ($class, $realm, $config, %param) = @_;
