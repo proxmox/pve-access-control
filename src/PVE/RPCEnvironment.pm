@@ -23,15 +23,18 @@ my $compile_acl_path = sub {
 
     return undef if !$cfg->{roles};
 
+    # permissions() has an early return for this case
     die "internal error" if $user eq 'root@pam';
 
     my $cache = $self->{aclcache};
     $cache->{$user} = {} if !$cache->{$user};
     my $data = $cache->{$user};
 
+    # permissions() will always prime the cache for the owning user
     my ($username, undef) = PVE::AccessControl::split_tokenid($user, 1);
     die "internal error" if $username && $username ne 'root@pam' && !defined($cache->{$username});
 
+    # resolve and cache roles of the current user/token for all pool ACL paths
     if (!$data->{poolroles}) {
 	$data->{poolroles} = {};
 
@@ -52,37 +55,54 @@ my $compile_acl_path = sub {
 	}
     }
 
+    # get roles of current user/token on checked path - this already handles
+    # propagation and NoAccess along the path
+    #
+    # hash mapping role name to propagation flag value, a key being defined
+    # means the role is set
     my $roles = PVE::AccessControl::roles($cfg, $user, $path);
 
     # apply roles inherited from pools
-    # Note: assume we do not want to propagate those privs
     if ($data->{poolroles}->{$path}) {
+	# NoAccess must not be trumped by pool ACLs
 	if (!defined($roles->{NoAccess})) {
 	    if ($data->{poolroles}->{$path}->{NoAccess}) {
+		# but pool ACL NoAccess trumps regular ACL
 		$roles = { 'NoAccess' => 0 };
 	    } else {
 		foreach my $role (keys %{$data->{poolroles}->{$path}}) {
+		    # only use role from pool ACL if regular ACL didn't already
+		    # set it, and never set propagation for pool-derived ACLs
 		    $roles->{$role} = 0 if !defined($roles->{$role});
 		}
 	    }
 	}
     }
 
+    # cache roles
     $data->{roles}->{$path} = $roles;
 
+    # derive privs from set roles - hash mapping privilege name to propagation
+    # flag value, a key being defined means the priv is set
     my $privs = {};
     foreach my $role (keys %$roles) {
 	if (my $privset = $cfg->{roles}->{$role}) {
 	    foreach my $p (keys %$privset) {
+		# set priv '$p' to propagated iff any of the set roles
+		# containing it have the propagated flag set
 		$privs->{$p} ||= $roles->{$role};
 	    }
 	}
     }
 
+    # intersect user and token permissions
     if ($username && $username ne 'root@pam') {
-	# intersect user and token permissions
+	# map of set privs to their propagation flag value, for the owning user
 	my $user_privs = $cache->{$username}->{privs}->{$path};
+	# list of privs set both for token and owning user
 	my $filtered_privs = [ grep { defined($user_privs->{$_}) } keys %$privs ];
+	# intersection of privs using filtered list, combining both propagation
+	# flags
 	$privs = { map { $_ => $user_privs->{$_} && $privs->{$_} } @$filtered_privs };
     }
 
@@ -91,11 +111,27 @@ my $compile_acl_path = sub {
 	delete $privs->{$priv} if !defined($privs->{$priv});
     }
 
+    # cache privs
     $data->{privs}->{$path} = $privs;
 
     return $privs;
 };
 
+# this is the method used by permission check helpers below
+#
+# returned value is a hash mapping all set privileges on $path to their
+# respective propagation flag. the propagation flag is informational only -
+# actual propagation is handled in PVE::AccessControl::roles(). to determine
+# whether a privilege is set, check for definedness in the returned hash.
+#
+# compiled ACLs are cached, so repeated checks for the same path and user are
+# almost free.
+#
+# if $user is a tokenid, permissions are calculated depending on the
+# privilege-separation flag value:
+# - non-priv-separated: permissions for owning user are returned
+# - priv-separated: permissions for owning user are calculated and intersected
+#   with those of token
 sub permissions {
     my ($self, $user, $path) = @_;
 
