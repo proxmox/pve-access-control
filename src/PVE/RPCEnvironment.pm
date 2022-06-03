@@ -74,7 +74,7 @@ my $compile_acl_path = sub {
     foreach my $role (keys %$roles) {
 	if (my $privset = $cfg->{roles}->{$role}) {
 	    foreach my $p (keys %$privset) {
-		$privs->{$p} = $roles->{$role};
+		$privs->{$p} ||= $roles->{$role};
 	    }
 	}
     }
