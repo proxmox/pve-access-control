@@ -134,7 +134,7 @@ __PACKAGE__->register_method ({
 	    code => {
 		description => "OpenId authorization code.",
 		type => 'string',
-		maxLength => 1024,
+		maxLength => 4096,
             },
 	    'redirect-url' => {
 		description => "Redirection Url. The client should set this to the used server url (location.origin).",
