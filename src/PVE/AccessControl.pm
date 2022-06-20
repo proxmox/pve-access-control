@@ -498,6 +498,8 @@ my $assemble_short_lived_ticket = sub {
 
     $path = normalize_path($path);
 
+    die "invalid ticket path\n" if !defined($path);
+
     my $secret_data = "$username:$path";
 
     return PVE::Ticket::assemble_rsa_ticket(
@@ -508,6 +510,8 @@ my $verify_short_lived_ticket = sub {
     my ($ticket, $prefix, $username, $path, $noerr) = @_;
 
     $path = normalize_path($path);
+
+    die "invalid ticket path\n" if !defined($path);
 
     my $secret_data = "$username:$path";
 
@@ -1166,6 +1170,8 @@ sub lookup_username {
 sub normalize_path {
     my $path = shift;
 
+    return undef if !$path;
+
     $path =~ s|/+|/|g;
 
     $path =~ s|/$||;
@@ -1640,6 +1646,12 @@ sub roles {
     # Use $rpcenv->permission() for any actual permission checks!
 
     return 'Administrator' if $user eq 'root@pam'; # root can do anything
+
+    if (!defined($path)) {
+	# this shouldn't happen!
+	warn "internal error: ACL check called for undefined ACL path!\n";
+	return {};
+    }
 
     if (pve_verify_tokenid($user, 1)) {
 	my $tokenid = $user;

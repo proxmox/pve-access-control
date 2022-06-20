@@ -115,6 +115,7 @@ my sub verify_auth : prototype($$$$$$$) {
     my ($rpcenv, $username, $pw_or_ticket, $otp, $path, $privs, $new_format) = @_;
 
     my $normpath = PVE::AccessControl::normalize_path($path);
+    die "invalid path - $path\n" if defined($path) && !defined($normpath);
 
     my $ticketuser;
     if (($ticketuser = PVE::AccessControl::verify_ticket($pw_or_ticket, 1)) &&

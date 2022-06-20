@@ -140,6 +140,12 @@ sub permissions {
 	return { map { $_ => 1 } keys %{$cfg->{roles}->{'Administrator'}} };
     }
 
+    if (!defined($path)) {
+	# this shouldn't happen!
+	warn "internal error: ACL check called for undefined ACL path!\n";
+	return {};
+    }
+
     if (PVE::AccessControl::pve_verify_tokenid($user, 1)) {
 	my ($username, $token) = PVE::AccessControl::split_tokenid($user);
 	my $cfg = $self->{user_cfg};
@@ -439,8 +445,10 @@ sub exec_api2_perm_check {
 	    raise_perm_exc();
 	}
 	my $path = PVE::Tools::template_replace($tmplpath, $param);
-	$path = PVE::AccessControl::normalize_path($path);
-	return $self->check_full($username, $path, $privs, $any, $noerr);
+	my $normpath = PVE::AccessControl::normalize_path($path);
+	warn "Failed to normalize '$path'\n" if !defined($normpath) && defined($path);
+
+	return $self->check_full($username, $normpath, $privs, $any, $noerr);
     } elsif ($test eq 'userid-group') {
 	my $userid = $param->{userid};
 	my ($t, $privs, %options) = @$check;
@@ -490,6 +498,7 @@ sub exec_api2_perm_check {
 	my ($t, $tmplpath) = @$check;
 	my $path = PVE::Tools::template_replace($tmplpath, $param);
 	$path = PVE::AccessControl::normalize_path($path);
+	return 0 if !defined($path); # should already die in API2::ACL
 	return $self->check_perm_modify($username, $path, $noerr);
     } else {
 	die "unknown permission test";
