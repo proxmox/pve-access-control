@@ -565,7 +565,7 @@ __PACKAGE__->register_method ({
 	check => [
 	    'or',
 	    ['userid-param', 'self'],
-	    ['perm', '/access/users/{userid}', ['User.Modify']],
+	    ['userid-group', ['User.Modify']],
 	],
     },
     parameters => {
@@ -602,7 +602,7 @@ __PACKAGE__->register_method ({
 	check => [
 	    'or',
 	    ['userid-param', 'self'],
-	    ['perm', '/access/users/{userid}', ['User.Modify']],
+	    ['userid-group', ['User.Modify']],
 	],
     },
     parameters => {
@@ -634,7 +634,7 @@ __PACKAGE__->register_method ({
 	check => [
 	    'or',
 	    ['userid-param', 'self'],
-	    ['perm', '/access/users/{userid}', ['User.Modify']],
+	    ['userid-group', ['User.Modify']],
 	],
     },
     parameters => {
@@ -714,7 +714,7 @@ __PACKAGE__->register_method ({
 	check => [
 	    'or',
 	    ['userid-param', 'self'],
-	    ['perm', '/access/users/{userid}', ['User.Modify']],
+	    ['userid-group', ['User.Modify']],
 	],
     },
     parameters => {
@@ -765,7 +765,7 @@ __PACKAGE__->register_method ({
 	check => [
 	    'or',
 	    ['userid-param', 'self'],
-	    ['perm', '/access/users/{userid}', ['User.Modify']],
+	    ['userid-group', ['User.Modify']],
 	],
     },
     parameters => {
