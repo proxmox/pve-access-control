@@ -1,3 +1,13 @@
+libpve-access-control (7.2-3) bullseye; urgency=medium
+
+  * api: token: use userid-group as API perm check to avoid being overly
+    strict through a misguided use of user id for non-root users.
+
+  * perm check: forbid undefined/empty ACL path for future proofing of against
+    above issue
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 20 Jun 2022 15:51:14 +0200
+
 libpve-access-control (7.2-2) bullseye; urgency=medium
 
   * permissions: merge propagation flag for multiple roles on a path that
