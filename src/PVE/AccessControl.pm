@@ -203,7 +203,16 @@ sub rotate_authkey {
     return if $authkey_lifetime == 0;
 
     PVE::Cluster::cfs_lock_authkey(undef, sub {
-	# re-check with lock to avoid double rotation in clusters
+	# stat() calls might be answered from the kernel page cache for up to
+	# 1s, so this special dance is needed to avoid a double rotation in
+	# clusters *despite* the cfs_lock context..
+
+	# drop in-process cache hash
+	$pve_auth_key_cache = {};
+	# force open/close of file to invalidate page cache entry
+	get_pubkey();
+	# now re-check with lock held and page cache invalidated so that stat()
+	# does the right thing, and any key updates by other nodes are visible.
 	return if check_authkey();
 
 	my $old = get_pubkey();
