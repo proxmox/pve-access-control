@@ -1,3 +1,22 @@
+libpve-access-control (7.2-4) bullseye; urgency=medium
+
+  * fix #4074: increase API OpenID code size limit to 2048
+
+  * auth key: protect against rare chance of a double rotation in clusters,
+    leaving the potential that some set of nodes have the earlier key cached,
+    that then got rotated out due to the race, resulting in a possible other
+    set of nodes having the newer key cached. This is a split view of the auth
+    key and may resulting in spurious failures if API requests are made to a
+    different node than the ticket was generated on.
+    In addition to that, the "keep validity of old tickets if signed in the
+    last two hours before rotation" logic was disabled too in such a case,
+    making such tickets invalid too early.
+    Note that both are cases where Proxmox VE was too strict, so while this
+    had no security implications it can be a nuisance, especially for
+    environments that use the API through an automated or scripted way
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 14 Jul 2022 08:36:51 +0200
+
 libpve-access-control (7.2-3) bullseye; urgency=medium
 
   * api: token: use userid-group as API perm check to avoid being overly
