@@ -322,8 +322,11 @@ __PACKAGE__->register_method ({
 my $update_users = sub {
     my ($usercfg, $realm, $synced_users, $opts) = @_;
 
-    print "syncing users\n";
-    print "remove-vanished: $opts->{'remove-vanished'}\n" if defined($opts->{'remove-vanished'});
+    if (defined(my $vanished = $opts->{'remove-vanished'})) {
+	print "syncing users (remove-vanished opts: $vanished)\n";
+    } else {
+	print "syncing users\n";
+    }
 
     $usercfg->{users} = {} if !defined($usercfg->{users});
     my $users = $usercfg->{users};
@@ -374,8 +377,11 @@ my $update_users = sub {
 my $update_groups = sub {
     my ($usercfg, $realm, $synced_groups, $opts) = @_;
 
-    print "syncing groups\n";
-    print "remove-vanished: $opts->{'remove-vanished'}\n" if defined($opts->{'remove-vanished'});
+    if (defined(my $vanished = $opts->{'remove-vanished'})) {
+	print "syncing groups (remove-vanished opts: $vanished)\n";
+    } else {
+	print "syncing groups\n";
+    }
 
     $usercfg->{groups} = {} if !defined($usercfg->{groups});
     my $groups = $usercfg->{groups};
