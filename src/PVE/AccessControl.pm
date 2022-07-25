@@ -921,13 +921,8 @@ sub configure_u2f_and_wa : prototype($) {
 	warn "u2f unavailable, configuration error: $@\n" if $@;
     }
     if (my $wa = $dc->{webauthn}) {
-	eval {
-	    $tfa_cfg->set_webauthn_config({
-		origin => $wa->{origin} // $get_origin->(),
-		rp => $wa->{rp},
-		id => $wa->{id},
-	    });
-	};
+	$wa->{origin} //= $get_origin->();
+	eval { $tfa_cfg->set_webauthn_config({%$wa}) };
 	warn "webauthn unavailable, configuration error: $@\n" if $@;
     }
 }
