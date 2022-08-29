@@ -310,7 +310,7 @@ sub get_users {
 
 	if (wantarray) {
 	    my $dn = $user->{dn};
-	    $dnmap->{$dn} = $username;
+	    $dnmap->{lc($dn)} = $username;
 	}
     }
 
@@ -351,7 +351,7 @@ sub get_groups {
 
 	    $ret->{$name} = { users => {} };
 	    foreach my $member (@{$group->{members}}) {
-		if (my $user = $dnmap->{$member}) {
+		if (my $user = $dnmap->{lc($member)}) {
 		    $ret->{$name}->{users}->{$user} = 1;
 		}
 	    }
