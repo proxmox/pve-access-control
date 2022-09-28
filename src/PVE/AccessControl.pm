@@ -1033,6 +1033,7 @@ my $privgroups = {
 	root => [
 	    'Sys.PowerMgmt',
 	    'Sys.Modify', # edit/change node settings
+	    'Sys.Incoming', # incoming storage/guest migrations
 	],
 	admin => [
 	    'Permissions.Modify',
