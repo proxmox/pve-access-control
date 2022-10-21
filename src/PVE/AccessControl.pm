@@ -787,7 +787,7 @@ sub authenticate_2nd_old : prototype($$$) {
 }
 
 sub authenticate_2nd_new_do : prototype($$$$) {
-    my ($username, $realm, $otp, $tfa_challenge) = @_;
+    my ($username, $realm, $tfa_response, $tfa_challenge) = @_;
     my ($tfa_cfg, $realm_tfa) = user_get_tfa($username, $realm, 1);
 
     if (!defined($tfa_cfg)) {
@@ -809,20 +809,20 @@ sub authenticate_2nd_new_do : prototype($$$$) {
 		return to_json($challenge);
 	    }
 
-	    if ($otp =~ /^yubico:(.*)$/) {
-		$otp = $1;
+	    if ($tfa_response =~ /^yubico:(.*)$/) {
+		$tfa_response = $1;
 		# Defer to after unlocking the TFA config:
 		return sub {
 		    authenticate_yubico_new(
-			$tfa_cfg, $username, $realm_tfa, $tfa_challenge, $otp,
+			$tfa_cfg, $username, $realm_tfa, $tfa_challenge, $tfa_response,
 		    );
 		};
 	    }
 	}
 
 	my $response_type;
-	if (defined($otp)) {
-	    if ($otp !~ /^([^:]+):/) {
+	if (defined($tfa_response)) {
+	    if ($tfa_response !~ /^([^:]+):/) {
 		die "bad otp response\n";
 	    }
 	    $response_type = $1;
@@ -837,13 +837,13 @@ sub authenticate_2nd_new_do : prototype($$$$) {
     my $must_save = 0;
     if (defined($tfa_challenge)) {
 	$tfa_challenge = verify_ticket($tfa_challenge, 0, $username);
-	$must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $otp);
+	$must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $tfa_response);
 	$tfa_challenge = undef;
     } else {
 	$tfa_challenge = $tfa_cfg->authentication_challenge($username);
-	if (defined($otp)) {
+	if (defined($tfa_response)) {
 	    if (defined($tfa_challenge)) {
-		$must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $otp);
+		$must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $tfa_response);
 	    } else {
 		die "no such challenge\n";
 	    }
@@ -859,16 +859,16 @@ sub authenticate_2nd_new_do : prototype($$$$) {
 
 # Returns a tfa challenge or undef.
 sub authenticate_2nd_new : prototype($$$$) {
-    my ($username, $realm, $otp, $tfa_challenge) = @_;
+    my ($username, $realm, $tfa_response, $tfa_challenge) = @_;
 
     my $result;
 
-    if (defined($otp) && $otp =~ m/^recovery:/) {
+    if (defined($tfa_response) && $tfa_response =~ m/^recovery:/) {
 	$result = lock_tfa_config(sub {
-	    authenticate_2nd_new_do($username, $realm, $otp, $tfa_challenge);
+	    authenticate_2nd_new_do($username, $realm, $tfa_response, $tfa_challenge);
 	});
     } else {
-	$result = authenticate_2nd_new_do($username, $realm, $otp, $tfa_challenge);
+	$result = authenticate_2nd_new_do($username, $realm, $tfa_response, $tfa_challenge);
     }
 
     # Yubico auth returns the authentication sub:
