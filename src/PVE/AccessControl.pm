@@ -746,7 +746,7 @@ sub authenticate_user : prototype($$$$;$) {
 
     if ($new_format) {
 	# This is the first factor with an optional immediate 2nd factor for TOTP:
-	my $tfa_challenge = authenticate_2nd_new($username, $realm, $otp, $tfa_challenge);
+	my $tfa_challenge = authenticate_2nd_new($username, $realm, $otp, undef);
 	return wantarray ? ($username, $tfa_challenge) : $username;
     } else {
 	return authenticate_2nd_old($username, $realm, $otp);
