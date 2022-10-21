@@ -786,79 +786,90 @@ sub authenticate_2nd_old : prototype($$$) {
     return wantarray ? ($username, $tfa_data) : $username;
 }
 
+sub authenticate_2nd_new_do : prototype($$$$) {
+    my ($username, $realm, $otp, $tfa_challenge) = @_;
+    my ($tfa_cfg, $realm_tfa) = user_get_tfa($username, $realm, 1);
+
+    if (!defined($tfa_cfg)) {
+	return undef;
+    }
+
+    my $realm_type = $realm_tfa && $realm_tfa->{type};
+    # verify realm type unless using recovery keys:
+    if (defined($realm_type)) {
+	$realm_type = 'totp' if $realm_type eq 'oath'; # we used to call it that
+	if ($realm_type eq 'yubico') {
+	    # Yubico auth will not be supported in rust for now...
+	    if (!defined($tfa_challenge)) {
+		my $challenge = { yubico => JSON::true };
+		# Even with yubico auth we do allow recovery keys to be used:
+		if (my $recovery = $tfa_cfg->recovery_state($username)) {
+		    $challenge->{recovery} = $recovery;
+		}
+		return to_json($challenge);
+	    }
+
+	    if ($otp =~ /^yubico:(.*)$/) {
+		$otp = $1;
+		# Defer to after unlocking the TFA config:
+		return sub {
+		    authenticate_yubico_new(
+			$tfa_cfg, $username, $realm_tfa, $tfa_challenge, $otp,
+		    );
+		};
+	    }
+	}
+
+	my $response_type;
+	if (defined($otp)) {
+	    if ($otp !~ /^([^:]+):/) {
+		die "bad otp response\n";
+	    }
+	    $response_type = $1;
+	}
+
+	die "realm requires $realm_type authentication\n"
+	    if $response_type && $response_type ne 'recovery' && $response_type ne $realm_type;
+    }
+
+    configure_u2f_and_wa($tfa_cfg);
+
+    my $must_save = 0;
+    if (defined($tfa_challenge)) {
+	$tfa_challenge = verify_ticket($tfa_challenge, 0, $username);
+	$must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $otp);
+	$tfa_challenge = undef;
+    } else {
+	$tfa_challenge = $tfa_cfg->authentication_challenge($username);
+	if (defined($otp)) {
+	    if (defined($tfa_challenge)) {
+		$must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $otp);
+	    } else {
+		die "no such challenge\n";
+	    }
+	}
+    }
+
+    if ($must_save) {
+	cfs_write_file('priv/tfa.cfg', $tfa_cfg);
+    }
+
+    return $tfa_challenge;
+}
+
 # Returns a tfa challenge or undef.
 sub authenticate_2nd_new : prototype($$$$) {
     my ($username, $realm, $otp, $tfa_challenge) = @_;
 
-    my $result = lock_tfa_config(sub {
-	my ($tfa_cfg, $realm_tfa) = user_get_tfa($username, $realm, 1);
+    my $result;
 
-	if (!defined($tfa_cfg)) {
-	    return undef;
-	}
-
-	my $realm_type = $realm_tfa && $realm_tfa->{type};
-	# verify realm type unless using recovery keys:
-	if (defined($realm_type)) {
-	    $realm_type = 'totp' if $realm_type eq 'oath'; # we used to call it that
-	    if ($realm_type eq 'yubico') {
-		# Yubico auth will not be supported in rust for now...
-		if (!defined($tfa_challenge)) {
-		    my $challenge = { yubico => JSON::true };
-		    # Even with yubico auth we do allow recovery keys to be used:
-		    if (my $recovery = $tfa_cfg->recovery_state($username)) {
-			$challenge->{recovery} = $recovery;
-		    }
-		    return to_json($challenge);
-		}
-
-		if ($otp =~ /^yubico:(.*)$/) {
-		    $otp = $1;
-		    # Defer to after unlocking the TFA config:
-		    return sub {
-			authenticate_yubico_new(
-			    $tfa_cfg, $username, $realm_tfa, $tfa_challenge, $otp,
-			);
-		    };
-		}
-	    }
-
-	    my $response_type;
-	    if (defined($otp)) {
-		if ($otp !~ /^([^:]+):/) {
-		    die "bad otp response\n";
-		}
-		$response_type = $1;
-	    }
-
-	    die "realm requires $realm_type authentication\n"
-		if $response_type && $response_type ne 'recovery' && $response_type ne $realm_type;
-	}
-
-	configure_u2f_and_wa($tfa_cfg);
-
-	my $must_save = 0;
-	if (defined($tfa_challenge)) {
-	    $tfa_challenge = verify_ticket($tfa_challenge, 0, $username);
-	    $must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $otp);
-	    $tfa_challenge = undef;
-	} else {
-	    $tfa_challenge = $tfa_cfg->authentication_challenge($username);
-	    if (defined($otp)) {
-		if (defined($tfa_challenge)) {
-		    $must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $otp);
-		} else {
-		    die "no such challenge\n";
-		}
-	    }
-	}
-
-	if ($must_save) {
-	    cfs_write_file('priv/tfa.cfg', $tfa_cfg);
-	}
-
-	return $tfa_challenge;
-    });
+    if (defined($otp) && $otp =~ m/^recovery:/) {
+	$result = lock_tfa_config(sub {
+	    authenticate_2nd_new_do($username, $realm, $otp, $tfa_challenge);
+	});
+    } else {
+	$result = authenticate_2nd_new_do($username, $realm, $otp, $tfa_challenge);
+    }
 
     # Yubico auth returns the authentication sub:
     if (ref($result) eq 'CODE') {
