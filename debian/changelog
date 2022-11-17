@@ -1,3 +1,16 @@
+libpve-access-control (7.2-5) bullseye; urgency=medium
+
+  * api: realm sync: avoid separate log line for "remove-vanished" opt
+
+  * auth ldap/ad: compare group member dn case-insensitively
+
+  * two factor auth: only lock tfa config for recovery keys
+
+  * privs: add Sys.Incoming for guarding cross-cluster data streams like guest
+    migrations and storage migrations
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 17 Nov 2022 13:09:17 +0100
+
 libpve-access-control (7.2-4) bullseye; urgency=medium
 
   * fix #4074: increase API OpenID code size limit to 2048
