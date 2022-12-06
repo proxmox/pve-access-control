@@ -63,10 +63,12 @@ my $realm_sync_options_desc = {
 	    ." vanishes during a sync. The following values are possible: 'entry' removes the"
 	    ." user/group when not returned from the sync. 'properties' removes the set"
 	    ." properties on existing user/group that do not appear in the source (even custom ones)."
-	    ." 'acl' removes acls when the user/group is not returned from the sync.",
+	    ." 'acl' removes acls when the user/group is not returned from the sync."
+	    ." Instead of a list it also can be 'none' (the default).",
 	type => 'string',
-	typetext => "[acl];[properties];[entry]",
-	pattern => "(?:$remove_options\;)*$remove_options",
+	default => 'none',
+	typetext => "([acl];[properties];[entry])|none",
+	pattern => "(?:(?:$remove_options\;)*$remove_options)|none",
 	optional => '1',
     },
     # TODO check/rewrite in pve7to8, and remove with 8.0
