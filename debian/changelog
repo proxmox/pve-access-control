@@ -1,3 +1,9 @@
+libpve-access-control (7.3-1) bullseye; urgency=medium
+
+  * realm: sync: allow explicit 'none' for 'remove-vanished' option
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 16 Dec 2022 13:11:04 +0100
+
 libpve-access-control (7.2-5) bullseye; urgency=medium
 
   * api: realm sync: avoid separate log line for "remove-vanished" opt
