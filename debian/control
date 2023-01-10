@@ -5,16 +5,16 @@ Maintainer: Proxmox Support Team <support@proxmox.com>
 Build-Depends: debhelper (>= 12~),
                libauthen-pam-perl,
                libnet-ldap-perl,
+               libpve-cluster-perl,
                libpve-common-perl (>= 6.0-11),
+               libpve-rs-perl,
+               libtest-mockmodule-perl,
                liburi-perl,
                libuuid-perl,
                lintian,
                perl,
-               libpve-cluster-perl,
-               libpve-rs-perl,
-               libtest-mockmodule-perl,
                pve-cluster (>= 6.1-4),
-               pve-doc-generator (>= 5.3-3),
+               pve-doc-generator (>= 5.3-3)
 Standards-Version: 4.5.1
 Homepage: https://www.proxmox.com
 
@@ -28,16 +28,16 @@ Depends: libauthen-pam-perl,
          libmime-base32-perl,
          libnet-ldap-perl,
          libnet-ssleay-perl,
-         libpve-common-perl (>= 6.0-18),
          libpve-cluster-perl,
+         libpve-common-perl (>= 6.0-18),
          libpve-rs-perl (>= 0.4.3),
          libpve-u2f-server-perl (>= 1.0-2),
          liburi-perl,
          libuuid-perl,
          pve-cluster (>= 6.1-4),
          ${misc:Depends},
-         ${perl:Depends},
-Breaks: pve-manager (<< 7.0-15),
+         ${perl:Depends}
+Breaks: pve-manager (<< 7.0-15)
 Description: Proxmox VE access control library
  This package contains the role based user management and access
  control function used by Proxmox VE.
