@@ -12,6 +12,7 @@ Build-Depends: debhelper (>= 12~),
                perl,
                libpve-cluster-perl,
                libpve-rs-perl,
+               libtest-mockmodule-perl,
                pve-cluster (>= 6.1-4),
                pve-doc-generator (>= 5.3-3),
 Standards-Version: 4.5.1
