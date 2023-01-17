@@ -8,3 +8,4 @@ install:
 	install -D -m 0644 TokenConfig.pm $(DESTDIR)$(PERLDIR)/PVE/TokenConfig.pm
 	make -C API2 install
 	make -C CLI install
+	make -C Jobs install
