@@ -51,26 +51,30 @@ PVE::JSONSchema::register_standard_option('realm', {
 
 my $remove_options = "(?:acl|properties|entry)";
 
+PVE::JSONSchema::register_standard_option('sync-scope', {
+    description => "Select what to sync.",
+    type => 'string',
+    enum => [qw(users groups both)],
+    optional => '1',
+});
+
+PVE::JSONSchema::register_standard_option('sync-remove-vanished', {
+    description => "A semicolon-seperated list of things to remove when they or the user"
+	." vanishes during a sync. The following values are possible: 'entry' removes the"
+	." user/group when not returned from the sync. 'properties' removes the set"
+	." properties on existing user/group that do not appear in the source (even custom ones)."
+	." 'acl' removes acls when the user/group is not returned from the sync."
+	." Instead of a list it also can be 'none' (the default).",
+    type => 'string',
+    default => 'none',
+    typetext => "([acl];[properties];[entry])|none",
+    pattern => "(?:(?:$remove_options\;)*$remove_options)|none",
+    optional => '1',
+});
+
 my $realm_sync_options_desc = {
-    scope => {
-	description => "Select what to sync.",
-	type => 'string',
-	enum => [qw(users groups both)],
-	optional => '1',
-    },
-    'remove-vanished' => {
-	description => "A semicolon-seperated list of things to remove when they or the user"
-	    ." vanishes during a sync. The following values are possible: 'entry' removes the"
-	    ." user/group when not returned from the sync. 'properties' removes the set"
-	    ." properties on existing user/group that do not appear in the source (even custom ones)."
-	    ." 'acl' removes acls when the user/group is not returned from the sync."
-	    ." Instead of a list it also can be 'none' (the default).",
-	type => 'string',
-	default => 'none',
-	typetext => "([acl];[properties];[entry])|none",
-	pattern => "(?:(?:$remove_options\;)*$remove_options)|none",
-	optional => '1',
-    },
+    scope => get_standard_option('sync-scope'),
+    'remove-vanished' => get_standard_option('sync-remove-vanished'),
     # TODO check/rewrite in pve7to8, and remove with 8.0
     full => {
 	description => "DEPRECATED: use 'remove-vanished' instead. If set, uses the LDAP Directory as source of truth,"
