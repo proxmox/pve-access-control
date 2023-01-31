@@ -10,6 +10,8 @@ use PVE::Tools;
 
 use base qw(PVE::Auth::Plugin);
 
+our $dn_regex = qr!\w+=("[\w ,+/<>;=]+"|[^ ,+"/<>;=]+)(,\s*\w+=("[\w ,+/<>;=]+"|[^ ,+"/<>;=]+))*!;
+
 sub type {
     return 'ldap';
 }
@@ -19,7 +21,7 @@ sub properties {
 	base_dn => {
 	    description => "LDAP base domain name",
 	    type => 'string',
-	    pattern => '\w+=[^,]+(,\s*\w+=[^,]+)*',
+	    pattern => $dn_regex,
 	    optional => 1,
 	    maxLength => 256,
 	},
@@ -33,7 +35,7 @@ sub properties {
 	bind_dn => {
 	    description => "LDAP bind domain name",
 	    type => 'string',
-	    pattern => '\w+=[^,]+(,\s*\w+=[^,]+)*',
+	    pattern => $dn_regex,
 	    optional => 1,
 	    maxLength => 256,
 	},
@@ -91,7 +93,7 @@ sub properties {
 	    description => "LDAP base domain name for group sync. If not set, the"
 		." base_dn will be used.",
 	    type => 'string',
-	    pattern => '\w+=[^,]+(,\s*\w+=[^,]+)*',
+	    pattern => $dn_regex,
 	    optional => 1,
 	    maxLength => 256,
 	},
