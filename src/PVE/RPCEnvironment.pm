@@ -191,9 +191,14 @@ sub compute_api_permission {
     map { $res->{$_} = {} } keys %$priv_re_map;
 
     my $required_paths = ['/', '/nodes', '/access/groups', '/vms', '/storage', '/sdn'];
+    my $defined_paths = [];
+    PVE::AccessControl::iterate_acl_tree("/", $usercfg->{acl_root}, sub {
+	my ($path, $node) = @_;
+	push @$defined_paths, $path;
+    });
 
     my $checked_paths = {};
-    foreach my $path (@$required_paths, keys %{$usercfg->{acl}}) {
+    foreach my $path (@$required_paths, @$defined_paths) {
 	next if $checked_paths->{$path};
 	$checked_paths->{$path} = 1;
 
@@ -245,9 +250,10 @@ sub get_effective_permissions {
     my $cfg = $self->{user_cfg};
 
     # paths explicitly listed in ACLs
-    foreach my $acl_path (keys %{$cfg->{acl}}) {
-	$paths->{$acl_path} = 1;
-    }
+    PVE::AccessControl::iterate_acl_tree("/", $cfg->{acl_root}, sub {
+	my ($path, $node) = @_;
+	$paths->{$path} = 1;
+    });
 
     # paths referenced by pool definitions
     foreach my $pool (keys %{$cfg->{pools}}) {

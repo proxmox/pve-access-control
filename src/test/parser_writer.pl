@@ -120,7 +120,15 @@ sub default_acls_with {
     foreach my $a (@$extra_acls) {
 	my $acl = dclone($a);
 	my $path = delete $acl->{path};
-	$acls->{$path} = $acl;
+	my $split_path = [ split("/", $path) ];
+	my $node = $acls;
+	for my $p (@$split_path) {
+	    next if !$p;
+	    $node->{children} = {} if !$node->{children};
+	    $node->{children}->{$p} = {} if !$node->{children}->{$p};
+	    $node = $node->{children}->{$p};
+        }
+	%$node = ( %$acl );
     }
 
     return $acls;
@@ -451,6 +459,7 @@ my $tests = [
 	name => "empty_config",
 	config => {},
 	expected_config => {
+	    acl_root => default_acls(),
 	    users => { 'root@pam' => { enable => 1 } },
 	    roles => default_roles(),
 	},
@@ -460,6 +469,7 @@ my $tests = [
     {
 	name => "default_config",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles(),
 	},
@@ -468,6 +478,7 @@ my $tests = [
     {
 	name => "group_empty",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles(),
 	    groups => default_groups_with([$default_cfg->{'test_group_empty'}]),
@@ -480,6 +491,7 @@ my $tests = [
     {
 	name => "group_inexisting_member",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles(),
 	    groups => default_groups_with([$default_cfg->{'test_group_empty'}]),
@@ -496,6 +508,7 @@ my $tests = [
     {
 	name => "group_invalid_member",
 	expected_config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles(),
 	},
@@ -507,6 +520,7 @@ my $tests = [
     {
 	name => "group_with_one_member",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users_with([$default_cfg->{test_pam_with_group}]),
 	    roles => default_roles(),
 	    groups => default_groups_with([$default_cfg->{'test_group_single_member'}]),
@@ -520,6 +534,7 @@ my $tests = [
     {
 	name => "group_with_members",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users_with([$default_cfg->{test_pam_with_group}, $default_cfg->{test2_pam_with_group}]),
 	    roles => default_roles(),
 	    groups => default_groups_with([$default_cfg->{'test_group_members'}]),
@@ -534,6 +549,7 @@ my $tests = [
     {
 	name => "token_simple",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users_with([$default_cfg->{test_pam_with_token}]),
 	    roles => default_roles(),
 	},
@@ -545,6 +561,7 @@ my $tests = [
     {
 	name => "token_multi",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users_with([$default_cfg->{test_pam_with_token}, $default_cfg->{test_pam2_with_token}]),
 	    roles => default_roles(),
 	},
@@ -561,6 +578,7 @@ my $tests = [
     {
 	name => "custom_role_with_single_priv",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles_with([$default_cfg->{test_role_single_priv}]),
 	},
@@ -571,6 +589,7 @@ my $tests = [
     {
 	name => "custom_role_with_privs",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles_with([$default_cfg->{test_role_privs}]),
 	},
@@ -581,6 +600,7 @@ my $tests = [
     {
 	name => "custom_role_with_duplicate_privs",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles_with([$default_cfg->{test_role_privs}]),
 	},
@@ -594,6 +614,7 @@ my $tests = [
     {
 	name => "custom_role_with_invalid_priv",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles_with([$default_cfg->{test_role_privs}]),
 	},
@@ -607,6 +628,7 @@ my $tests = [
     {
 	name => "pool_empty",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles(),
 	    pools => default_pools_with([$default_cfg->{test_pool_empty}]),
@@ -618,6 +640,7 @@ my $tests = [
     {
 	name => "pool_invalid",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles(),
 	    pools => default_pools_with([$default_cfg->{test_pool_empty}]),
@@ -632,6 +655,7 @@ my $tests = [
     {
 	name => "pool_members",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles(),
 	    pools => default_pools_with([$default_cfg->{test_pool_members}]),
@@ -644,6 +668,7 @@ my $tests = [
     {
 	name => "pool_duplicate_members",
 	config => {
+	    acl_root => default_acls(),
 	    users => default_users(),
 	    roles => default_roles(),
 	    pools => default_pools_with([$default_cfg->{test_pool_members}, $default_cfg->{test_pool_duplicate_vms}, $default_cfg->{test_pool_duplicate_storages}]),
@@ -665,7 +690,7 @@ my $tests = [
 	config => {
 	    users => default_users_with([$default_cfg->{test_pam}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_simple_user}]),
+	    acl_root => default_acls_with([$default_cfg->{acl_simple_user}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -677,7 +702,7 @@ my $tests = [
 	config => {
 	    users => default_users_with([$default_cfg->{test_pam}, $default_cfg->{'test2_pam'}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_simple_user}, $default_cfg->{acl_complex_users}]),
+	    acl_root => default_acls_with([$default_cfg->{acl_simple_user}, $default_cfg->{acl_complex_users}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -692,7 +717,7 @@ my $tests = [
 	config => {
 	    users => default_users_with([$default_cfg->{test2_pam}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_simple_user}, $default_cfg->{acl_complex_missing_user}]),
+	    acl_root => default_acls_with([$default_cfg->{acl_simple_user}, $default_cfg->{acl_complex_missing_user}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -707,7 +732,7 @@ my $tests = [
 	    users => default_users_with([$default_cfg->{test_pam_with_group}]),
 	    groups => default_groups_with([$default_cfg->{'test_group_single_member'}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_simple_group}]),
+	    acl_root => default_acls_with([$default_cfg->{acl_simple_group}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -721,7 +746,7 @@ my $tests = [
 	    users => default_users_with([$default_cfg->{test_pam_with_group}, $default_cfg->{'test2_pam_with_group'}, $default_cfg->{'test3_pam'}]),
 	    groups => default_groups_with([$default_cfg->{'test_group_members'}, $default_cfg->{'test_group_second'}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_simple_group}, $default_cfg->{acl_complex_groups}]),
+	    acl_root => default_acls_with([$default_cfg->{acl_simple_group}, $default_cfg->{acl_complex_groups}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -740,7 +765,7 @@ my $tests = [
 	    users => default_users_with([$default_cfg->{test_pam}, $default_cfg->{'test2_pam'}, $default_cfg->{'test3_pam'}]),
 	    groups => default_groups_with([$default_cfg->{'test_group_second'}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_simple_group}, $default_cfg->{acl_complex_missing_group}]),
+	    acl_root => default_acls_with([$default_cfg->{acl_simple_group}, $default_cfg->{acl_complex_missing_group}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -766,7 +791,7 @@ my $tests = [
 	config => {
 	    users => default_users_with([$default_cfg->{test_pam_with_token}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_simple_token}]),
+	    acl_root => default_acls_with([$default_cfg->{acl_simple_token}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -779,7 +804,7 @@ my $tests = [
 	config => {
 	    users => default_users_with([$default_cfg->{test_pam_with_token}, $default_cfg->{'test_pam2_with_token'}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_simple_token}, $default_cfg->{acl_complex_tokens}]),
+	    acl_root => default_acls_with([$default_cfg->{acl_simple_token}, $default_cfg->{acl_complex_tokens}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -798,7 +823,7 @@ my $tests = [
 	config => {
 	    users => default_users_with([$default_cfg->{test_pam}, $default_cfg->{test_pam2_with_token}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_complex_missing_token}]),
+	    acl_root => default_acls_with([$default_cfg->{acl_complex_missing_token}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -825,7 +850,7 @@ my $tests = [
 	config => {
 	    users => default_users_with([$default_cfg->{test_pam}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([$default_cfg->{acl_simple_user}]),
+	    acl_root => default_acls_with([$default_cfg->{acl_simple_user}]),
 	},
 	raw => "".
 	       $default_raw->{users}->{'root@pam'}."\n".
@@ -843,7 +868,7 @@ my $tests = [
 	    users => default_users_with([$default_cfg->{test_pam_with_group}, $default_cfg->{'test2_pam_with_group'}, $default_cfg->{'test3_pam'}]),
 	    groups => default_groups_with([$default_cfg->{'test_group_members'}, $default_cfg->{'test_group_second'}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([
+	    acl_root => default_acls_with([
 	        $default_cfg->{acl_complex_mixed_root},
 	        $default_cfg->{acl_complex_mixed_storage},
 	    ]),
@@ -878,7 +903,7 @@ my $tests = [
 	    users => default_users_with([$default_cfg->{test_pam_with_group}, $default_cfg->{'test2_pam_with_group'}, $default_cfg->{'test3_pam'}]),
 	    groups => default_groups_with([$default_cfg->{'test_group_members'}, $default_cfg->{'test_group_second'}]),
 	    roles => default_roles(),
-	    acl => default_acls_with([
+	    acl_root => default_acls_with([
 	        $default_cfg->{acl_complex_mixed_root_noprop},
 	        $default_cfg->{acl_complex_mixed_storage_noprop},
 	    ]),
@@ -973,6 +998,7 @@ my $tests = [
 	    roles => default_roles_with([{ id => 'testrole' }]),
 	    groups => default_groups_with([$default_cfg->{test_group_empty}]),
 	    pools => default_pools_with([$default_cfg->{test_pool_empty}]),
+	    acl_root => {},
 	},
 	raw => "".
 	       'user:root@pam'."\n".

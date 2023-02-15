@@ -39,13 +39,11 @@ my $initialusercfg = {
 	'group1-syncedrealm' => { users => {}, },
 	'group2-syncedrealm' => { users => {}, },
     },
-    acl => {
-	'/' => {
-	    users => {
-		'user3@syncedrealm' => {},
-	    },
-	    groups => {},
+    acl_root => {
+	users => {
+	    'user3@syncedrealm' => {},
 	},
+	groups => {},
     },
 };
 
@@ -182,13 +180,11 @@ my $tests = [
 		'group2-syncedrealm' => { users => {}, },
 		'group3-syncedrealm' => { users => {}, },
 	    },
-	    acl => {
-		'/' => {
-		    users => {
-			'user3@syncedrealm' => {},
-		    },
-		    groups => {},
+	    acl_root => {
+		users => {
+		    'user3@syncedrealm' => {},
 		},
+		groups => {},
 	    },
 	},
     ],
@@ -223,13 +219,11 @@ my $tests = [
 		},
 		'group3-syncedrealm' => { users => {}, }
 	    },
-	    acl => {
-		'/' => {
-		    users => {
-			'user3@syncedrealm' => {},
-		    },
-		    groups => {},
+	    acl_root => {
+		users => {
+		    'user3@syncedrealm' => {},
 		},
+		groups => {},
 	    },
 	},
     ],
@@ -270,11 +264,9 @@ my $tests = [
 		'group2-syncedrealm' => { users => {}, },
 		'group3-syncedrealm' => { users => {}, },
 	    },
-	    acl => {
-		'/' => {
-		    users => {},
-		    groups => {},
-		},
+	    acl_root => {
+		users => {},
+		groups => {},
 	    },
 	},
     ],
@@ -309,11 +301,9 @@ my $tests = [
 		},
 		'group3-syncedrealm' => { users => {}, },
 	    },
-	    acl => {
-		'/' => {
-		    users => {},
-		    groups => {},
-		},
+	    acl_root => {
+		users => {},
+		groups => {},
 	    },
 	},
     ],
@@ -349,11 +339,9 @@ my $tests = [
 		},
 		'group3-syncedrealm' => { users => {}, },
 	    },
-	    acl => {
-		'/' => {
-		    users => {},
-		    groups => {},
-		},
+	    acl_root => {
+		users => {},
+		groups => {},
 	    },
 	},
     ],

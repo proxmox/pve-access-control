@@ -951,6 +951,43 @@ sub domain_set_password {
     $plugin->store_password($cfg, $realm, $username, $password);
 }
 
+sub iterate_acl_tree {
+    my ($path, $node, $code) = @_;
+
+    $code->($path, $node);
+
+    $path = '' if $path eq '/'; # avoid leading '//'
+
+    my $children = $node->{children};
+
+    foreach my $child (keys %$children) {
+	iterate_acl_tree("$path/$child", $children->{$child}, $code);
+    }
+}
+
+# find ACL node corresponding to normalized $path under $root
+sub find_acl_tree_node {
+    my ($root, $path) = @_;
+
+    my $split_path = [ split("/", $path) ];
+
+    if (!$split_path) {
+	return $root;
+    }
+
+    my $node = $root;
+    for my $p (@$split_path) {
+	next if !$p;
+
+	$node->{children} = {} if !$node->{children};
+	$node->{children}->{$p} = {} if !$node->{children}->{$p};
+
+	$node = $node->{children}->{$p};
+    }
+
+    return $node;
+}
+
 sub add_user_group {
     my ($username, $usercfg, $group) = @_;
 
@@ -971,29 +1008,33 @@ sub delete_user_group {
 sub delete_user_acl {
     my ($username, $usercfg) = @_;
 
-    foreach my $acl (keys %{$usercfg->{acl}}) {
+    my $code = sub {
+	my ($path, $acl_node) = @_;
 
-	delete ($usercfg->{acl}->{$acl}->{users}->{$username})
-	    if $usercfg->{acl}->{$acl}->{users}->{$username};
-    }
+	delete ($acl_node->{users}->{$username})
+	    if $acl_node->{users}->{$username};
+    };
+
+    iterate_acl_tree("/", $usercfg->{acl_root}, $code);
 }
 
 sub delete_group_acl {
     my ($group, $usercfg) = @_;
 
-    foreach my $acl (keys %{$usercfg->{acl}}) {
+    my $code = sub {
+	my ($path, $acl_node) = @_;
 
-	delete ($usercfg->{acl}->{$acl}->{groups}->{$group})
-	    if $usercfg->{acl}->{$acl}->{groups}->{$group};
-    }
+	delete ($acl_node->{groups}->{$group})
+	    if $acl_node->{groups}->{$group};
+    };
+
+    iterate_acl_tree("/", $usercfg->{acl_root}, $code);
 }
 
 sub delete_pool_acl {
     my ($pool, $usercfg) = @_;
 
-    my $path = "/pool/$pool";
-
-    delete ($usercfg->{acl}->{$path})
+    delete ($usercfg->{acl_root}->{children}->{pool}->{children}->{$pool});
 }
 
 # we automatically create some predefined roles by splitting privs
@@ -1290,6 +1331,11 @@ sub userconfig_force_defaults {
     if (!$cfg->{users}->{'root@pam'}) {
 	$cfg->{users}->{'root@pam'}->{enable} = 1;
     }
+
+    # add (empty) ACL tree root node
+    if (!$cfg->{acl_root}) {
+	$cfg->{acl_root} = {};
+    }
 }
 
 sub parse_user_config {
@@ -1404,6 +1450,7 @@ sub parse_user_config {
 	    $propagate = $propagate ? 1 : 0;
 
 	    if (my $path = normalize_path($pathtxt)) {
+		my $acl_node;
 		foreach my $role (split_list($rolelist)) {
 
 		    if (!verify_rolename($role, 1)) {
@@ -1423,15 +1470,18 @@ sub parse_user_config {
 			    if (!$cfg->{groups}->{$group}) { # group does not exist
 				warn "user config - ignore invalid acl group '$group'\n";
 			    }
-			    $cfg->{acl}->{$path}->{groups}->{$group}->{$role} = $propagate;
+			    $acl_node = find_acl_tree_node($cfg->{acl_root}, $path) if !$acl_node;
+			    $acl_node->{groups}->{$group}->{$role} = $propagate;
 			} elsif (PVE::Auth::Plugin::verify_username($ug, 1)) {
 			    if (!$cfg->{users}->{$ug}) { # user does not exist
 				warn "user config - ignore invalid acl member '$ug'\n";
 			    }
-			    $cfg->{acl}->{$path}->{users}->{$ug}->{$role} = $propagate;
+			    $acl_node = find_acl_tree_node($cfg->{acl_root}, $path) if !$acl_node;
+			    $acl_node->{users}->{$ug}->{$role} = $propagate;
 			} elsif (my ($user, $token) = split_tokenid($ug, 1)) {
 			    if (check_token_exist($cfg, $user, $token, 1)) {
-				$cfg->{acl}->{$path}->{tokens}->{$ug}->{$role} = $propagate;
+				$acl_node = find_acl_tree_node($cfg->{acl_root}, $path) if !$acl_node;
+				$acl_node->{tokens}->{$ug}->{$role} = $propagate;
 			    } else {
 				warn "user config - ignore invalid acl token '$ug'\n";
 			    }
@@ -1600,8 +1650,8 @@ sub write_user_config {
 	}
     };
 
-    foreach my $path (sort keys %{$cfg->{acl}}) {
-	my $d = $cfg->{acl}->{$path};
+    iterate_acl_tree("/", $cfg->{acl_root}, sub {
+	my ($path, $d) = @_;
 
 	my $rolelist_members = {};
 
@@ -1620,7 +1670,7 @@ sub write_user_config {
 	    }
 
 	}
-    }
+    });
 
     return $data;
 }
@@ -1684,12 +1734,20 @@ sub roles {
 
     my $roles = {};
 
-    foreach my $p (sort keys %{$cfg->{acl}}) {
-	my $final = ($path eq $p);
+    my $split = [ split("/", $path) ];
+    if ($path eq '/') {
+	$split = [ '' ];
+    }
 
-	next if !(($p eq '/') || $final || ($path =~ m|^$p/|));
+    my $acl = $cfg->{acl_root};
+    my $i = 0;
 
-	my $acl = $cfg->{acl}->{$p};
+    while (@$split) {
+	my $p = shift @$split;
+	my $final = !@$split;
+	if ($p ne '') {
+	    $acl = $acl->{children}->{$p};
+	}
 
 	#print "CHECKACL $path $p\n";
 	#print "ACL $path = " . Dumper ($acl);
@@ -1758,20 +1816,20 @@ sub roles {
 sub remove_vm_access {
     my ($vmid) = @_;
     my $delVMaccessFn = sub {
-        my $usercfg = cfs_read_file("user.cfg");
+	my $usercfg = cfs_read_file("user.cfg");
 	my $modified;
 
-        if (my $acl = $usercfg->{acl}->{"/vms/$vmid"}) {
-            delete $usercfg->{acl}->{"/vms/$vmid"};
+	if (my $acl = $usercfg->{acl_root}->{children}->{vms}->{children}->{$vmid}) {
+	    delete $usercfg->{acl_root}->{children}->{vms}->{children}->{$vmid};
 	    $modified = 1;
-        }
-        if (my $pool = $usercfg->{vms}->{$vmid}) {
-            if (my $data = $usercfg->{pools}->{$pool}) {
-                delete $data->{vms}->{$vmid};
-                delete $usercfg->{vms}->{$vmid};
+	}
+	if (my $pool = $usercfg->{vms}->{$vmid}) {
+	    if (my $data = $usercfg->{pools}->{$pool}) {
+		delete $data->{vms}->{$vmid};
+		delete $usercfg->{vms}->{$vmid};
 		$modified = 1;
-            }
-        }
+	    }
+	}
 	cfs_write_file("user.cfg", $usercfg) if $modified;
     };
 
@@ -1782,18 +1840,18 @@ sub remove_storage_access {
     my ($storeid) = @_;
 
     my $deleteStorageAccessFn = sub {
-        my $usercfg = cfs_read_file("user.cfg");
+	my $usercfg = cfs_read_file("user.cfg");
 	my $modified;
 
-        if (my $storage = $usercfg->{acl}->{"/storage/$storeid"}) {
-            delete $usercfg->{acl}->{"/storage/$storeid"};
-            $modified = 1;
-        }
+	if (my $acl = $usercfg->{acl_root}->{children}->{storage}->{children}->{$storeid}) {
+	    delete $usercfg->{acl_root}->{children}->{storage}->{children}->{$storeid};
+	    $modified = 1;
+	}
 	foreach my $pool (keys %{$usercfg->{pools}}) {
 	    delete $usercfg->{pools}->{$pool}->{storage}->{$storeid};
 	    $modified = 1;
 	}
-        cfs_write_file("user.cfg", $usercfg) if $modified;
+	cfs_write_file("user.cfg", $usercfg) if $modified;
     };
 
     lock_user_config($deleteStorageAccessFn,

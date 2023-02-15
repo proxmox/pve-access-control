@@ -60,16 +60,17 @@ __PACKAGE__->register_method ({
 	my $res = [];
 
 	my $usercfg = $rpcenv->{user_cfg};
-	if (!$usercfg || !$usercfg->{acl}) {
+	if (!$usercfg || !$usercfg->{acl_root}) {
 	    return $res;
 	}
 
 	my $audit = $rpcenv->check($authuser, '/access', ['Sys.Audit'], 1);
 
-	my $acl = $usercfg->{acl};
-	foreach my $path (keys %$acl) {
+	my $root = $usercfg->{acl_root};
+	PVE::AccessControl::iterate_acl_tree("/", $root, sub {
+	    my ($path, $node) = @_;
 	    foreach my $type (qw(user group token)) {
-		my $d = $acl->{$path}->{"${type}s"};
+		my $d = $node->{"${type}s"};
 		next if !$d;
 		next if !($audit || $rpcenv->check_perm_modify($authuser, $path, 1));
 		foreach my $id (keys %$d) {
@@ -85,7 +86,7 @@ __PACKAGE__->register_method ({
 		    }
 		}
 	    }
-	}
+	});
 
 	return $res;
     }});
@@ -156,6 +157,8 @@ __PACKAGE__->register_method ({
 		    $propagate = $param->{propagate} ? 1 : 0;
 		}
 
+		my $node = PVE::AccessControl::find_acl_tree_node($cfg->{acl_root}, $path);
+
 		foreach my $role (split_list($param->{roles})) {
 		    die "role '$role' does not exist\n"
 			if !$cfg->{roles}->{$role};
@@ -166,9 +169,9 @@ __PACKAGE__->register_method ({
 			    if !$cfg->{groups}->{$group};
 
 			if ($param->{delete}) {
-			    delete($cfg->{acl}->{$path}->{groups}->{$group}->{$role});
+			    delete($node->{groups}->{$group}->{$role});
 			} else {
-			    $cfg->{acl}->{$path}->{groups}->{$group}->{$role} = $propagate;
+			    $node->{groups}->{$group}->{$role} = $propagate;
 			}
 		    }
 
@@ -179,9 +182,9 @@ __PACKAGE__->register_method ({
 			    if !$cfg->{users}->{$username};
 
 			if ($param->{delete}) {
-			    delete($cfg->{acl}->{$path}->{users}->{$username}->{$role});
+			    delete ($node->{users}->{$username}->{$role});
 			} else {
-			    $cfg->{acl}->{$path}->{users}->{$username}->{$role} = $propagate;
+			    $node->{users}->{$username}->{$role} = $propagate;
 			}
 		    }
 
@@ -190,9 +193,9 @@ __PACKAGE__->register_method ({
 			PVE::AccessControl::check_token_exist($cfg, $username, $token);
 
 			if ($param->{delete}) {
-			    delete $cfg->{acl}->{$path}->{tokens}->{$tokenid}->{$role};
+			    delete $node->{tokens}->{$tokenid}->{$role};
 			} else {
-			    $cfg->{acl}->{$path}->{tokens}->{$tokenid}->{$role} = $propagate;
+			    $node->{tokens}->{$tokenid}->{$role} = $propagate;
 			}
 		    }
 		}
