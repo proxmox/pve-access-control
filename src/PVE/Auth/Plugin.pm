@@ -127,7 +127,7 @@ sub verify_username {
 }
 
 PVE::JSONSchema::register_standard_option('userid', {
-    description => "User ID",
+    description => "Full User ID, in the `name\@realm` format.",
     type => 'string', format => 'pve-userid',
     maxLength => 64,
 });
