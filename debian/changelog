@@ -1,3 +1,11 @@
+libpve-access-control (7.3-2) bullseye; urgency=medium
+
+  * fix #4518: dramatically improve ACL computation performance
+
+  * userid format: clarify that this is the full name@realm in description
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 06 Mar 2023 11:40:11 +0100
+
 libpve-access-control (7.3-1) bullseye; urgency=medium
 
   * realm: sync: allow explicit 'none' for 'remove-vanished' option
