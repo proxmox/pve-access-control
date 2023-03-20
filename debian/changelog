@@ -1,3 +1,11 @@
+libpve-access-control (7.4-1) bullseye; urgency=medium
+
+  * realm sync: refactor scope/remove-vanished into a standard option
+
+  * ldap: Allow quoted values for DN attribute values
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 20 Mar 2023 17:16:11 +0100
+
 libpve-access-control (7.3-2) bullseye; urgency=medium
 
   * fix #4518: dramatically improve ACL computation performance
