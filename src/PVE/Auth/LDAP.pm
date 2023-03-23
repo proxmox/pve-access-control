@@ -10,7 +10,8 @@ use PVE::Tools;
 
 use base qw(PVE::Auth::Plugin);
 
-our $dn_regex = qr!\w+=("[\w ,+/<>;=]+"|[^ ,+"/<>;=]+)(,\s*\w+=("[\w ,+/<>;=]+"|[^ ,+"/<>;=]+))*!;
+my  $dn_part_regex = qr!("[^"]+"|[^ ,+"/<>;=#][^,+"/<>;=]*[^ ,+"/<>;=]|[^ ,+"/<>;=#])!;
+our $dn_regex = qr!\w+=${dn_part_regex}(,\s*\w+=${dn_part_regex})*!;
 
 sub type {
     return 'ldap';
