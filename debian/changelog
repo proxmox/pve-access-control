@@ -1,3 +1,10 @@
+libpve-access-control (7.4-2) bullseye; urgency=medium
+
+  * fix #4609: fix regression where a valid DN in the ldap/ad realm config
+    wasn't accepted anymore
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 23 Mar 2023 15:44:21 +0100
+
 libpve-access-control (7.4-1) bullseye; urgency=medium
 
   * realm sync: refactor scope/remove-vanished into a standard option
