@@ -186,7 +186,7 @@ sub compute_api_permission {
 	storage => qr/Datastore\.|Permissions\.Modify/,
 	nodes => qr/Sys\.|Permissions\.Modify/,
 	sdn => qr/SDN\.|Permissions\.Modify/,
-	dc => qr/Sys\.Audit|SDN\./,
+	dc => qr/Sys\.Audit|Sys\.Modify|SDN\./,
     };
     map { $res->{$_} = {} } keys %$priv_re_map;
 
