@@ -5,7 +5,7 @@ use warnings;
 use MIME::Base32; #libmime-base32-perl
 
 my $test;
-open(RND, "/dev/urandom");
-sysread(RND, $test, 10) == 10 || die "read random data failed\n";
+open(my $RND_FH, '<', "/dev/urandom");
+sysread($RND_FH, $test, 10) == 10 || die "read random data failed - $!\n";
 print MIME::Base32::encode_rfc3548($test) . "\n";
 
