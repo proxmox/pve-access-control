@@ -1,7 +1,10 @@
 #!/usr/bin/perl -w
 
 use strict;
+use warnings;
+
 use PVE::Tools;
+
 use PVE::AccessControl;
 use PVE::RPCEnvironment;
 

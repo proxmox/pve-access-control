@@ -1,10 +1,14 @@
 #!/usr/bin/perl -w
 
 use strict;
+use warnings;
+
+use Getopt::Long;
+
 use PVE::Tools;
+
 use PVE::AccessControl;
 use PVE::RPCEnvironment;
-use Getopt::Long;
 
 my $rpcenv = PVE::RPCEnvironment->init('cli');
 

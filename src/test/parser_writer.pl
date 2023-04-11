@@ -1,11 +1,12 @@
 #!/usr/bin/perl -w
 
 use strict;
-
-use Test::More;
-use PVE::AccessControl;
+use warnings;
 
 use Storable qw(dclone);
+use Test::More;
+
+use PVE::AccessControl;
 
 PVE::AccessControl::create_roles();
 my $default_user_cfg = {};

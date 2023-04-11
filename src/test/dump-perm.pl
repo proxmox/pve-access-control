@@ -1,9 +1,12 @@
 #!/usr/bin/perl -w
 
 use strict;
-use PVE::RPCEnvironment;
-use Getopt::Long;
+use warnings;
+
 use Data::Dumper;
+use Getopt::Long;
+
+use PVE::RPCEnvironment;
 
 # example: 
 # dump-perm.pl -f myuser.cfg root /

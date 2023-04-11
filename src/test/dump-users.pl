@@ -1,8 +1,11 @@
 #!/usr/bin/perl -w
 
 use strict;
-use PVE::AccessControl;
+use warnings;
+
 use Data::Dumper;
+
+use PVE::AccessControl;
 
 my $cfg;
 

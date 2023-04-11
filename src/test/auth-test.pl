@@ -1,7 +1,10 @@
 #!/usr/bin/perl -w
 
 use strict;
+use warnings;
+
 use PVE::PTY;
+
 use PVE::AccessControl;
 
 my $username = shift;
