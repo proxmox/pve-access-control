@@ -834,24 +834,50 @@ sub authenticate_2nd_new_do : prototype($$$$) {
 
     configure_u2f_and_wa($tfa_cfg);
 
-    my $must_save = 0;
+    my ($result, $tfa_done);
     if (defined($tfa_challenge)) {
+	$tfa_done = 1;
 	$tfa_challenge = verify_ticket($tfa_challenge, 0, $username);
-	$must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $tfa_response);
+	$result = $tfa_cfg->authentication_verify2($username, $tfa_challenge, $tfa_response);
 	$tfa_challenge = undef;
     } else {
 	$tfa_challenge = $tfa_cfg->authentication_challenge($username);
 	if (defined($tfa_response)) {
 	    if (defined($tfa_challenge)) {
-		$must_save = $tfa_cfg->authentication_verify($username, $tfa_challenge, $tfa_response);
+		$tfa_done = 1;
+		$result = $tfa_cfg->authentication_verify2($username, $tfa_challenge, $tfa_response);
 	    } else {
 		die "no such challenge\n";
 	    }
 	}
     }
 
-    if ($must_save) {
-	cfs_write_file('priv/tfa.cfg', $tfa_cfg);
+    if ($tfa_done) {
+	if (!$result) {
+	    # authentication_verify2 somehow returned undef - should be unreachable
+	    die "2nd factor failed\n";
+	}
+
+	# FIXME: Remove this case when enabling the ones below!
+	if (!$result->{result}) {
+	    die "2nd factor failed\n";
+	}
+
+	if ($result->{'needs-saving'}) {
+	    cfs_write_file('priv/tfa.cfg', $tfa_cfg);
+	}
+	# FIXME: Switch to the code below to use the updated `priv/tfa.cfg` format!
+	#if ($result->{'totp-limit-reached'}) {
+	#    # FIXME: send mail to the user (or admin/root if no email configured)
+	#    die "failed 2nd factor: TOTP limit reached, locked\n";
+	#}
+	#if ($result->{'tfa-limit-reached'}) {
+	#    # FIXME: send mail to the user (or admin/root if no email configured)
+	#    die "failed 1nd factor: TFA limit reached, user locked out\n";
+	#}
+	#if (!$result->{result}) {
+	#    die "failed 2nd factor\n";
+	#}
     }
 
     return $tfa_challenge;
