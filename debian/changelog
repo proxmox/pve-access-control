@@ -1,3 +1,9 @@
+libpve-access-control (7.4-3) bullseye; urgency=medium
+
+  * use new 2nd factor verification from pve-rs
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 16 May 2023 13:31:28 +0200
+
 libpve-access-control (7.4-2) bullseye; urgency=medium
 
   * fix #4609: fix regression where a valid DN in the ldap/ad realm config
