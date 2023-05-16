@@ -821,26 +821,20 @@ sub authenticate_2nd_new_do : prototype($$$$) {
 	    die "2nd factor failed\n";
 	}
 
-	# FIXME: Remove this case when enabling the ones below!
-	if (!$result->{result}) {
-	    die "2nd factor failed\n";
-	}
-
 	if ($result->{'needs-saving'}) {
 	    cfs_write_file('priv/tfa.cfg', $tfa_cfg);
 	}
-	# FIXME: Switch to the code below to use the updated `priv/tfa.cfg` format!
-	#if ($result->{'totp-limit-reached'}) {
-	#    # FIXME: send mail to the user (or admin/root if no email configured)
-	#    die "failed 2nd factor: TOTP limit reached, locked\n";
-	#}
-	#if ($result->{'tfa-limit-reached'}) {
-	#    # FIXME: send mail to the user (or admin/root if no email configured)
-	#    die "failed 1nd factor: TFA limit reached, user locked out\n";
-	#}
-	#if (!$result->{result}) {
-	#    die "failed 2nd factor\n";
-	#}
+	if ($result->{'totp-limit-reached'}) {
+	    # FIXME: send mail to the user (or admin/root if no email configured)
+	    die "failed 2nd factor: TOTP limit reached, locked\n";
+	}
+	if ($result->{'tfa-limit-reached'}) {
+	    # FIXME: send mail to the user (or admin/root if no email configured)
+	    die "failed 1nd factor: TFA limit reached, user locked out\n";
+	}
+	if (!$result->{result}) {
+	    die "failed 2nd factor\n";
+	}
     }
 
     return $tfa_challenge;
