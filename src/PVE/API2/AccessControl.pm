@@ -111,8 +111,8 @@ __PACKAGE__->register_method ({
     }});
 
 
-my sub verify_auth : prototype($$$$$$$) {
-    my ($rpcenv, $username, $pw_or_ticket, $otp, $path, $privs, $new_format) = @_;
+my sub verify_auth : prototype($$$$$$) {
+    my ($rpcenv, $username, $pw_or_ticket, $otp, $path, $privs) = @_;
 
     my $normpath = PVE::AccessControl::normalize_path($path);
     die "invalid path - $path\n" if defined($path) && !defined($normpath);
@@ -128,7 +128,6 @@ my sub verify_auth : prototype($$$$$$$) {
 	    $username,
 	    $pw_or_ticket,
 	    $otp,
-	    $new_format,
 	);
     }
 
@@ -140,8 +139,8 @@ my sub verify_auth : prototype($$$$$$$) {
     return { username => $username };
 };
 
-my sub create_ticket_do : prototype($$$$$$) {
-    my ($rpcenv, $username, $pw_or_ticket, $otp, $new_format, $tfa_challenge) = @_;
+my sub create_ticket_do : prototype($$$$$) {
+    my ($rpcenv, $username, $pw_or_ticket, $otp, $tfa_challenge) = @_;
 
     die "TFA response should be in 'password', not 'otp' when 'tfa-challenge' is set\n"
 	if defined($otp) && defined($tfa_challenge);
@@ -164,7 +163,6 @@ my sub create_ticket_do : prototype($$$$$$) {
 	    $username,
 	    $pw_or_ticket,
 	    $otp,
-	    $new_format,
 	    $tfa_challenge,
 	);
     }
@@ -172,26 +170,10 @@ my sub create_ticket_do : prototype($$$$$$) {
     my %extra;
     my $ticket_data = $username;
     my $aad;
-    if ($new_format) {
-	if (defined($tfa_info)) {
-	    $extra{NeedTFA} = 1;
-	    $ticket_data = "!tfa!$tfa_info";
-	    $aad = $username;
-	}
-    } elsif (defined($tfa_info)) {
+    if (defined($tfa_info)) {
 	$extra{NeedTFA} = 1;
-	if ($tfa_info->{type} eq 'u2f') {
-	    my $u2finfo = $tfa_info->{data};
-	    my $u2f = get_u2f_instance($rpcenv, $u2finfo->@{qw(publicKey keyHandle)});
-	    my $challenge = $u2f->auth_challenge()
-		or die "failed to get u2f challenge\n";
-	    $challenge = decode_json($challenge);
-	    $extra{U2FChallenge} = $challenge;
-	    $ticket_data = "u2f!$username!$challenge->{challenge}";
-	} else {
-	    # General half-login / 'missing 2nd factor' ticket:
-	    $ticket_data = "tfa!$username";
-	}
+	$ticket_data = "!tfa!$tfa_info";
+	$aad = $username;
     }
 
     my $ticket = PVE::AccessControl::assemble_ticket($ticket_data, $aad);
@@ -267,12 +249,9 @@ __PACKAGE__->register_method ({
 	    },
 	    'new-format' => {
 		type => 'boolean',
-		description =>
-		    'With webauthn the format of half-authenticated tickts changed.'
-		    .' New clients should pass 1 here and not worry about the old format.'
-		    .' The old format is deprecated and will be retired with PVE-8.0',
+		description => 'This parameter is now ignored and assumed to be 1.',
 		optional => 1,
-		default => 0,
+		default => 1,
 	    },
 	    'tfa-challenge' => {
 		type => 'string',
@@ -307,14 +286,13 @@ __PACKAGE__->register_method ({
 
 	    if ($param->{path} && $param->{privs}) {
 		$res = verify_auth($rpcenv, $username, $param->{password}, $param->{otp},
-				   $param->{path}, $param->{privs}, $param->{'new-format'});
+				   $param->{path}, $param->{privs});
 	    } else {
 		$res = create_ticket_do(
 		    $rpcenv,
 		    $username,
 		    $param->{password},
 		    $param->{otp},
-		    $param->{'new-format'},
 		    $param->{'tfa-challenge'},
 		);
 	    }

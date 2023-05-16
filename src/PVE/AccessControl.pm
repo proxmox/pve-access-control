@@ -717,8 +717,8 @@ sub verify_one_time_pw {
 
 # password should be utf8 encoded
 # Note: some plugins delay/sleep if auth fails
-sub authenticate_user : prototype($$$$;$) {
-    my ($username, $password, $otp, $new_format, $tfa_challenge) = @_;
+sub authenticate_user : prototype($$$;$) {
+    my ($username, $password, $otp, $tfa_challenge) = @_;
 
     die "no username specified\n" if !$username;
 
@@ -744,51 +744,14 @@ sub authenticate_user : prototype($$$$;$) {
 
     $plugin->authenticate_user($cfg, $realm, $ruid, $password);
 
-    if ($new_format) {
-	# This is the first factor with an optional immediate 2nd factor for TOTP:
-	my $tfa_challenge = authenticate_2nd_new($username, $realm, $otp, undef);
-	return wantarray ? ($username, $tfa_challenge) : $username;
-    } else {
-	return authenticate_2nd_old($username, $realm, $otp);
-    }
-}
-
-sub authenticate_2nd_old : prototype($$$) {
-    my ($username, $realm, $otp) = @_;
-
-    my ($type, $tfa_data) = user_get_tfa($username, $realm, 0);
-    if ($type) {
-	if ($type eq 'incompatible') {
-	    die "old login api disabled, user has incompatible TFA entries\n";
-	} elsif ($type eq 'u2f') {
-	    # Note that if the user did not manage to complete the initial u2f registration
-	    # challenge we have a hash containing a 'challenge' entry in the user's tfa.cfg entry:
-	    $tfa_data = undef if exists $tfa_data->{challenge};
-	} elsif (!defined($otp)) {
-	    # The user requires a 2nd factor but has not provided one. Return success but
-	    # don't clear $tfa_data.
-	} else {
-	    my $keys = $tfa_data->{keys};
-	    my $tfa_cfg = $tfa_data->{config};
-	    verify_one_time_pw($type, $username, $keys, $tfa_cfg, $otp);
-	    $tfa_data = undef;
-	}
-
-	# Return the type along with the rest:
-	if ($tfa_data) {
-	    $tfa_data = {
-		type => $type,
-		data => $tfa_data,
-	    };
-	}
-    }
-
-    return wantarray ? ($username, $tfa_data) : $username;
+    # This is the first factor with an optional immediate 2nd factor for TOTP:
+    $tfa_challenge = authenticate_2nd_new($username, $realm, $otp, undef);
+    return wantarray ? ($username, $tfa_challenge) : $username;
 }
 
 sub authenticate_2nd_new_do : prototype($$$$) {
     my ($username, $realm, $tfa_response, $tfa_challenge) = @_;
-    my ($tfa_cfg, $realm_tfa) = user_get_tfa($username, $realm, 1);
+    my ($tfa_cfg, $realm_tfa) = user_get_tfa($username, $realm);
 
     if (!defined($tfa_cfg)) {
 	return undef;
@@ -2032,7 +1995,7 @@ sub add_old_keys_to_realm_tfa : prototype($$$$) {
 }
 
 sub user_get_tfa : prototype($$$) {
-    my ($username, $realm, $new_format) = @_;
+    my ($username, $realm) = @_;
 
     my $user_cfg = cfs_read_file('user.cfg');
     my $user = $user_cfg->{users}->{$username}
@@ -2053,35 +2016,11 @@ sub user_get_tfa : prototype($$$) {
 	die "missing required 2nd keys\n";
     }
 
-    if ($new_format) {
-	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
-	if (defined($keys) && $keys !~ /^x(?:!.*)$/) {
-	    add_old_keys_to_realm_tfa($username, $tfa_cfg, $realm_tfa, $keys);
-	}
-	return ($tfa_cfg, $realm_tfa);
+    my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
+    if (defined($keys) && $keys !~ /^x(?:!.*)$/) {
+	add_old_keys_to_realm_tfa($username, $tfa_cfg, $realm_tfa, $keys);
     }
-
-    # new style config starts with an 'x' and optionally contains a !<type> suffix
-    if ($keys !~ /^x(?:!.*)?$/) {
-	# old style config, find the type via the realm
-	return if !$realm_tfa;
-	return ($realm_tfa->{type}, {
-	    keys => $keys,
-	    config => $realm_tfa,
-	});
-    } else {
-	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
-	my $tfa = $tfa_cfg->{users}->{$username};
-	return if !$tfa; # should not happen (user.cfg wasn't cleaned up?)
-
-	if ($realm_tfa) {
-	    # if the realm has a tfa setting we need to verify the type:
-	    die "auth domain '$realm' and user have mismatching TFA settings\n"
-		if $realm_tfa && $realm_tfa->{type} ne $tfa->{type};
-	}
-
-	return ($tfa->{type}, $tfa->{data});
-    }
+    return ($tfa_cfg, $realm_tfa);
 }
 
 # bash completion helpers
