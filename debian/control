@@ -2,7 +2,7 @@ Source: libpve-access-control
 Section: perl
 Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: debhelper (>= 12~),
+Build-Depends: debhelper-compat (= 13),
                libauthen-pam-perl,
                libnet-ldap-perl,
                libpve-cluster-perl,
