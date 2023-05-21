@@ -34,8 +34,9 @@ $(DSC): $(BUILDDIR)
 	lintian $(DSC)
 
 .PHONY: upload
+upload: UPLOAD_DIST ?= $(DEB_DISTRIBUTION)
 upload: $(DEB)
-	tar cf - $(DEB) | ssh repoman@repo.proxmox.com -- upload --product pve --dist bullseye
+	tar cf - $(DEB) | ssh repoman@repo.proxmox.com -- upload --product pve --dist $(UPLOAD_DIST)
 
 .PHONY: clean
 clean:
