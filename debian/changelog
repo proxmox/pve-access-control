@@ -1,3 +1,11 @@
+libpve-access-control (7.99.0) bookworm; urgency=medium
+
+  * initial re-build for Proxmox VE 8.x series
+
+  * switch to native versioning
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 21 May 2023 10:34:19 +0200
+
 libpve-access-control (7.4-3) bullseye; urgency=medium
 
   * use new 2nd factor verification from pve-rs
