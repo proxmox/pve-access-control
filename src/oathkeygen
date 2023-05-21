@@ -2,10 +2,13 @@
 
 use strict;
 use warnings;
-use MIME::Base32; #libmime-base32-perl
 
-my $test;
-open(my $RND_FH, '<', "/dev/urandom");
-sysread($RND_FH, $test, 10) == 10 || die "read random data failed - $!\n";
-print MIME::Base32::encode_rfc3548($test) . "\n";
+use MIME::Base32; # libmime-base32-perl
 
+open(my $RND_FH, '<', "/dev/urandom") or die "Unable to open '/dev/urandom' - $!";
+sysread($RND_FH, my $random_data, 10) == 10 or die "read random data failed - $!\n";
+close $RND_FH or warn "Unable to close '/dev/urandom' - $!";
+
+print MIME::Base32::encode_rfc3548($random_data) . "\n";
+
+exit(0);
