@@ -38,9 +38,8 @@ upload: UPLOAD_DIST ?= $(DEB_DISTRIBUTION)
 upload: $(DEB)
 	tar cf - $(DEB) | ssh repoman@repo.proxmox.com -- upload --product pve --dist $(UPLOAD_DIST)
 
-.PHONY: clean
-clean:
-	rm -rf $(PACKAGE)-*/ *.deb *.buildinfo *.changes $(PACKAGE)*.tar.gz *.dsc
-
-.PHONY: distclean
+.PHONY: clean distclean
 distclean: clean
+clean:
+	rm -rf $(PACKAGE)-[0-9]*/
+	rm -f *.dsc *.deb *.buildinfo *.build *.changes $(PACKAGE)*.tar.*
