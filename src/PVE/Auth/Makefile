@@ -9,4 +9,4 @@ AUTH_SOURCES= 		 	\
 
 .PHONY: install
 install:
-	for i in ${AUTH_SOURCES}; do install -D -m 0644 $$i ${DESTDIR}${PERLDIR}/PVE/Auth/$$i; done
+	for i in $(AUTH_SOURCES); do install -D -m 0644 $$i $(DESTDIR)$(PERLDIR)/PVE/Auth/$$i; done
