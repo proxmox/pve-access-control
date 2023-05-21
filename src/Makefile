@@ -50,5 +50,4 @@ test:
 .PHONY: clean distclean
 distclean: clean
 clean:
-	make cleanup-docgen
-	find . -name '*~' -exec rm {} ';'
+	rm -f *.xml.tmp *.1 *.5 *.8 *{synopsis,opts}.adoc docinfo.xml
