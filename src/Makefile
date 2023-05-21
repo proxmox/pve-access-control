@@ -1,9 +1,4 @@
-include /usr/share/dpkg/pkg-info.mk
-include /usr/share/dpkg/architecture.mk
-
-PACKAGE=libpve-access-control
-
-BUILDDIR ?= ${PACKAGE}-${DEB_VERSION_UPSTREAM}
+PACKAGE ?= libpve-access-control
 
 DESTDIR=
 PREFIX=/usr
