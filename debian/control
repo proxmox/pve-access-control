@@ -15,7 +15,7 @@ Build-Depends: debhelper-compat (= 13),
                perl,
                pve-cluster (>= 6.1-4),
                pve-doc-generator (>= 5.3-3)
-Standards-Version: 4.5.1
+Standards-Version: 4.6.2
 Homepage: https://www.proxmox.com
 
 Package: libpve-access-control
