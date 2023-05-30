@@ -557,6 +557,38 @@ __PACKAGE__->register_method ({
     }});
 
 __PACKAGE__->register_method ({
+    name => 'unlock_tfa',
+    path => '{userid}/unlock-tfa',
+    method => 'PUT',
+    protected => 1,
+    description => "Unlock a user's TFA authentication.",
+    permissions => {
+	check => [ 'userid-group', ['User.Modify']],
+    },
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid-completed'),
+	},
+    },
+    returns => { type => 'boolean' },
+    code => sub {
+	my ($param) = @_;
+
+	my $userid = extract_param($param, "userid");
+
+	my $user_was_locked = PVE::AccessControl::lock_tfa_config(sub {
+	    my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
+	    my $was_locked = $tfa_cfg->api_unlock_tfa($userid);
+	    cfs_write_file('priv/tfa.cfg', $tfa_cfg)
+		if $was_locked;
+	    return $was_locked;
+	});
+
+	return $user_was_locked;
+    }});
+
+__PACKAGE__->register_method ({
     name => 'token_index',
     path => '{userid}/token',
     method => 'GET',
