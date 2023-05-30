@@ -149,6 +149,53 @@ __PACKAGE__->register_method({
 	return;
     }});
 
+__PACKAGE__->register_method({
+    name => 'list_tfa',
+    path => 'list_tfa',
+    method => 'GET',
+    description => "List TFA entries.",
+    parameters => {
+	additionalProperties => 0,
+	properties => {
+	    userid => get_standard_option('userid', { optional => 1 }),
+	},
+    },
+    returns => { type => 'null' },
+    code => sub {
+	my ($param) = @_;
+
+	my $userid = extract_param($param, "userid");
+
+	PVE::AccessControl::assert_new_tfa_config_available();
+
+	my sub format_tfa_entries : prototype($;$) {
+	    my ($entries, $indent) = @_;
+
+	    $indent //= '';
+
+	    my $nl = '';
+	    for my $entry (@$entries) {
+		my ($id, $ty, $desc) = ($entry->@{qw/id type description/});
+		printf("${nl}${indent}%-9s %s\n${indent}    %s\n", "$ty:", $id, $desc);
+		$nl = "\n";
+	    }
+	};
+
+	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
+	if (defined($userid)) {
+	    format_tfa_entries($tfa_cfg->api_list_user_tfa($userid));
+	} else {
+	    my $result = $tfa_cfg->api_list_tfa('', 1);
+	    my $nl = '';
+	    for my $entry (@$result) {
+		print "${nl}$entry->{userid}:\n";
+		format_tfa_entries($entry->{entries}, '    ');
+		$nl = "\n";
+	    }
+	}
+	return;
+    }});
+
 our $cmddef = {
     user => {
 	add    => [ 'PVE::API2::User', 'create_user', ['userid'] ],
@@ -158,6 +205,7 @@ our $cmddef = {
 	permissions => [ 'PVE::API2::AccessControl', 'permissions', ['userid'], {}, $print_perm_result, $PVE::RESTHandler::standard_output_options],
 	tfa => {
 	    delete => [ __PACKAGE__, 'delete_tfa', ['userid'] ],
+	    list => [ __PACKAGE__, 'list_tfa', ['userid'] ],
 	},
 	token => {
 	    add    => [ 'PVE::API2::User', 'generate_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
