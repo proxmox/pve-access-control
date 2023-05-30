@@ -206,6 +206,7 @@ our $cmddef = {
 	tfa => {
 	    delete => [ __PACKAGE__, 'delete_tfa', ['userid'] ],
 	    list => [ __PACKAGE__, 'list_tfa', ['userid'] ],
+	    unlock => [ 'PVE::API2::User', 'unlock_tfa', ['userid'] ],
 	},
 	token => {
 	    add    => [ 'PVE::API2::User', 'generate_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
