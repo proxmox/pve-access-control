@@ -43,6 +43,12 @@ sub authenticate_user {
 	die "error during PAM init: $err";
     }
 
+    if (my $rpcenv = PVE::RPCEnvironment::get()) {
+	if (my $ip = $rpcenv->get_client_ip()) {
+	    $pamh->pam_set_item(PAM_RHOST(), $ip);
+	}
+    }
+
     my $res;
 
     if (($res = $pamh->pam_authenticate(0)) != PAM_SUCCESS) {
