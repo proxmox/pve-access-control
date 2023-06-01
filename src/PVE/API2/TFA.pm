@@ -290,6 +290,17 @@ __PACKAGE__->register_method ({
 		    type => 'array',
 		    items => $TYPED_TFA_ENTRY_SCHEMA,
 		},
+		'totp-locked' => {
+		    type => 'boolean',
+		    optional => 1,
+		    description => 'True if the user is currently locked out of TOTP factors.',
+		},
+		'tfa-locked-until' => {
+		    type => 'integer',
+		    optional => 1,
+		    description =>
+			'Contains a timestamp until when a user is locked out of 2nd factors.',
+		},
 	    },
 	},
     },
