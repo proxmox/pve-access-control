@@ -115,6 +115,7 @@ __PACKAGE__->register_method ({
 	description => "The returned list is restricted to users where you have 'User.Modify' or 'Sys.Audit' permissions on '/access/groups' or on a group the user belongs too. But it always includes the current (authenticated) user.",
 	user => 'all',
     },
+    protected => 1, # to access priv/tfa.cfg
     parameters => {
 	additionalProperties => 0,
 	properties => {
@@ -157,6 +158,17 @@ __PACKAGE__->register_method ({
 		    description => 'The type of the users realm',
 		    optional => 1, # it should always be there, but we use conditional code below, so..
 		},
+		'totp-locked' => {
+		    type => 'boolean',
+		    optional => 1,
+		    description => 'True if the user is currently locked out of TOTP factors.',
+		},
+		'tfa-locked-until' => {
+		    type => 'integer',
+		    optional => 1,
+		    description =>
+			'Contains a timestamp until when a user is locked out of 2nd factors.',
+		},
 	    },
 	},
 	links => [ { rel => 'child', href => "{userid}" } ],
@@ -177,6 +189,8 @@ __PACKAGE__->register_method ({
 	my $canUserMod = $rpcenv->check_any($authuser, "/access/groups", $privs, 1);
 	my $groups = $rpcenv->filter_groups($authuser, $privs, 1);
 	my $allowed_users = $rpcenv->group_member_join([keys %$groups]);
+
+	my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
 
 	foreach my $user (sort keys %{$usercfg->{users}}) {
 	    if (!($canUserMod || $user eq $authuser)) {
@@ -204,6 +218,12 @@ __PACKAGE__->register_method ({
 	    }
 
 	    $entry->{userid} = $user;
+
+	    if (defined($tfa_cfg)) {
+		if (my $data = $tfa_cfg->tfa_lock_status($user)) {
+		    $entry->{$_} = $data->{$_} for qw(totp-locked tfa-locked-until);
+		}
+	    }
 
 	    push @$res, $entry;
 	}
