@@ -1,3 +1,31 @@
+libpve-access-control (8.0.0~1) bookworm; urgency=medium
+
+  * bump pve-rs dependency to 0.8.3
+
+  * drop old verify_tfa api call (POST /access/tfa)
+
+  * drop support for old login API:
+    - 'new-format' is now considured to be 1 and ignored by the API
+
+  * pam auth: set PAM_RHOST to allow pam configs to log/restrict/... by remote
+    address
+
+  * cli: add 'pveum tfa list'
+
+  * cli: add 'pveum tfa unlock'
+
+  * enable lockout of TFA:
+    - too many TOTP attempts will lock out of TOTP
+    - using a recovery key will unlock TOTP
+    - too many TFA attempts will lock a user's TFA auth for an hour
+
+  * api: add /access/users/<userid>/unlock-tfa to unlock a user's TFA
+    authentication if it was locked by too many wrong 2nd factor login attempts
+
+  * api: /access/tfa and /access/users now include the tfa lockout status
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 05 Jun 2023 14:52:29 +0200
+
 libpve-access-control (7.99.0) bookworm; urgency=medium
 
   * initial re-build for Proxmox VE 8.x series
