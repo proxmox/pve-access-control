@@ -50,7 +50,7 @@ check_roles('max@pve', '/vms/100', 'customer');
 check_roles('max@pve', '/vms/101', 'vm_admin');
 
 check_permission('max@pve', '/', '');
-check_permission('max@pve', '/vms', 'Permissions.Modify,VM.Allocate,VM.Audit,VM.Console');
+check_permission('max@pve', '/vms', 'VM.Allocate,VM.Audit,VM.Console');
 check_permission('max@pve', '/vms/100', 'VM.Audit,VM.PowerMgmt');
 
 check_permission('alex@pve', '/vms', '');
@@ -66,7 +66,7 @@ check_roles('max@pve!token', '/vms/200', 'storage_manager');
 check_roles('max@pve!token2', '/vms/200', 'customer');
 
 # check intersection -> token has Administrator, but user only vm_admin
-check_permission('max@pve!token2', '/vms/300', 'Permissions.Modify,VM.Allocate,VM.Audit,VM.Console,VM.PowerMgmt');
+check_permission('max@pve!token2', '/vms/300', 'VM.Allocate,VM.Audit,VM.Console,VM.PowerMgmt');
 
 print "all tests passed\n";
 

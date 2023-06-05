@@ -1060,7 +1060,6 @@ my $privgroups = {
 	    'Sys.Incoming', # incoming storage/guest migrations
 	],
 	admin => [
-	    'Permissions.Modify',
 	    'Sys.Console',
 	    'Sys.Syslog',
 	],
@@ -1118,7 +1117,9 @@ my $privgroups = {
     },
 };
 
-my $valid_privs = {};
+my $valid_privs = {
+    'Permissions.Modify' => 1, # not contained in a group
+};
 
 my $special_roles = {
     'NoAccess' => {}, # no privileges
