@@ -148,8 +148,11 @@ __PACKAGE__->register_method ({
 
 	PVE::AccessControl::lock_user_config(
 	    sub {
-
 		my $cfg = cfs_read_file("user.cfg");
+
+		my $rpcenv = PVE::RPCEnvironment::get();
+		my $authuser = $rpcenv->get_user();
+		my $auth_user_privs = $rpcenv->permissions($authuser, $path);
 
 		my $propagate = 1;
 
@@ -162,6 +165,25 @@ __PACKAGE__->register_method ({
 		foreach my $role (split_list($param->{roles})) {
 		    die "role '$role' does not exist\n"
 			if !$cfg->{roles}->{$role};
+
+		    if (!$auth_user_privs->{'Permissions.Modify'}) {
+			# 'perm-modify' allows /vms/* with VM.Allocate and similar restricted use cases
+			# filter those to only allow handing out a subset of currently active privs
+		        my $role_privs = $cfg->{roles}->{$role};
+		        my $verb = $param->{delete} ? 'remove' : 'add';
+		        foreach my $priv (keys $role_privs->%*) {
+			    raise_param_exc({ role => "Cannot $verb role '$role' - requires 'Permissions.Modify' or superset of privileges." })
+				if !defined($auth_user_privs->{$priv});
+
+			    # propagation is only potentially problematic for adding ACLs, not removing..
+			    raise_param_exc({ role => "Cannot $verb role '$role' with propagation - requires 'Permissions.Modify' or propagated superset of privileges." })
+				if $propagate && $auth_user_privs->{$priv} != $propagate && !$param->{delete};
+		        }
+
+			# NoAccess has no privs, needs an explicit check
+		        raise_param_exc({ role => "Cannot $verb role '$role' - requires 'Permissions.Modify'"})
+			    if $role eq 'NoAccess';
+		    }
 
 		    foreach my $group (split_list($param->{groups})) {
 
