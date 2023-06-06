@@ -1087,6 +1087,9 @@ my $privgroups = {
 	    'SDN.Allocate',
 	    'SDN.Audit',
 	],
+	user => [
+	    'SDN.Use',
+	],
 	audit => [
 	    'SDN.Audit',
 	],
