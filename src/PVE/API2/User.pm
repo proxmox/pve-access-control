@@ -221,7 +221,9 @@ __PACKAGE__->register_method ({
 
 	    if (defined($tfa_cfg)) {
 		if (my $data = $tfa_cfg->tfa_lock_status($user)) {
-		    $entry->{$_} = $data->{$_} for qw(totp-locked tfa-locked-until);
+		    for (qw(totp-locked tfa-locked-until)) {
+			$entry->{$_} = $data->{$_} if exists($data->{$_});
+		    }
 		}
 	    }
 
