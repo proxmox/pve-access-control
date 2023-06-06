@@ -187,10 +187,11 @@ sub compute_api_permission {
 	nodes => qr/Sys\.|Permissions\.Modify/,
 	sdn => qr/SDN\.|Permissions\.Modify/,
 	dc => qr/Sys\.Audit|Sys\.Modify|SDN\./,
+	mapping => qr/Mapping\.|Permissions.Modify/,
     };
     map { $res->{$_} = {} } keys %$priv_re_map;
 
-    my $required_paths = ['/', '/nodes', '/access/groups', '/vms', '/storage', '/sdn'];
+    my $required_paths = ['/', '/nodes', '/access/groups', '/vms', '/storage', '/sdn', '/mapping'];
     my $defined_paths = [];
     PVE::AccessControl::iterate_acl_tree("/", $usercfg->{acl_root}, sub {
 	my ($path, $node) = @_;

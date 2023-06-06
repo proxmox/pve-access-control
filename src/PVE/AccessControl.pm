@@ -1118,6 +1118,18 @@ my $privgroups = {
 	    'Pool.Audit',
 	],
     },
+    Mapping => {
+	root => [],
+	admin => [
+	    'Mapping.Modify',
+	],
+	user => [
+	    'Mapping.Use',
+	],
+	audit => [
+	    'Mapping.Audit',
+	],
+    },
 };
 
 my $valid_privs = {
@@ -1151,6 +1163,10 @@ sub create_roles {
 	    $special_roles->{"PVEAuditor"}->{$p} = 1;
 	}
     }
+
+    # remove Mapping.Modify from PVEAdmin, only Administrator, root@pam and
+    # PVEMappingAdmin should be able to use that for now
+    delete $special_roles->{"PVEAdmin"}->{"Mapping.Modify"};
 
     $special_roles->{"PVETemplateUser"} = { 'VM.Clone' => 1, 'VM.Audit' => 1 };
 };
@@ -1251,6 +1267,9 @@ sub check_path {
 	|/storage/[[:alnum:]\.\-\_]+
 	|/vms
 	|/vms/[1-9][0-9]{2,}
+	|/mapping
+	|/mapping/[[:alnum:]\.\-\_]+
+	|/mapping/[[:alnum:]\.\-\_]+/[[:alnum:]\.\-\_]+
     )$!xs;
 }
 
