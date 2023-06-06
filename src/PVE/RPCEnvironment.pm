@@ -324,6 +324,24 @@ sub check_full {
     }
 }
 
+sub check_sdn_bridge {
+    my ($self, $username, $zone, $bridge, $privs, $noerr) = @_;
+
+    my $path = "/sdn/zones/$zone/$bridge";
+    my $cfg = $self->{user_cfg};
+    my $bridge_acl = PVE::AccessControl::find_acl_tree_node($cfg->{acl_root}, $path);
+    if ($bridge_acl) {
+	my $vlans = $bridge_acl->{children};
+	for my $vlan (keys %$vlans) {
+	    my $vlanpath = "$path/$vlan";
+	    return 1 if $self->check_any($username, $vlanpath, $privs, $noerr);
+	}
+	# check access to bridge itself
+	return 1 if $self->check_any($username, $path, $privs, $noerr);
+    }
+    return;
+}
+
 sub check_user_enabled {
     my ($self, $user, $noerr) = @_;
 
