@@ -3,15 +3,15 @@ package PVE::Jobs::RealmSync;
 use strict;
 use warnings;
 
-use JSON;
+use JSON qw(decode_json encode_json);
 use POSIX qw(ENOENT);
 
 use PVE::JSONSchema qw(get_standard_option);
-use PVE::Cluster;
-use PVE::CalendarEvent;
-use PVE::Tools;
+use PVE::Cluster ();
+use PVE::CalendarEvent ();
+use PVE::Tools ();
 
-use PVE::API2::Domains;
+use PVE::API2::Domains ();
 
 use base qw(PVE::Job::Registry);
 

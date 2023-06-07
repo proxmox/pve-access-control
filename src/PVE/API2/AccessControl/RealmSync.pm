@@ -3,21 +3,15 @@ package PVE::API2::AccessControl::RealmSync;
 use strict;
 use warnings;
 
-use JSON;
 
-use PVE::Cluster qw (cfs_read_file cfs_write_file cfs_lock_file);
+use PVE::Cluster qw(cfs_lock_file cfs_read_file cfs_write_file);
 use PVE::Exception qw(raise_param_exc);
 use PVE::JSONSchema qw(get_standard_option);
-use PVE::Job::Registry;
-use PVE::RESTHandler;
-use PVE::SafeSyslog;
-use PVE::SectionConfig;
+use PVE::Job::Registry ();
+use PVE::SectionConfig ();
 use PVE::Tools qw(extract_param);
 
-use PVE::AccessControl;
-use PVE::Auth::Plugin;
-use PVE::Jobs::RealmSync;
-
+use PVE::Jobs::RealmSync ();
 
 use base qw(PVE::RESTHandler);
 
