@@ -1,3 +1,24 @@
+libpve-access-control (8.0.0~2) bookworm; urgency=medium
+
+  * api: user index: only include existing tfa lock flags
+
+  * add realm-sync plugin for jobs and CRUD api for realm-sync-jobs
+
+  * roles: only include Permissions.Modify in Administrator built-in role.
+    As, depending on the ACL object path, this privilege might allow one to
+    change their own permissions, which was making the distinction between
+    Admin and PVEAdmin irrelevant.
+
+  * acls: restrict less-privileged ACL modifications. Through allocate
+    permissions in pools, storages and virtual guests one can do some ACL
+    modifications without having the Permissions.Modify privilege, lock those
+    better down to ensure that one can only hand out only the subset of their
+    own privileges, never more. Note that this is mostly future proofing, as
+    the ACL object paths one could give out more permissions where already
+    limiting the scope.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 07 Jun 2023 11:34:30 +0200
+
 libpve-access-control (8.0.0~1) bookworm; urgency=medium
 
   * bump pve-rs dependency to 0.8.3
