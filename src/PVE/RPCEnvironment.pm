@@ -324,6 +324,7 @@ sub check_full {
     }
 }
 
+# check for any fashion of access to vnet/bridge
 sub check_sdn_bridge {
     my ($self, $username, $zone, $bridge, $privs, $noerr) = @_;
 
@@ -331,14 +332,19 @@ sub check_sdn_bridge {
     my $cfg = $self->{user_cfg};
     my $bridge_acl = PVE::AccessControl::find_acl_tree_node($cfg->{acl_root}, $path);
     if ($bridge_acl) {
+	# check access to VLANs
 	my $vlans = $bridge_acl->{children};
 	for my $vlan (keys %$vlans) {
 	    my $vlanpath = "$path/$vlan";
-	    return 1 if $self->check_any($username, $vlanpath, $privs, $noerr);
+	    return 1 if $self->check_any($username, $vlanpath, $privs, 1);
 	}
 	# check access to bridge itself
-	return 1 if $self->check_any($username, $path, $privs, $noerr);
+	return 1 if $self->check_any($username, $path, $privs, 1);
     }
+
+    # repeat check, but fatal
+    $self->check_any($username, $path, $privs, 0) if !$noerr;
+
     return;
 }
 
