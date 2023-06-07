@@ -1,3 +1,18 @@
+libpve-access-control (8.0.0~3) bookworm; urgency=medium
+
+  * rpcenv: api permission heuristic: query Sys.Modify for root ACL-path
+
+  * access control: add /sdn/zones/<zone>/<vnet>/<vlan> ACL object path
+
+  * add helper for checking bridge access
+
+  * add new SDN.Use privilege in PVESDNUser role, allowing one to specify
+    which user are allowed to use a bridge (or vnet, if SDN is installed)
+
+  * add privileges and paths for cluster resource mapping
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 07 Jun 2023 19:06:54 +0200
+
 libpve-access-control (8.0.0~2) bookworm; urgency=medium
 
   * api: user index: only include existing tfa lock flags
