@@ -1,8 +1,7 @@
-package PVE::API2::AccessControl::RealmSync;
+package PVE::API2::Jobs::RealmSync;
 
 use strict;
 use warnings;
-
 
 use PVE::Cluster qw(cfs_lock_file cfs_read_file cfs_write_file);
 use PVE::Exception qw(raise_param_exc);

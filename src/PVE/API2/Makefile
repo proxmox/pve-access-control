@@ -10,7 +10,7 @@ API2_SOURCES= 		 	\
 	TFA.pm			\
 	OpenId.pm
 
-SUBDIRS=AccessControl
+SUBDIRS = Jobs
 
 .PHONY: install
 install:
