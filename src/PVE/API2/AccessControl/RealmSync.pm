@@ -218,10 +218,10 @@ __PACKAGE__->register_method({
 	my $delete = extract_param($param, 'delete');
 	$delete = [PVE::Tools::split_list($delete)] if $delete;
 
+	die "no job options specified\n" if !scalar(keys %$param);
+
 	cfs_lock_file('jobs.cfg', undef, sub {
 	    my $jobs = cfs_read_file('jobs.cfg');
-
-	    die "no options specified\n" if !scalar(keys %$param);
 
 	    my $plugin = PVE::Job::Registry->lookup('realm-sync');
 	    my $opts = $plugin->check_config($id, $param, 0, 1);
