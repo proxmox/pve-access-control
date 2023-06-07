@@ -329,6 +329,9 @@ sub check_sdn_bridge {
     my ($self, $username, $zone, $bridge, $privs, $noerr) = @_;
 
     my $path = "/sdn/zones/$zone/$bridge";
+    # check access to bridge itself
+    return 1 if $self->check_any($username, $path, $privs, 1);
+
     my $cfg = $self->{user_cfg};
     my $bridge_acl = PVE::AccessControl::find_acl_tree_node($cfg->{acl_root}, $path);
     if ($bridge_acl) {
@@ -338,8 +341,6 @@ sub check_sdn_bridge {
 	    my $vlanpath = "$path/$vlan";
 	    return 1 if $self->check_any($username, $vlanpath, $privs, 1);
 	}
-	# check access to bridge itself
-	return 1 if $self->check_any($username, $path, $privs, 1);
     }
 
     # repeat check, but fatal
