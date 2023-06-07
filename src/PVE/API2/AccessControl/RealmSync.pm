@@ -102,6 +102,7 @@ __PACKAGE__->register_method ({
 	    if (my $schedule = $job->{schedule}) {
 		$job->{'last-run'} = eval { $get_cluster_last_run->($jobid) };
 		my $last_run = $job->{'last-run'} // time(); # current time as fallback
+
 		my $calendar_event = Proxmox::RS::CalendarEvent->new($schedule);
 		my $next_run = $calendar_event->compute_next_event($last_run);
 		$job->{'next-run'} = $next_run if defined($next_run);
@@ -201,8 +202,8 @@ __PACKAGE__->register_method({
     protected => 1,
     description => "Update realm-sync job definition.",
     permissions => {
-	description => "'Realm.AllocateUser' on '/access/realm/<realm>' and "
-	    ." 'User.Modify' permissions to '/access/groups/'.",
+	description => "'Realm.AllocateUser' on '/access/realm/<realm>' and 'User.Modify'"
+	    ." permissions to '/access/groups/'.",
 	check => [ 'and',
 	    ['perm', '/access/realm/{realm}', ['Realm.AllocateUser']],
 	    ['perm', '/access/groups', ['User.Modify']],
@@ -215,9 +216,7 @@ __PACKAGE__->register_method({
 
 	my $id = extract_param($param, 'id');
 	my $delete = extract_param($param, 'delete');
-	if ($delete) {
-	    $delete = [PVE::Tools::split_list($delete)];
-	}
+	$delete = [PVE::Tools::split_list($delete)] if $delete;
 
 	cfs_lock_file('jobs.cfg', undef, sub {
 	    my $jobs = cfs_read_file('jobs.cfg');
