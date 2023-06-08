@@ -5,6 +5,7 @@ use warnings;
 
 use PVE::AccessControl ();
 use PVE::Cluster qw(cfs_read_file cfs_write_file);
+use PVE::Exception qw(raise_param_exc);
 use PVE::JSONSchema qw(get_standard_option register_standard_option);
 
 use base qw(PVE::RESTHandler);
@@ -82,10 +83,16 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
+	my $role = $param->{roleid};
+
+	if ($role =~ /^PVE/i) {
+	    raise_param_exc({
+		roleid => "cannot use role ID starting with the (case-insensitive) 'PVE' namespace",
+	    });
+	}
+
 	PVE::AccessControl::lock_user_config(sub {
 	    my $usercfg = cfs_read_file("user.cfg");
-
-	    my $role = $param->{roleid};
 
 	    die "role '$role' already exists\n" if $usercfg->{roles}->{$role};
 
