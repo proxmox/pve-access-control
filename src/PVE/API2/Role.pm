@@ -85,22 +85,19 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::AccessControl::lock_user_config(
-	    sub {
+	PVE::AccessControl::lock_user_config(sub {
+	    my $usercfg = cfs_read_file("user.cfg");
 
-		my $usercfg = cfs_read_file("user.cfg");
+	    my $role = $param->{roleid};
 
-		my $role = $param->{roleid};
+	    die "role '$role' already exists\n" if $usercfg->{roles}->{$role};
 
-		die "role '$role' already exists\n"
-		    if $usercfg->{roles}->{$role};
+	    $usercfg->{roles}->{$role} = {};
 
-		$usercfg->{roles}->{$role} = {};
+	    PVE::AccessControl::add_role_privs($role, $usercfg, $param->{privs});
 
-		PVE::AccessControl::add_role_privs($role, $usercfg, $param->{privs});
-
-		cfs_write_file("user.cfg", $usercfg);
-	    }, "create role failed");
+	    cfs_write_file("user.cfg", $usercfg);
+	}, "create role failed");
 
 	return undef;
 }});
@@ -131,20 +128,17 @@ __PACKAGE__->register_method ({
 	die "auto-generated role '$role' cannot be modified\n"
 	    if PVE::AccessControl::role_is_special($role);
 
-	PVE::AccessControl::lock_user_config(
-	    sub {
+	PVE::AccessControl::lock_user_config(sub {
+	    my $usercfg = cfs_read_file("user.cfg");
 
-		my $usercfg = cfs_read_file("user.cfg");
+	    die "role '$role' does not exist\n" if !$usercfg->{roles}->{$role};
 
-		die "role '$role' does not exist\n"
-		    if !$usercfg->{roles}->{$role};
+	    $usercfg->{roles}->{$role} = {} if !$param->{append};
 
-		$usercfg->{roles}->{$role} = {} if !$param->{append};
+	    PVE::AccessControl::add_role_privs($role, $usercfg, $param->{privs});
 
-		PVE::AccessControl::add_role_privs($role, $usercfg, $param->{privs});
-
-		cfs_write_file("user.cfg", $usercfg);
-	    }, "update role failed");
+	    cfs_write_file("user.cfg", $usercfg);
+	}, "update role failed");
 
 	return undef;
 }});
@@ -207,19 +201,17 @@ __PACKAGE__->register_method ({
 	die "auto-generated role '$role' cannot be deleted\n"
 	    if PVE::AccessControl::role_is_special($role);
 
-	PVE::AccessControl::lock_user_config(
-	    sub {
-		my $usercfg = cfs_read_file("user.cfg");
+	PVE::AccessControl::lock_user_config(sub {
+	    my $usercfg = cfs_read_file("user.cfg");
 
-		die "role '$role' does not exist\n"
-		    if !$usercfg->{roles}->{$role};
+	    die "role '$role' does not exist\n" if !$usercfg->{roles}->{$role};
 
-		delete ($usercfg->{roles}->{$role});
+	    delete ($usercfg->{roles}->{$role});
 
-		# fixme: delete role from acl?
+	    # fixme: delete role from acl?
 
-		cfs_write_file("user.cfg", $usercfg);
-	    }, "delete role failed");
+	    cfs_write_file("user.cfg", $usercfg);
+	}, "delete role failed");
 
 	return undef;
     }
