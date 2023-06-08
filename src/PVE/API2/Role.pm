@@ -2,13 +2,10 @@ package PVE::API2::Role;
 
 use strict;
 use warnings;
-use PVE::Cluster qw (cfs_read_file cfs_write_file);
-use PVE::AccessControl;
+
+use PVE::AccessControl ();
+use PVE::Cluster qw(cfs_read_file cfs_write_file);
 use PVE::JSONSchema qw(get_standard_option register_standard_option);
-
-use PVE::SafeSyslog;
-
-use PVE::RESTHandler;
 
 use base qw(PVE::RESTHandler);
 
