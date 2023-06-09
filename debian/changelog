@@ -1,3 +1,11 @@
+libpve-access-control (7.4.1) bullseye; urgency=medium
+
+  * acl add /sdn/zones/<zone>/<vnet>/<vlan> path
+
+  * add new SDN.use privilege in PVESDNUser role
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 09 Jun 2023 10:54:16 +0200
+
 libpve-access-control (7.4-3) bullseye; urgency=medium
 
   * use new 2nd factor verification from pve-rs
