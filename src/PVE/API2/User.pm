@@ -100,7 +100,7 @@ my $extract_user_data = sub {
 
     return $res if !$full;
 
-    $res->{groups} = $data->{groups} ? [ keys %{$data->{groups}} ] : [];
+    $res->{groups} = $data->{groups} ? [ sort keys %{$data->{groups}} ] : [];
     $res->{tokens} = $data->{tokens};
 
     return $res;
