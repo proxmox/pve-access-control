@@ -163,7 +163,6 @@ __PACKAGE__->register_method ({
 	],
     },
     protected => 1, # else we can't access shadow files
-    allowtoken => 0, # we don't want tokens to change the regular user's TFA settings
     description => 'List TFA configurations of users.',
     parameters => {
 	additionalProperties => 0,
@@ -195,7 +194,6 @@ __PACKAGE__->register_method ({
 	],
     },
     protected => 1, # else we can't access shadow files
-    allowtoken => 0, # we don't want tokens to change the regular user's TFA settings
     description => 'Fetch a requested TFA entry if present.',
     parameters => {
 	additionalProperties => 0,
@@ -270,7 +268,6 @@ __PACKAGE__->register_method ({
 	user => 'all',
     },
     protected => 1, # else we can't access shadow files
-    allowtoken => 0, # we don't want tokens to change the regular user's TFA settings
     description => 'List TFA configurations of users.',
     parameters => {
 	additionalProperties => 0,
