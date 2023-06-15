@@ -176,6 +176,7 @@ __PACKAGE__->register_method ({
 	description => "A list of the user's TFA entries.",
 	type => 'array',
 	items => $TYPED_TFA_ENTRY_SCHEMA,
+	links => [ { rel => 'child', href => "{id}" } ],
     },
     code => sub {
 	my ($param) = @_;
@@ -300,6 +301,7 @@ __PACKAGE__->register_method ({
 		},
 	    },
 	},
+	links => [ { rel => 'child', href => "{userid}" } ],
     },
     code => sub {
 	my ($param) = @_;
