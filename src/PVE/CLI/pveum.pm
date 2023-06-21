@@ -176,7 +176,7 @@ __PACKAGE__->register_method({
 	    my $nl = '';
 	    for my $entry (@$entries) {
 		my ($id, $ty, $desc) = ($entry->@{qw/id type description/});
-		printf("${nl}${indent}%-9s %s\n${indent}    %s\n", "$ty:", $id, $desc);
+		printf("${nl}${indent}%-9s %s\n${indent}    %s\n", "$ty:", $id, $desc // '');
 		$nl = "\n";
 	    }
 	};
