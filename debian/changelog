@@ -1,3 +1,15 @@
+libpve-access-control (8.0.3) bookworm; urgency=medium
+
+  * pveum: list tfa: recovery keys have no descriptions
+
+  * pveum: list tfa: sort by user ID
+
+  * drop assert_new_tfa_config_available for Proxmox VE 8, as the new format
+    is understood since pve-manager 7.0-15, and users must upgrade to Proxmox
+    VE 7.4 before upgrading to Proxmox VE 8 in addition to that.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 21 Jun 2023 19:45:29 +0200
+
 libpve-access-control (8.0.2) bookworm; urgency=medium
 
   * api: users: sort groups to avoid "flapping" text
