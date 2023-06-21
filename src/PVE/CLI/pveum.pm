@@ -187,7 +187,7 @@ __PACKAGE__->register_method({
 	} else {
 	    my $result = $tfa_cfg->api_list_tfa('', 1);
 	    my $nl = '';
-	    for my $entry (@$result) {
+	    for my $entry (sort { $a->{userid} cmp $b->{userid} } @$result) {
 		print "${nl}$entry->{userid}:\n";
 		format_tfa_entries($entry->{entries}, '    ');
 		$nl = "\n";
