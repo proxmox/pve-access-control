@@ -242,8 +242,6 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::AccessControl::assert_new_tfa_config_available();
-	
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
 	my $userid =
@@ -378,8 +376,6 @@ __PACKAGE__->register_method ({
     code => sub {
 	my ($param) = @_;
 
-	PVE::AccessControl::assert_new_tfa_config_available();
-
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
 	my ($userid, $realm) =
@@ -472,8 +468,6 @@ __PACKAGE__->register_method ({
     returns => { type => 'null' },
     code => sub {
 	my ($param) = @_;
-
-	PVE::AccessControl::assert_new_tfa_config_available();
 
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();

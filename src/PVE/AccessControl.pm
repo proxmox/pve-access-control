@@ -1706,8 +1706,6 @@ sub parse_priv_tfa_config {
 sub write_priv_tfa_config {
     my ($filename, $cfg) = @_;
 
-    assert_new_tfa_config_available();
-
     return $cfg->write();
 }
 
@@ -1903,38 +1901,8 @@ my $USER_CONTROLLED_TFA_TYPES = {
     oath => 1,
 };
 
-sub assert_new_tfa_config_available() {
-    PVE::Cluster::cfs_update();
-    my $version_info = PVE::Cluster::get_node_kv('version-info');
-    die "cannot update tfa config, please make sure all cluster nodes are up to date\n"
-	if !$version_info;
-    my $members = PVE::Cluster::get_members() or return; # get_members returns undef on no cluster
-    my $old = '';
-    foreach my $node (keys $members->%*) {
-	my $info = $version_info->{$node};
-	if (!$info) {
-	    $old .= "  cluster node '$node' is too old, did not broadcast its version info\n";
-	    next;
-	}
-	$info = from_json($info);
-	my $ver = $info->{version};
-	if ($ver !~ /^(\d+\.\d+)(?:[.-](\d+))?/) {
-	    $old .= "  cluster node '$node' provided an invalid version string: '$ver'\n";
-	    next;
-	}
-	my ($maj, $rel) = ($1, $2);
-	if (!($maj > 7.0 || ($maj == 7.0 && $rel >= 15))) {
-	    $old .= "  cluster node '$node' is too old ($ver < 7.0-15)\n";
-	    next;
-	}
-    }
-    die "cannot update tfa config, following nodes are not up to date:\n$old" if length($old);
-}
-
 sub user_remove_tfa : prototype($) {
     my ($userid) = @_;
-
-    assert_new_tfa_config_available();
 
     my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
     $tfa_cfg->remove_user($userid);

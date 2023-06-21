@@ -135,8 +135,6 @@ __PACKAGE__->register_method({
 	my $userid = extract_param($param, "userid");
 	my $tfa_id = extract_param($param, "id");
 
-	PVE::AccessControl::assert_new_tfa_config_available();
-
 	PVE::AccessControl::lock_tfa_config(sub {
 	    my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
 	    if (defined($tfa_id)) {
@@ -165,8 +163,6 @@ __PACKAGE__->register_method({
 	my ($param) = @_;
 
 	my $userid = extract_param($param, "userid");
-
-	PVE::AccessControl::assert_new_tfa_config_available();
 
 	my sub format_tfa_entries : prototype($;$) {
 	    my ($entries, $indent) = @_;
