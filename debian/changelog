@@ -1,3 +1,14 @@
+libpve-access-control (8.0.2) bookworm; urgency=medium
+
+  * api: users: sort groups to avoid "flapping" text
+
+  * api: tfa: don't block tokens from viewing and list TFA entries, both are
+    safe to do for anybody with enough permissions to view a user.
+
+  * api: tfa: add missing links for child-routes
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 21 Jun 2023 18:13:54 +0200
+
 libpve-access-control (8.0.1) bookworm; urgency=medium
 
   * tfa: cope with native versions in cluster version check
