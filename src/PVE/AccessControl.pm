@@ -1998,15 +1998,17 @@ sub user_get_tfa : prototype($$$) {
     $realm_tfa = PVE::Auth::Plugin::parse_tfa_config($realm_tfa)
 	if $realm_tfa;
 
-    if (!$keys) {
-	return if !$realm_tfa;
-	die "missing required 2nd keys\n";
-    }
-
     my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
     if (defined($keys) && $keys !~ /^x(?:!.*)$/) {
 	add_old_keys_to_realm_tfa($username, $tfa_cfg, $realm_tfa, $keys);
     }
+
+    if ($realm_tfa) {
+	my $entries = $tfa_cfg->api_list_user_tfa($username);
+	die "missing required 2nd keys\n"
+	    if scalar(@$entries) == 0;
+    }
+
     return ($tfa_cfg, $realm_tfa);
 }
 
