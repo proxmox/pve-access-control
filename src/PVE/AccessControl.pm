@@ -753,6 +753,9 @@ sub authenticate_2nd_new_do : prototype($$$$) {
     my ($username, $realm, $tfa_response, $tfa_challenge) = @_;
     my ($tfa_cfg, $realm_tfa) = user_get_tfa($username, $realm);
 
+    # FIXME: `$tfa_cfg` is now usually never undef - use cheap check for
+    # whether the user has *any* entries here instead whe it is available in
+    # pve-rs
     if (!defined($tfa_cfg)) {
 	return undef;
     }
@@ -2004,6 +2007,7 @@ sub user_get_tfa : prototype($$$) {
     }
 
     if ($realm_tfa) {
+	# FIXME: pve-rs should provide a cheaper check for this
 	my $entries = $tfa_cfg->api_list_user_tfa($username);
 	die "missing required 2nd keys\n"
 	    if scalar(@$entries) == 0;
