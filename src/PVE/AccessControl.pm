@@ -808,6 +808,10 @@ sub authenticate_2nd_new_do : prototype($$$$) {
 	$tfa_challenge = undef;
     } else {
 	$tfa_challenge = $tfa_cfg->authentication_challenge($username);
+
+	die "missing required 2nd keys\n"
+	    if $realm_tfa && !defined($tfa_challenge);
+
 	if (defined($tfa_response)) {
 	    if (defined($tfa_challenge)) {
 		$tfa_done = 1;
@@ -2004,13 +2008,6 @@ sub user_get_tfa : prototype($$$) {
     my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
     if (defined($keys) && $keys !~ /^x(?:!.*)$/) {
 	add_old_keys_to_realm_tfa($username, $tfa_cfg, $realm_tfa, $keys);
-    }
-
-    if ($realm_tfa) {
-	# FIXME: pve-rs should provide a cheaper check for this
-	my $entries = $tfa_cfg->api_list_user_tfa($username);
-	die "missing required 2nd keys\n"
-	    if scalar(@$entries) == 0;
     }
 
     return ($tfa_cfg, $realm_tfa);
