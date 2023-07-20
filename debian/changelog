@@ -1,3 +1,14 @@
+libpve-access-control (8.0.4) bookworm; urgency=medium
+
+  * Lookup of second factors is no longer tied to the 'keys' field in the
+    user.cfg. This fixes an issue where certain LDAP/AD sync job settings
+    could disable user-configured 2nd factors.
+
+  * Existing-but-disabled TFA factors can no longer circumvent realm-mandated
+    TFA.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 20 Jul 2023 10:59:21 +0200
+
 libpve-access-control (8.0.3) bookworm; urgency=medium
 
   * pveum: list tfa: recovery keys have no descriptions
