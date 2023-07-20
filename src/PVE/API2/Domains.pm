@@ -203,7 +203,8 @@ __PACKAGE__->register_method ({
 		    if !$ids->{$realm};
 
 		my $delete_str = extract_param($param, 'delete');
-		die "no options specified\n" if !$delete_str && !scalar(keys %$param);
+		die "no options specified\n"
+		    if !$delete_str && !scalar(keys %$param) && !defined($password);
 
 		my $delete_pw = 0;
 		foreach my $opt (PVE::Tools::split_list($delete_str)) {
