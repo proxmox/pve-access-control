@@ -117,7 +117,14 @@ __PACKAGE__->register_method ({
 	check => ['perm', '/access/realm', ['Realm.Allocate']],
     },
     description => "Add an authentication server.",
-    parameters => PVE::Auth::Plugin->createSchema(),
+    parameters => PVE::Auth::Plugin->createSchema(0, {
+	'check-connection' => {
+	    description => 'Check bind connection to the server.',
+	    type => 'boolean',
+	    optional => 1,
+	    default => 0,
+	},
+    }),
     returns => { type => 'null' },
     code => sub {
 	my ($param) = @_;
@@ -133,6 +140,7 @@ __PACKAGE__->register_method ({
 
 		my $realm = extract_param($param, 'realm');
 		my $type = $param->{type};
+		my $check_connection = extract_param($param, 'check-connection');
 
 		die "domain '$realm' already exists\n"
 		    if $ids->{$realm};
@@ -142,6 +150,9 @@ __PACKAGE__->register_method ({
 
 		die "unable to create builtin type '$type'\n"
 		    if ($type eq 'pam' || $type eq 'pve');
+
+		die "'check-connection' parameter can only be set for realms of type 'ldap' or 'ad'\n"
+		    if defined($check_connection) && !($type eq 'ldap' || $type eq 'ad');
 
 		if ($type eq 'ad' || $type eq 'ldap') {
 		    $map_sync_default_options->($param, 1);
@@ -165,6 +176,10 @@ __PACKAGE__->register_method ({
 		}
 		$plugin->on_add_hook($realm, $config, password => $password);
 
+		# Only for LDAP/AD, implied through the existence of the 'check-connection' param
+		$plugin->check_connection($realm, $config, password => $password)
+		    if $check_connection;
+
 		cfs_write_file($domainconfigfile, $cfg);
 	    }, "add auth server failed");
 
@@ -180,7 +195,14 @@ __PACKAGE__->register_method ({
     },
     description => "Update authentication server settings.",
     protected => 1,
-    parameters => PVE::Auth::Plugin->updateSchema(),
+    parameters => PVE::Auth::Plugin->updateSchema(0, {
+	'check-connection' => {
+	    description => 'Check bind connection to the server.',
+	    type => 'boolean',
+	    optional => 1,
+	    default => 0,
+	},
+    }),
     returns => { type => 'null' },
     code => sub {
 	my ($param) = @_;
@@ -198,9 +220,14 @@ __PACKAGE__->register_method ({
 		PVE::SectionConfig::assert_if_modified($cfg, $digest);
 
 		my $realm = extract_param($param, 'realm');
+		my $type = $ids->{$realm}->{type};
+		my $check_connection = extract_param($param, 'check-connection');
 
 		die "domain '$realm' does not exist\n"
 		    if !$ids->{$realm};
+
+		die "'check-connection' parameter can only be set for realms of type 'ldap' or 'ad'\n"
+		    if defined($check_connection) && !($type eq 'ldap' || $type eq 'ad');
 
 		my $delete_str = extract_param($param, 'delete');
 		die "no options specified\n"
@@ -212,7 +239,6 @@ __PACKAGE__->register_method ({
 		    $delete_pw = 1 if $opt eq 'password';
 		}
 
-		my $type = $ids->{$realm}->{type};
 		if ($type eq 'ad' || $type eq 'ldap') {
 		    $map_sync_default_options->($param, 1);
 		}
@@ -236,6 +262,10 @@ __PACKAGE__->register_method ({
 		} else {
 		    $plugin->on_update_hook($realm, $config);
 		}
+
+		# Only for LDAP/AD, implied through the existence of the 'check-connection' param
+		$plugin->check_connection($realm, $ids->{$realm}, password => $password)
+		    if $check_connection;
 
 		cfs_write_file($domainconfigfile, $cfg);
 	    }, "update auth server failed");

@@ -317,4 +317,12 @@ sub on_delete_hook {
     # do nothing by default
 }
 
+# called during addition and updates of realms (before the new domain config gets written)
+# die to abort addition/update in case the connection/bind fails
+# NOTE: runs in a storage config *locked* context
+sub check_connection {
+    my ($class, $realm, $config, %param) = @_;
+    # do nothing by default
+}
+
 1;

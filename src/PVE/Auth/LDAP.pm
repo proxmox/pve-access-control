@@ -10,9 +10,6 @@ use PVE::Tools;
 
 use base qw(PVE::Auth::Plugin);
 
-my  $dn_part_regex = qr!("[^"]+"|[^ ,+"/<>;=#][^,+"/<>;=]*[^ ,+"/<>;=]|[^ ,+"/<>;=#])!;
-our $dn_regex = qr!\w+=${dn_part_regex}(,\s*\w+=${dn_part_regex})*!;
-
 sub type {
     return 'ldap';
 }
@@ -22,7 +19,6 @@ sub properties {
 	base_dn => {
 	    description => "LDAP base domain name",
 	    type => 'string',
-	    pattern => $dn_regex,
 	    optional => 1,
 	    maxLength => 256,
 	},
@@ -36,7 +32,6 @@ sub properties {
 	bind_dn => {
 	    description => "LDAP bind domain name",
 	    type => 'string',
-	    pattern => $dn_regex,
 	    optional => 1,
 	    maxLength => 256,
 	},
@@ -94,7 +89,6 @@ sub properties {
 	    description => "LDAP base domain name for group sync. If not set, the"
 		." base_dn will be used.",
 	    type => 'string',
-	    pattern => $dn_regex,
 	    optional => 1,
 	    maxLength => 256,
 	},
@@ -137,7 +131,7 @@ sub properties {
 	    type => 'boolean',
 	    optional => 1,
 	    default => 1,
-	}
+	},
     };
 }
 
@@ -184,7 +178,7 @@ sub get_scheme_and_port {
 }
 
 sub connect_and_bind {
-    my ($class, $config, $realm) = @_;
+    my ($class, $config, $realm, $param) = @_;
 
     my $servers = [$config->{server1}];
     push @$servers, $config->{server2} if $config->{server2};
@@ -215,7 +209,7 @@ sub connect_and_bind {
 
     if ($config->{bind_dn}) {
 	my $bind_dn = $config->{bind_dn};
-	my $bind_pass = ldap_get_credentials($realm);
+	my $bind_pass = $param->{password} || ldap_get_credentials($realm);
 	die "missing password for realm $realm\n" if !defined($bind_pass);
 	PVE::LDAP::ldap_bind($ldap, $bind_dn, $bind_pass);
     } elsif ($config->{cert} && $config->{certkey}) {
@@ -452,6 +446,12 @@ sub on_delete_hook {
     my ($class, $realm, $config) = @_;
 
     ldap_delete_credentials($realm);
+}
+
+sub check_connection {
+    my ($class, $realm, $config, %param) = @_;
+
+    $class->connect_and_bind($config, $realm, \%param);
 }
 
 1;
