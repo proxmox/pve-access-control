@@ -1,3 +1,13 @@
+libpve-access-control (8.0.5) bookworm; urgency=medium
+
+  * fix an issue where setting ldap passwords would refuse to work unless
+    at least one additional property was changed as well
+
+  * add 'check-connection' parameter to create and update endpoints for ldap
+    based realms
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 11 Aug 2023 13:35:23 +0200
+
 libpve-access-control (8.0.4) bookworm; urgency=medium
 
   * Lookup of second factors is no longer tied to the 'keys' field in the
