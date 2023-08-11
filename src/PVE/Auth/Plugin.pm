@@ -311,7 +311,7 @@ sub on_update_hook {
 # and if the activate check on addition fails, to cleanup all storage traces
 # which on_add_hook may have created.
 # die to abort deletion if there are (very grave) problems
-# NOTE: runs in a storage config *locked* context
+# NOTE: runs in a domain config *locked* context
 sub on_delete_hook {
     my ($class, $realm, $config) = @_;
     # do nothing by default
@@ -319,7 +319,7 @@ sub on_delete_hook {
 
 # called during addition and updates of realms (before the new domain config gets written)
 # die to abort addition/update in case the connection/bind fails
-# NOTE: runs in a storage config *locked* context
+# NOTE: runs in a domain config *locked* context
 sub check_connection {
     my ($class, $realm, $config, %param) = @_;
     # do nothing by default
