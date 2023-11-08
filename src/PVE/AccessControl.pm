@@ -1266,6 +1266,12 @@ sub check_path {
 	|/pool
 	|/pool/[[:alnum:]\.\-\_]+
 	|/sdn
+	|/sdn/controllers
+	|/sdn/controllers/[[:alnum:]\_\-]+
+	|/sdn/dns
+	|/sdn/dns/[[:alnum:]]+
+	|/sdn/ipams
+	|/sdn/ipams/[[:alnum:]]+
 	|/sdn/zones
 	|/sdn/zones/[[:alnum:]\.\-\_]+
 	|/sdn/zones/[[:alnum:]\.\-\_]+/[[:alnum:]\.\-\_]+
