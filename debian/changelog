@@ -1,3 +1,11 @@
+libpve-access-control (8.0.6) bookworm; urgency=medium
+
+  * perms: fix wrong /pools entry in default set of ACL paths
+
+  * acl: add missing SDN ACL paths to allowed list
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 17 Nov 2023 08:27:11 +0100
+
 libpve-access-control (8.0.5) bookworm; urgency=medium
 
   * fix an issue where setting ldap passwords would refuse to work unless
