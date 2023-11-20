@@ -237,21 +237,25 @@ my $default_cfg = {
 	'id' => 'testpool',
 	vms => {},
 	storage => {},
+	pools => {},
     },
     test_pool_members => {
 	'id' => 'testpool',
 	vms => { 123 => 1, 1234 => 1},
 	storage => { 'local' => 1, 'local-zfs' => 1},
+	pools => {},
     },
     test_pool_duplicate_vms => {
 	'id' => 'test_duplicate_vms',
 	vms => {},
 	storage => {},
+	pools => {},
     },
     test_pool_duplicate_storages => {
 	'id' => 'test_duplicate_storages',
 	vms => {},
 	storage => { 'local' => 1, 'local-zfs' => 1},
+	pools => {},
     },
     acl_simple_user => {
 	'path' => '/',

@@ -1529,7 +1529,21 @@ sub parse_user_config {
 	    }
 
 	    # make sure to add the pool (even if there are no members)
-	    $cfg->{pools}->{$pool} = { vms => {}, storage => {} } if !$cfg->{pools}->{$pool};
+	    $cfg->{pools}->{$pool} = { vms => {}, storage => {}, pools => {} }
+		if !$cfg->{pools}->{$pool};
+
+	    if ($pool =~ m!/!) {
+		my $curr = $pool;
+		while ($curr =~ m!^(.+)/[^/]+$!) {
+		    # ensure nested pool info is correctly recorded
+		    my $parent = $1;
+		    $cfg->{pools}->{$curr}->{parent} = $parent;
+		    $cfg->{pools}->{$parent} = { vms => {}, storage => {}, pools => {} }
+			if !$cfg->{pools}->{$parent};
+		    $cfg->{pools}->{$parent}->{pools}->{$curr} = 1;
+		    $curr = $parent;
+		}
+	    }
 
 	    $cfg->{pools}->{$pool}->{comment} = PVE::Tools::decode_text($comment) if $comment;
 
