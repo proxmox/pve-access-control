@@ -75,6 +75,22 @@ check_roles('User4@pve', '/vms/500', '');
 # with pool
 check_permissions('User4@pve', '/vms/500', '');
 
+# without pool, checking no access on parent pool
+check_roles('intern@pve', '/vms/600', '');
+# once more, with VM in nested pool
+check_roles('intern@pve', '/vms/700', '');
+# with propagated ACL
+check_roles('User4@pve', '/vms/700', '');
+# with pool, checking no access on parent pool
+check_permissions('intern@pve', '/vms/600', '');
+# once more, with VM in nested pool
+check_permissions('intern@pve', '/vms/700', 'VM.Audit');
+# with propagated ACL
+check_permissions('User4@pve', '/vms/700', 'VM.Console');
+
+# check nested pool permissions
+check_roles('intern@pve', '/pool/marketing/interns', 'RoleINTERN');
+check_roles('User4@pve', '/pool/marketing/interns', 'RoleMARKETING');
 
 check_permissions('User1@pve', '/vms/600', 'VM.Console');
 check_permissions('User2@pve', '/vms/600', 'VM.Console');

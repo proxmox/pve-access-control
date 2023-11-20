@@ -1264,7 +1264,7 @@ sub check_path {
 	|/nodes
 	|/nodes/[[:alnum:]\.\-\_]+
 	|/pool
-	|/pool/[[:alnum:]\.\-\_]+
+	|/pool/[A-Za-z0-9\.\-_]+(?:/[A-Za-z0-9\.\-_]+){0,2}
 	|/sdn
 	|/sdn/controllers
 	|/sdn/controllers/[[:alnum:]\_\-]+
@@ -1318,8 +1318,14 @@ PVE::JSONSchema::register_format('pve-poolid', \&verify_poolname);
 sub verify_poolname {
     my ($poolname, $noerr) = @_;
 
-    if ($poolname !~ m/^[A-Za-z0-9\.\-_]+$/) {
+    if (split("/", $poolname) > 3) {
+	die "pool name '$poolname' nested too deeply (max levels = 3)\n" if !$noerr;
 
+	return undef;
+    }
+
+    # also adapt check_path above if changed!
+    if ($poolname !~ m!^[A-Za-z0-9\.\-_]+(?:/[A-Za-z0-9\.\-_]+){0,2}$!) {
 	die "pool name '$poolname' contains invalid characters\n" if !$noerr;
 
 	return undef;
