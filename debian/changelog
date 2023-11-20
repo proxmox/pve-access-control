@@ -1,3 +1,11 @@
+libpve-access-control (8.0.7) bookworm; urgency=medium
+
+  * fix #1148: allow up to three levels of pool nesting
+
+  * pools: record parent/subpool information
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 20 Nov 2023 12:24:13 +0100
+
 libpve-access-control (8.0.6) bookworm; urgency=medium
 
   * perms: fix wrong /pools entry in default set of ACL paths
