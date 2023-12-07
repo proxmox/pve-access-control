@@ -2,7 +2,6 @@
 API2_SOURCES= 		 	\
 	AccessControl.pm 	\
 	Domains.pm	 	\
-	RealmSync.pm	 	\
 	ACL.pm		 	\
 	Role.pm		 	\
 	Group.pm	 	\
