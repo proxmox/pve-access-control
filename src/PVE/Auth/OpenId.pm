@@ -59,7 +59,8 @@ sub properties {
 	'acr-values' => {
 	    description => "Specifies the Authentication Context Class Reference values that the"
 		."Authorization Server is being requested to use for the Auth Request.",
-	    type => 'string', # format => 'some-safe-id-list', # FIXME: TODO
+	    type => 'string',
+	    pattern => '^[^\x00-\x1F\x7F <>#"]*$', # Prohibit characters not allowed in URI RFC 2396.
 	    optional => 1,
 	},
    };
