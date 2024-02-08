@@ -289,7 +289,7 @@ sub get_users {
 	# NOTE: also ensure verify_sync_attribute_value can handle any new/changed attribute name
     };
     # build on the fly as this is small and only called once per realm in a ldap-sync anyway
-    my $valid_sync_attributes = map { $_ => 1 } values $ldap_attribute_map->%*;
+    my $valid_sync_attributes = { map { $_ => 1 } values $ldap_attribute_map->%* };
 
     foreach my $attr (PVE::Tools::split_list($config->{sync_attributes})) {
 	my ($ours, $ldap) = ($attr =~ m/^\s*(\w+)=(.*)\s*$/);
