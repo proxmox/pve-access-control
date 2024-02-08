@@ -36,6 +36,7 @@ register_standard_option('user-comment', { type => 'string', optional => 1 });
 register_standard_option('user-keys', {
     description => "Keys for two factor auth (yubico).",
     type => 'string',
+    pattern => '[0-9a-zA-Z!=]{0,4096}',
     optional => 1,
 });
 register_standard_option('group-list', {
