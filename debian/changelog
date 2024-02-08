@@ -1,3 +1,9 @@
+libpve-access-control (7.4.3) bullseye; urgency=medium
+
+  * LDAP sync: fix-up assembling valid attribute set
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 08 Feb 2024 19:05:09 +0100
+
 libpve-access-control (7.4.2) bullseye; urgency=medium
 
   * api: user: limit the legacy user-keys option to the depreacated values
