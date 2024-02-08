@@ -1,3 +1,27 @@
+libpve-access-control (8.1.0) bookworm; urgency=medium
+
+  * api: user: limit the legacy user-keys option to the depreacated values
+    that could be set in the first limited TFA system, like e.g., 'x!yubico'
+    or base32 encoded secrets.
+
+  * oidc: enforce generic URI regex for the ACR value to align with OIDC
+    specifications and with Proxmox Backup Server, which was recently changed
+    to actually be less strict.
+
+  * LDAP sync: improve validation of synced attributes, closely limit the
+    mapped attributes names and their values to avoid glitches through odd
+    LDIF entries.
+
+  * api: user: limit maximum length for first & last name to 1024 characters,
+    email to 254 characters (the maximum actually useable in practice) and
+    comment properties to 2048 characters. This avoid that a few single users
+    bloat the user.cfg to much by mistake, reducing the total amount of users
+    and ACLs that can be set up. Note that only users with User.Modify and
+    realm syncs (setup by admins) can change these in the first place, so this
+    is mostly to avoid mishaps and just to be sure.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 08 Feb 2024 17:50:59 +0100
+
 libpve-access-control (8.0.7) bookworm; urgency=medium
 
   * fix #1148: allow up to three levels of pool nesting
