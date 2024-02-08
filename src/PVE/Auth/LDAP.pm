@@ -172,21 +172,8 @@ sub options {
     };
 }
 
-my $valid_sync_attributes = {
-    username => 1,
-    enable => 1,
-    expire => 1,
-    firstname => 1,
-    lastname => 1,
-    email => 1,
-    comment => 1,
-    keys => 1,
-};
-
-my sub verify_sync_attribute {
+my sub verify_sync_attribute_value {
     my ($attr, $value) = @_;
-
-    die "cannot map to invalid user sync attribute '$attr'\n" if !$valid_sync_attributes->{$attr};
 
     # The attribute does not include the realm, so can't use PVE::Auth::Plugin::verify_username
     if ($attr eq 'username') {
@@ -303,11 +290,13 @@ sub get_users {
 	comment => 'comment',
 	keys => 'keys',
     };
+    # build on the fly as this is small and only called once per realm in a ldap-sync anyway
+    my $valid_sync_attributes = map { $_ => 1 } values $ldap_attribute_map->%*;
 
     foreach my $attr (PVE::Tools::split_list($config->{sync_attributes})) {
 	my ($ours, $ldap) = ($attr =~ m/^\s*(\w+)=(.*)\s*$/);
 	if (!$valid_sync_attributes->{$ours}) {
-	    warn "bad 'sync_attributes': cannot map to invalid attribute '$ours'\n";
+	    warn "skipping bad 'sync_attributes' entry – '$ours' is not a valid target attribute\n";
 	    next;
 	}
 	$ldap_attribute_map->{$ldap} = $ours;
@@ -341,7 +330,7 @@ sub get_users {
 	foreach my $attr (keys %$user_attributes) {
 	    if (my $ours = $ldap_attribute_map->{$attr}) {
 		my $value = $user_attributes->{$attr}->[0];
-		eval { verify_sync_attribute($ours, $value) };
+		eval { verify_sync_attribute_value($ours, $value) };
 		if (my $err = $@) {
 		    warn "skipping attribute mapping '$attr'->'$ours' for user '$username' - $err";
 		    next;
