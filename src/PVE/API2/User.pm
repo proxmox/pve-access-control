@@ -35,12 +35,12 @@ register_standard_option('user-email', {
     type => 'string',
     optional => 1,
     format => 'email-opt',
-    maxLength => 4096,
+    maxLength => 254, # 256 including punctuation and separator is the max path as per RFC 5321
 });
 register_standard_option('user-comment', {
     type => 'string',
     optional => 1,
-    maxLength => 8192,
+    maxLength => 2048,
 });
 register_standard_option('user-keys', {
     description => "Keys for two factor auth (yubico).",
