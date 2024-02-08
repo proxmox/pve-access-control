@@ -184,8 +184,11 @@ my sub verify_sync_attribute_value {
 
     return if $attr eq 'enable'; # for backwards compat, don't parse/validate
 
-    my $schema = PVE::JSONSchema::get_standard_option("user-$attr");
-    PVE::JSONSchema::validate($value, $schema, "invalid value '$value'\n");
+    if (my $schema = PVE::JSONSchema::get_standard_option("user-$attr")) {
+	PVE::JSONSchema::validate($value, $schema, "invalid value '$value'\n");
+    } else {
+	die "internal error: no schema for attribute '$attr' with value '$value' available!\n";
+    }
 }
 
 sub get_scheme_and_port {
@@ -289,6 +292,7 @@ sub get_users {
 	email => 'email',
 	comment => 'comment',
 	keys => 'keys',
+	# NOTE: also ensure verify_sync_attribute_value can handle any new/changed attribute name
     };
     # build on the fly as this is small and only called once per realm in a ldap-sync anyway
     my $valid_sync_attributes = map { $_ => 1 } values $ldap_attribute_map->%*;
