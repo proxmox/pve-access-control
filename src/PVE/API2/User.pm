@@ -29,10 +29,19 @@ register_standard_option('user-expire', {
     minimum => 0,
     optional => 1,
 });
-register_standard_option('user-firstname', { type => 'string', optional => 1 });
-register_standard_option('user-lastname', { type => 'string', optional => 1 });
-register_standard_option('user-email', { type => 'string', optional => 1, format => 'email-opt' });
-register_standard_option('user-comment', { type => 'string', optional => 1 });
+register_standard_option('user-firstname', { type => 'string', optional => 1, maxLength => 1024, });
+register_standard_option('user-lastname', { type => 'string', optional => 1, maxLength => 1024, });
+register_standard_option('user-email', {
+    type => 'string',
+    optional => 1,
+    format => 'email-opt',
+    maxLength => 4096,
+});
+register_standard_option('user-comment', {
+    type => 'string',
+    optional => 1,
+    maxLength => 8192,
+});
 register_standard_option('user-keys', {
     description => "Keys for two factor auth (yubico).",
     type => 'string',
