@@ -1065,6 +1065,7 @@ my $privgroups = {
 	    'Sys.PowerMgmt',
 	    'Sys.Modify', # edit/change node settings
 	    'Sys.Incoming', # incoming storage/guest migrations
+	    'Sys.AccessNetwork', # for, e.g., downloading ISOs from any URL
 	],
 	admin => [
 	    'Sys.Console',

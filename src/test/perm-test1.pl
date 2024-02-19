@@ -79,7 +79,7 @@ check_permission(
     . 'Pool.Allocate,Pool.Audit,'
     . 'Realm.Allocate,Realm.AllocateUser,'
     . 'SDN.Allocate,SDN.Audit,SDN.Use,'
-    . 'Sys.Audit,Sys.Console,Sys.Incoming,Sys.Modify,Sys.PowerMgmt,Sys.Syslog,'
+    . 'Sys.AccessNetwork,Sys.Audit,Sys.Console,Sys.Incoming,Sys.Modify,Sys.PowerMgmt,Sys.Syslog,'
     . 'User.Modify,'
     . 'VM.Allocate,VM.Audit,VM.Backup,VM.Clone,VM.Config.CDROM,VM.Config.CPU,VM.Config.Cloudinit,'
     . 'VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,'
