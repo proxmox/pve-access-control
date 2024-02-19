@@ -1150,24 +1150,25 @@ my $special_roles = {
 
 sub create_roles {
 
-    foreach my $cat (keys %$privgroups) {
+    for my $cat (keys %$privgroups) {
 	my $cd = $privgroups->{$cat};
-	foreach my $p (@{$cd->{root}}, @{$cd->{admin}},
-		       @{$cd->{user}}, @{$cd->{audit}}) {
-	    $valid_privs->{$p} = 1;
+	# create map to easily check if a privilege is valid
+	for my $priv (@{$cd->{root}}, @{$cd->{admin}}, @{$cd->{user}}, @{$cd->{audit}}) {
+	    $valid_privs->{$priv} = 1;
 	}
-	foreach my $p (@{$cd->{admin}}, @{$cd->{user}}, @{$cd->{audit}}) {
-
-	    $special_roles->{"PVE${cat}Admin"}->{$p} = 1;
-	    $special_roles->{"PVEAdmin"}->{$p} = 1;
+	# create grouped admin roles and PVEAdmin
+	for my $priv (@{$cd->{admin}}, @{$cd->{user}}, @{$cd->{audit}}) {
+	    $special_roles->{"PVE${cat}Admin"}->{$priv} = 1;
+	    $special_roles->{"PVEAdmin"}->{$priv} = 1;
 	}
+	# create grouped user and audit roles
 	if (scalar(@{$cd->{user}})) {
-	    foreach my $p (@{$cd->{user}}, @{$cd->{audit}}) {
-		$special_roles->{"PVE${cat}User"}->{$p} = 1;
+	    for my $priv (@{$cd->{user}}, @{$cd->{audit}}) {
+		$special_roles->{"PVE${cat}User"}->{$priv} = 1;
 	    }
 	}
-	foreach my $p (@{$cd->{audit}}) {
-	    $special_roles->{"PVEAuditor"}->{$p} = 1;
+	for my $priv (@{$cd->{audit}}) {
+	    $special_roles->{"PVEAuditor"}->{$priv} = 1;
 	}
     }
 
