@@ -1,3 +1,9 @@
+libpve-access-control (8.1.2) bookworm; urgency=medium
+
+  * add Sys.AccessNetwork privilege
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 28 Feb 2024 15:42:12 +0100
+
 libpve-access-control (8.1.1) bookworm; urgency=medium
 
   * LDAP sync: fix-up assembling valid attribute set
