@@ -16,6 +16,7 @@ use JSON;
 use Scalar::Util 'weaken';
 use URI::Escape;
 
+use PVE::Exception qw(raise_perm_exc raise_param_exc);
 use PVE::OTP;
 use PVE::Ticket;
 use PVE::Tools qw(run_command lock_file file_get_contents split_list safe_print);
