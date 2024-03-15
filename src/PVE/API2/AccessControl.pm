@@ -344,6 +344,7 @@ __PACKAGE__->register_method ({
 		minLength => 5,
 		maxLength => 64,
 	    },
+	    'confirmation-password' => $PVE::API2::TFA::OPTIONAL_PASSWORD_SCHEMA,
 	}
     },
     returns => { type => "null" },
@@ -353,9 +354,12 @@ __PACKAGE__->register_method ({
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
 
-	my ($userid, $ruid, $realm) = PVE::AccessControl::verify_username($param->{userid});
-
-	$rpcenv->check_user_exist($userid);
+	my ($userid, $ruid, $realm) = $rpcenv->reauth_user_for_user_modification(
+	    $authuser,
+	    $param->{userid},
+	    $param->{'confirmation-password'},
+	    'confirmation-password',
+	);
 
 	if ($authuser eq 'root@pam') {
 	    # OK - root can change anything

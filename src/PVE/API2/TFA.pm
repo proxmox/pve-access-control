@@ -18,8 +18,8 @@ use PVE::RESTHandler;
 
 use base qw(PVE::RESTHandler);
 
-my $OPTIONAL_PASSWORD_SCHEMA = {
-    description => "The current password.",
+our $OPTIONAL_PASSWORD_SCHEMA = {
+    description => "The current password of the user performing the change.",
     type => 'string',
     optional => 1, # Only required if not root@pam
     minLength => 5,
