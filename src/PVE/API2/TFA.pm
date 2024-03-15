@@ -351,7 +351,7 @@ __PACKAGE__->register_method ({
 
 	my $rpcenv = PVE::RPCEnvironment::get();
 	my $authuser = $rpcenv->get_user();
-	my ($userid, $realm) = $rpcenv->reauth_user_for_user_modification(
+	my ($userid, undef, $realm) = $rpcenv->reauth_user_for_user_modification(
 	    $authuser,
 	    $param->{userid},
 	    $param->{password},

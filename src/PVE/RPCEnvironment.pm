@@ -637,21 +637,24 @@ sub is_worker {
     return PVE::RESTEnvironment->is_worker();
 }
 
+# Permission helper for TFA and password API endpoints modifying users.
 # Only root may modify root, regular users need to specify their password.
 #
-# Returns the userid returned from `verify_username`.
-# Or ($userid, $realm) in list context.
-sub reauth_user_for_user_modification : prototype($$$$) {
-    my ($rpcenv, $authuser, $userid, $password) = @_;
+# Returns the same as `verify_username` in list context (userid, ruid, realm),
+# or just the userid in scalar context.
+sub reauth_user_for_user_modification : prototype($$$$;$) {
+    my ($rpcenv, $authuser, $userid, $password, $param_name) = @_;
 
-    ($userid, undef, my $realm) = PVE::AccessControl::verify_username($userid);
+    $param_name //= 'password';
+
+    ($userid, my $ruid, my $realm) = PVE::AccessControl::verify_username($userid);
     $rpcenv->check_user_exist($userid);
 
     raise_perm_exc() if $userid eq 'root@pam' && $authuser ne 'root@pam';
 
     # Regular users need to confirm their password to change TFA settings.
     if ($authuser ne 'root@pam') {
-	raise_param_exc({ 'password' => 'password is required to modify TFA data' })
+	raise_param_exc({ $param_name => 'password is required to modify user' })
 	    if !defined($password);
 
 	($authuser, my $auth_username, my $auth_realm) =
@@ -664,7 +667,7 @@ sub reauth_user_for_user_modification : prototype($$$$) {
 	$plugin->authenticate_user($cfg, $auth_realm, $auth_username, $password);
     }
 
-    return wantarray ? ($userid, $realm) : $userid;
+    return wantarray ? ($userid, $ruid, $realm) : $userid;
 }
 
 1;
