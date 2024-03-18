@@ -409,7 +409,7 @@ __PACKAGE__->register_method ({
 	});
     }});
 
-sub validate_yubico_otp : prototype($$) {
+sub validate_yubico_otp : prototype($$$) {
     my ($userid, $realm, $value) = @_;
 
     my $domain_cfg = cfs_read_file('domains.cfg');
