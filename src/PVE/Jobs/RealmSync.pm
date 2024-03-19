@@ -13,6 +13,9 @@ use PVE::Tools ();
 
 use PVE::API2::Domains ();
 
+# load user-* standard options
+use PVE::API2::User ();
+
 use base qw(PVE::Job::Registry);
 
 sub type {
