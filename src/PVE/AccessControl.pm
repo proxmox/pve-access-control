@@ -951,7 +951,7 @@ sub iterate_acl_tree {
 
     my $children = $node->{children};
 
-    foreach my $child (keys %$children) {
+    foreach my $child (sort keys %$children) {
 	iterate_acl_tree("$path/$child", $children->{$child}, $code);
     }
 }
