@@ -1,3 +1,9 @@
+libpve-access-control (8.1.4) bookworm; urgency=medium
+
+  * fix #5335: sort ACL entries in user.cfg to make it easier to track changes
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 22 Apr 2024 13:45:22 +0200
+
 libpve-access-control (8.1.3) bookworm; urgency=medium
 
   * user: password change: require confirmation-password parameter so that
