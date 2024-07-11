@@ -166,7 +166,8 @@ __PACKAGE__->register_method ({
 		    die "role '$role' does not exist\n"
 			if !$cfg->{roles}->{$role};
 
-		    if (!$auth_user_privs->{'Permissions.Modify'}) {
+		    # permissions() returns set privs as key, and propagate bit as value!
+		    if (!defined($auth_user_privs->{'Permissions.Modify'})) {
 			# 'perm-modify' allows /vms/* with VM.Allocate and similar restricted use cases
 			# filter those to only allow handing out a subset of currently active privs
 		        my $role_privs = $cfg->{roles}->{$role};
