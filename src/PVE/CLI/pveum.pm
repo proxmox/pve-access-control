@@ -237,11 +237,10 @@ our $cmddef = {
 	sync   => [ 'PVE::API2::Domains', 'sync', ['realm'], ],
     },
 
-    ticket => [ 'PVE::API2::AccessControl', 'create_ticket', ['username'], undef,
-		sub {
-		    my ($res) = @_;
-		    print "$res->{ticket}\n";
-		}],
+    ticket => [ 'PVE::API2::AccessControl', 'create_ticket', ['username'], undef, sub {
+	my ($res) = @_;
+	print "$res->{ticket}\n";
+    }],
 
     passwd => [ 'PVE::API2::AccessControl', 'change_password', ['userid'] ],
 
