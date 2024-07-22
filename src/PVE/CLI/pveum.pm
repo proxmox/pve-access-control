@@ -207,7 +207,8 @@ our $cmddef = {
 	token => {
 	    add    => [ 'PVE::API2::User', 'generate_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
 	    modify    => [ 'PVE::API2::User', 'update_token_info', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
-	    remove    => [ 'PVE::API2::User', 'remove_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
+	    delete    => [ 'PVE::API2::User', 'remove_token', ['userid', 'tokenid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options ],
+	    remove    => { alias => 'delete' },
 	    list   => [ 'PVE::API2::User', 'token_index', ['userid'], {}, $print_api_result, $PVE::RESTHandler::standard_output_options],
 	    permissions => [ __PACKAGE__, 'token_permissions', ['userid', 'tokenid'], {}, $print_perm_result, $PVE::RESTHandler::standard_output_options],
 	}
