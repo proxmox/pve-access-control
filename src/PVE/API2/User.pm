@@ -272,7 +272,7 @@ __PACKAGE__->register_method ({
 		description => "Initial password.",
 		type => 'string',
 		optional => 1,
-		minLength => 5,
+		minLength => 8,
 		maxLength => 64
 	    },
 	    groups => get_standard_option('group-list'),

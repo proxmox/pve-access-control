@@ -345,7 +345,7 @@ __PACKAGE__->register_method ({
 	    password => {
 		description => "The new password.",
 		type => 'string',
-		minLength => 5,
+		minLength => 8,
 		maxLength => 64,
 	    },
 	    'confirmation-password' => $PVE::API2::TFA::OPTIONAL_PASSWORD_SCHEMA,
