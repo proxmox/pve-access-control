@@ -486,14 +486,14 @@ __PACKAGE__->register_method({
 	my ($param) = @_;
 
 	my $rpcenv = PVE::RPCEnvironment::get();
+	my $authid = $rpcenv->get_user();
 
 	my $userid = $param->{userid};
-	if (defined($userid)) {
-	    $rpcenv->check($rpcenv->get_user(), '/access', ['Sys.Audit']);
-	} else {
-	    $userid = $rpcenv->get_user();
-	}
+	$userid = $authid if !defined($userid);
 
+	if ($userid ne $authid) {
+	    $rpcenv->check($rpcenv->get_user(), '/access', ['Sys.Audit']);
+	}
 	my $res;
 
 	if (my $path = $param->{path}) {
