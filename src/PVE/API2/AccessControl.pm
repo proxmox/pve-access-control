@@ -460,7 +460,11 @@ __PACKAGE__->register_method({
     method => 'GET',
     description => 'Retrieve effective permissions of given user/token.',
     permissions => {
-	description => "Each user/token is allowed to dump their own permissions. A user can dump the permissions of another user if they have 'Sys.Audit' permission on /access.",
+	description => "Each user/token is allowed to dump their own ".
+	               "permissions (or that of owned tokens). A user  ".
+	               "can dump the permissions of another user or ".
+	               "their tokens if they have 'Sys.Audit' permission ".
+	               "on /access.",
 	user => 'all',
     },
     parameters => {
@@ -491,7 +495,11 @@ __PACKAGE__->register_method({
 	my $userid = $param->{userid};
 	$userid = $authid if !defined($userid);
 
-	if ($userid ne $authid) {
+	my ($user, $token) = PVE::AccessControl::split_tokenid($userid, 1);
+	my $check_self = $userid eq $authid;
+	my $check_owned_token = defined($user) && $user eq $authid;
+
+	if (!($check_self || $check_owned_token)) {
 	    $rpcenv->check($rpcenv->get_user(), '/access', ['Sys.Audit']);
 	}
 	my $res;
