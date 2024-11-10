@@ -220,7 +220,8 @@ __PACKAGE__->register_method ({
 	        completion => \&PVE::AccessControl::complete_username,
 	    },
 	    realm =>  get_standard_option('realm', {
-		description => "You can optionally pass the realm using this parameter. Normally the realm is simply added to the username <username>\@<relam>.",
+		description => "You can optionally pass the realm using this parameter. Normally"
+		    ." the realm is simply added to the username <username>\@<relam>.",
 		optional => 1,
 		completion => \&PVE::AccessControl::complete_realm,
 	    }),
@@ -322,7 +323,10 @@ __PACKAGE__->register_method ({
     path => 'password',
     method => 'PUT',
     permissions => {
-	description => "Each user is allowed to change his own password. A user can change the password of another user if he has 'Realm.AllocateUser' (on the realm of user <userid>) and 'User.Modify' permission on /access/groups/<group> on a group where user <userid> is member of.",
+	description => "Each user is allowed to change his own password. A user can change the"
+	    ." password of another user if he has 'Realm.AllocateUser' (on the realm of user"
+	    ." <userid>) and 'User.Modify' permission on /access/groups/<group> on a group where"
+	    ." user <userid> is member of.",
 	check => [ 'or',
 		   ['userid-param', 'self'],
 		   [ 'and',
@@ -460,11 +464,9 @@ __PACKAGE__->register_method({
     method => 'GET',
     description => 'Retrieve effective permissions of given user/token.',
     permissions => {
-	description => "Each user/token is allowed to dump their own ".
-	               "permissions (or that of owned tokens). A user  ".
-	               "can dump the permissions of another user or ".
-	               "their tokens if they have 'Sys.Audit' permission ".
-	               "on /access.",
+	description => "Each user/token is allowed to dump their own permissions (or that of owned"
+	    ." tokens). A user can dump the permissions of another user or their tokens if they"
+	    ." have 'Sys.Audit' permission on /access.",
 	user => 'all',
     },
     parameters => {
