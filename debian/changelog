@@ -1,3 +1,22 @@
+libpve-access-control (8.2.0) bookworm; urgency=medium
+
+  * api: ACL update: fix regression where the Permissions.Modify handling
+    became to strict, a user with "Permissions.Modify" on a path should be
+    able to set arbitrary ACLs for that path, even without propagation.
+
+  * pveum: user token: rename 'remove' command to 'delete' for consistency
+    with other delete-commands of this tool. Keep 'remove' as alias for
+    backward compatibility.
+
+  * api: permissions: allow users to view their own permissions.
+
+  * api: permissions: allow users to check their own tokens.
+
+  * api: enforce a minimum length of 8 on new passwords to align with NIST's
+    latest recommendation.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 13 Nov 2024 17:41:50 +0100
+
 libpve-access-control (8.1.4) bookworm; urgency=medium
 
   * fix #5335: sort ACL entries in user.cfg to make it easier to track changes
