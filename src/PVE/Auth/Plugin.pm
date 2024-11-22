@@ -59,7 +59,7 @@ PVE::JSONSchema::register_standard_option('sync-scope', {
 });
 
 PVE::JSONSchema::register_standard_option('sync-remove-vanished', {
-    description => "A semicolon-seperated list of things to remove when they or the user"
+    description => "A semicolon-separated list of things to remove when they or the user"
 	." vanishes during a sync. The following values are possible: 'entry' removes the"
 	." user/group when not returned from the sync. 'properties' removes the set"
 	." properties on existing user/group that do not appear in the source (even custom ones)."

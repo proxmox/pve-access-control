@@ -221,7 +221,7 @@ __PACKAGE__->register_method ({
 	    },
 	    realm =>  get_standard_option('realm', {
 		description => "You can optionally pass the realm using this parameter. Normally"
-		    ." the realm is simply added to the username <username>\@<relam>.",
+		    ." the realm is simply added to the username <username>\@<realm>.",
 		optional => 1,
 		completion => \&PVE::AccessControl::complete_realm,
 	    }),
