@@ -326,7 +326,8 @@ __PACKAGE__->register_method ({
 	description => "Each user is allowed to change his own password. A user can change the"
 	    ." password of another user if he has 'Realm.AllocateUser' (on the realm of user"
 	    ." <userid>) and 'User.Modify' permission on /access/groups/<group> on a group where"
-	    ." user <userid> is member of.",
+	    ." user <userid> is member of. For the PAM realm, a password change does not take "
+	    ." effect cluster-wide, but only applies to the local node.",
 	check => [ 'or',
 		   ['userid-param', 'self'],
 		   [ 'and',
