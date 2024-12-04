@@ -323,8 +323,8 @@ __PACKAGE__->register_method ({
     path => 'password',
     method => 'PUT',
     permissions => {
-	description => "Each user is allowed to change his own password. A user can change the"
-	    ." password of another user if he has 'Realm.AllocateUser' (on the realm of user"
+	description => "Each user is allowed to change their own password. A user can change the"
+	    ." password of another user if they have 'Realm.AllocateUser' (on the realm of user"
 	    ." <userid>) and 'User.Modify' permission on /access/groups/<group> on a group where"
 	    ." user <userid> is member of. For the PAM realm, a password change does not take "
 	    ." effect cluster-wide, but only applies to the local node.",
@@ -371,7 +371,7 @@ __PACKAGE__->register_method ({
 	} else {
 	    if ($authuser eq $userid) {
 		$rpcenv->check_user_enabled($userid);
-		# OK - each user can change its own password
+		# OK - each user can change their own password
 	    } else {
 		# only root may change root password
 		raise_perm_exc() if $userid eq 'root@pam';
