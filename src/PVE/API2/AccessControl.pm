@@ -298,8 +298,8 @@ __PACKAGE__->register_method ({
 		);
 	    }
 	};
+        my $clientip = $rpcenv->get_client_ip() || '';
 	if (my $err = $@) {
-	    my $clientip = $rpcenv->get_client_ip() || '';
 	    syslog('err', "authentication failure; rhost=$clientip user=$username msg=$err");
 	    # do not return any info to prevent user enumeration attacks
 	    die PVE::Exception->new("authentication failure\n", code => 401);
@@ -313,7 +313,7 @@ __PACKAGE__->register_method ({
 	    $res->{clustername} = $clinfo->{cluster}->{name};
 	}
 
-	PVE::Cluster::log_msg('info', 'root@pam', "successful auth for user '$username'");
+	PVE::Cluster::log_msg('info', 'root@pam', "successful auth for user '$username'; rhost=$clientip");
 
 	return $res;
     }});
