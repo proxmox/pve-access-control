@@ -85,6 +85,12 @@ sub properties {
 	    pattern => '^[^\x00-\x1F\x7F <>#"]*$', # Prohibit characters not allowed in URI RFC 2396.
 	    optional => 1,
 	},
+	"query-userinfo" => {
+	    description => "Enables querying the userinfo endpoint for claims values.",
+	    type => 'boolean',
+	    default => 1,
+	    optional => 1,
+	},
    };
 }
 
@@ -103,6 +109,7 @@ sub options {
 	"acr-values" => { optional => 1 },
 	default => { optional => 1 },
 	comment => { optional => 1 },
+	"query-userinfo" => { optional => 1 },
     };
 }
 

@@ -171,7 +171,11 @@ __PACKAGE__->register_method ({
 
 	    my ($config, $openid) = $lookup_openid_auth->($realm, $redirect_url);
 
-	    my $info = $openid->verify_authorization_code($param->{code}, $private_auth_state);
+	    my $info = $openid->verify_authorization_code(
+		$param->{code},
+		$private_auth_state,
+		$config->{'query-userinfo'} // 1,
+	    );
 	    my $subject = $info->{'sub'};
 
 	    my $unique_name;
