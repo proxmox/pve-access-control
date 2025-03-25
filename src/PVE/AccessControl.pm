@@ -1231,7 +1231,7 @@ sub lookup_username {
 	die "ambiguous case insensitive match of username '$username', cannot safely grant access!\n"
 	    if scalar @matches > 1 && !$noerr;
 
-	return $matches[0]
+	return $matches[0] if defined($matches[0]);
     }
 
     return $username;
