@@ -1223,9 +1223,9 @@ sub lookup_username {
     my $realm = $2;
     my $domain_cfg = cfs_read_file("domains.cfg");
     my $casesensitive = $domain_cfg->{ids}->{$realm}->{'case-sensitive'} // 1;
-    my $usercfg = cfs_read_file('user.cfg');
 
     if (!$casesensitive) {
+	my $usercfg = cfs_read_file('user.cfg');
 	my @matches = grep { lc $username eq lc $_ } (keys %{$usercfg->{users}});
 
 	die "ambiguous case insensitive match of username '$username', cannot safely grant access!\n"
