@@ -2,3 +2,10 @@ build
 *.deb
 *.1.pod
 *.1.gz
+/libpve-access-control-[0-9]*/
+/libpve-access-control_[0-9]
+*.buildinfo
+*.build
+*.changes
+*.dsc
+*.tar.xz
