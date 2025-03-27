@@ -31,6 +31,7 @@ sub lock_domain_config {
 
 our $realm_regex = qr/[A-Za-z][A-Za-z0-9\.\-_]+/;
 our $user_regex = qr![^\s:/]+!;
+our $groupname_regex_chars = qr/A-Za-z0-9\.\-_/;
 
 PVE::JSONSchema::register_format('pve-realm', \&pve_verify_realm);
 sub pve_verify_realm {

@@ -1293,7 +1293,7 @@ PVE::JSONSchema::register_format('pve-groupid', \&verify_groupname);
 sub verify_groupname {
     my ($groupname, $noerr) = @_;
 
-    if ($groupname !~ m/^[A-Za-z0-9\.\-_]+$/) {
+    if ($groupname !~ m/^[$PVE::Auth::Plugin::groupname_regex_chars]+$/) {
 
 	die "group name '$groupname' contains invalid characters\n" if !$noerr;
 

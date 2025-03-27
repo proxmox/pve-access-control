@@ -13,6 +13,7 @@ use PVE::Cluster qw(cfs_read_file cfs_write_file);
 use PVE::AccessControl;
 use PVE::JSONSchema qw(get_standard_option);
 use PVE::Auth::Plugin;
+use PVE::Auth::OpenId;
 
 use PVE::RESTHandler;
 
@@ -218,6 +219,88 @@ __PACKAGE__->register_method ({
 	    } else {
 		# test if user exists and is enabled
 		$rpcenv->check_user_enabled($username);
+	    }
+
+	    if (defined(my $groups_claim = $config->{'groups-claim'})) {
+		if (defined(my $groups_list = $info->{$groups_claim})) {
+		    if (ref($groups_list) eq 'ARRAY') {
+			PVE::AccessControl::lock_user_config(sub {
+			    my $usercfg = cfs_read_file("user.cfg");
+
+			    my $oidc_groups;
+			    for my $group (@$groups_list) {
+				if (PVE::AccessControl::verify_groupname($group, 1)) {
+				    # add realm name as suffix to group
+				    $oidc_groups->{"$group-$realm"} = 1;
+				} else {
+				    # ignore any groups in the list that have invalid characters
+				    syslog(
+					'warn',
+					"openid group '$group' contains invalid characters"
+				    );
+				}
+			    }
+
+			    # get groups that exist in OIDC and PVE
+			    my $groups_intersect;
+			    for my $group (keys %$oidc_groups) {
+				$groups_intersect->{$group} = 1 if $usercfg->{groups}->{$group};
+			    }
+
+			    if ($config->{'groups-autocreate'}) {
+				# populate all groups in claim
+				$groups_intersect = $oidc_groups;
+				my $groups_to_create;
+				for my $group (keys %$oidc_groups) {
+				    $groups_to_create->{$group} = 1 if !$usercfg->{groups}->{$group};
+				}
+				if ($groups_to_create) {
+				    # log a messages about created groups here
+				    my $groups_to_create_string = join(', ', sort keys %$groups_to_create);
+				    syslog(
+					'info',
+					"groups created automatically from openid claim: $groups_to_create_string"
+				    );
+				}
+			    }
+
+			    # if groups should be overwritten, delete all the users groups first
+			    if ($config->{'groups-overwrite'} ) {
+				PVE::AccessControl::delete_user_group(
+				    $username,
+				    $usercfg,
+				);
+				syslog(
+				    'info',
+				    "openid overwrite groups enabled; user '$username' removed from all groups"
+				);
+			    }
+
+			    if (keys %$groups_intersect) {
+				# ensure user is a member of the groups
+				for my $group (keys %$groups_intersect) {
+				    PVE::AccessControl::add_user_group(
+					$username,
+					$usercfg,
+					$group
+				    );
+				}
+
+				my $groups_intersect_string = join(', ', sort keys %$groups_intersect);
+				syslog(
+				    'info',
+				    "openid user '$username' added to groups: $groups_intersect_string"
+				);
+			    }
+
+			    cfs_write_file("user.cfg", $usercfg);
+			}, "openid group mapping failed");
+		    } else {
+			syslog('err', "openid groups list is not an array; groups will not be updated");
+		    }
+		} else {
+		    syslog('err', "openid groups claim '$groups_claim' is not found in claims");
+		}
 	    }
 
 	    my $ticket = PVE::AccessControl::assemble_ticket($username);

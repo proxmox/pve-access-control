@@ -9,6 +9,9 @@ use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_write_file cfs_lock_file
 
 use base qw(PVE::Auth::Plugin);
 
+# include all printable ascii characters
+my $openid_claim_regex = qr/[ -~]+/;
+
 sub type {
     return 'openid';
 }
@@ -42,6 +45,25 @@ sub properties {
 	    type => 'string',
 	    optional => 1,
 	},
+	"groups-claim" => {
+	    description => "OpenID claim used to retrieve groups with.",
+	    type => 'string',
+	    pattern => $openid_claim_regex,
+	    maxLength => 256,
+	    optional => 1,
+	},
+	"groups-autocreate" => {
+	    description => "Automatically create groups if they do not exist.",
+	    optional => 1,
+	    type => 'boolean',
+	    default => 0,
+	},
+	"groups-overwrite" => {
+	    description => "All groups will be overwritten for the user on login.",
+	    type => 'boolean',
+	    default => 0,
+	    optional => 1,
+	},
 	prompt => {
 	    description => "Specifies whether the Authorization Server prompts the End-User for"
 	        ." reauthentication and consent.",
@@ -73,6 +95,9 @@ sub options {
 	"client-key" => { optional => 1 },
 	autocreate => { optional => 1 },
 	"username-claim" => { optional => 1, fixed => 1 },
+	"groups-claim" => { optional => 1 },
+	"groups-autocreate" => { optional => 1 },
+	"groups-overwrite" => { optional => 1 },
 	prompt => { optional => 1 },
 	scopes => { optional => 1 },
 	"acr-values" => { optional => 1 },
