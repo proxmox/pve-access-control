@@ -1,3 +1,27 @@
+libpve-access-control (8.2.1) bookworm; urgency=medium
+
+  * api, auth: fix two typos in user-visible description.
+
+  * fix #4411: OIDC: add logic for openid groups support. Allow admisn to
+    configure a 'groups-claim' to automatically map users to PVE groups and
+    add a 'groups-autocreate' setting to optionally create them automatically
+    if a group does not already exist. Additionally, provide a flag for making
+    OIDC the source of truth for group membership on login. If the flag named
+    'groups-overwrite' is set, the user will be removed from all groups first
+    before being added to the list returned by the identity provider.
+
+  * fix #4234: OIDC: allow one to configure realms to not query the userinfo
+    on login by setting the 'query-userinfo' flag.
+
+  * access: lookup: fix undef warning for case-insensitive realms.
+
+  * access: lookup: avoid reading user.cfg from cfs unnecessarily, it's only
+    required for case-insensitive realms.
+
+  * api: clarify that password changes for PAM realm only apply to local node.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 04 Apr 2025 19:28:32 +0200
+
 libpve-access-control (8.2.0) bookworm; urgency=medium
 
   * api: ACL update: fix regression where the Permissions.Modify handling
