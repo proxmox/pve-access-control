@@ -9,8 +9,8 @@ use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_write_file cfs_lock_file
 
 use base qw(PVE::Auth::Plugin);
 
-# include all printable ascii characters
-my $openid_claim_regex = qr/[ -~]+/;
+# FIXME: restrict username-claim as well?
+my $openid_claim_regex = qr/A-Za-z0-9\.\-_/;
 
 sub type {
     return 'openid';
