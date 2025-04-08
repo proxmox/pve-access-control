@@ -1,3 +1,9 @@
+libpve-access-control (8.2.2) bookworm; urgency=medium
+
+  * oidc: fix overly strict groups-claim regex enforced by API schema.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 08 Apr 2025 13:37:07 +0200
+
 libpve-access-control (8.2.1) bookworm; urgency=medium
 
   * api, auth: fix two typos in user-visible description.
