@@ -30,134 +30,138 @@ my $stranger_privsep_perms = $rpcenv->get_effective_permissions('stranger@pve!pr
 
 my $stranger_user_tests = [
     {
-	description => 'get stranger\'s perms without passing the user\'s userid',
-	rpcuser => 'stranger@pve',
-	params => {},
-	result => $stranger_perms,
+        description => 'get stranger\'s perms without passing the user\'s userid',
+        rpcuser => 'stranger@pve',
+        params => {},
+        result => $stranger_perms,
     },
     {
-	description => 'get stranger\'s perms with passing the user\'s userid',
-	rpcuser => 'stranger@pve',
-	params => {
-	    userid => 'stranger@pve',
-	},
-	result => $stranger_perms,
+        description => 'get stranger\'s perms with passing the user\'s userid',
+        rpcuser => 'stranger@pve',
+        params => {
+            userid => 'stranger@pve',
+        },
+        result => $stranger_perms,
     },
     {
-	description => 'get stranger-owned non-priv-sep\'d token\'s perms from stranger user',
-	rpcuser => 'stranger@pve',
-	params => {
-	    userid => 'stranger@pve!noprivsep',
-	},
-	result => $stranger_perms,
+        description => 'get stranger-owned non-priv-sep\'d token\'s perms from stranger user',
+        rpcuser => 'stranger@pve',
+        params => {
+            userid => 'stranger@pve!noprivsep',
+        },
+        result => $stranger_perms,
     },
     {
-	description => 'get stranger-owned priv-sep\'d token\'s perms from stranger user',
-	rpcuser => 'stranger@pve',
-	params => {
-	    userid => 'stranger@pve!privsep',
-	},
-	result => $stranger_privsep_perms,
+        description => 'get stranger-owned priv-sep\'d token\'s perms from stranger user',
+        rpcuser => 'stranger@pve',
+        params => {
+            userid => 'stranger@pve!privsep',
+        },
+        result => $stranger_privsep_perms,
     },
     {
-	description => 'get auditor\'s perms from stranger user',
-	should_fail => 1,
-	rpcuser => 'stranger@pve',
-	params => {
-	    userid => 'auditor@pam',
-	},
+        description => 'get auditor\'s perms from stranger user',
+        should_fail => 1,
+        rpcuser => 'stranger@pve',
+        params => {
+            userid => 'auditor@pam',
+        },
     },
     {
-	description => 'get auditor-owned token\'s perms from stranger user',
-	should_fail => 1,
-	rpcuser => 'stranger@pve',
-	params => {
-	    userid => 'auditor@pam!noprivsep',
-	},
+        description => 'get auditor-owned token\'s perms from stranger user',
+        should_fail => 1,
+        rpcuser => 'stranger@pve',
+        params => {
+            userid => 'auditor@pam!noprivsep',
+        },
     },
 ];
 
 my $stranger_nonprivsep_tests = [
     {
-	description => 'get stranger-owned non-priv-sep\'d token\'s perms without passing the token',
-	rpcuser => 'stranger@pve!noprivsep',
-	params => {},
-	result => $stranger_perms,
+        description =>
+            'get stranger-owned non-priv-sep\'d token\'s perms without passing the token',
+        rpcuser => 'stranger@pve!noprivsep',
+        params => {},
+        result => $stranger_perms,
     },
     {
-	description => 'get stranger-owned non-priv-sep\'d token\'s perms with passing the token',
-	rpcuser => 'stranger@pve!noprivsep',
-	params => {
-	    userid => 'stranger@pve!noprivsep',
-	},
-	result => $stranger_perms,
+        description =>
+            'get stranger-owned non-priv-sep\'d token\'s perms with passing the token',
+        rpcuser => 'stranger@pve!noprivsep',
+        params => {
+            userid => 'stranger@pve!noprivsep',
+        },
+        result => $stranger_perms,
     },
     {
-	description => 'get stranger\'s perms from stranger-owned non-priv-sep\'d token',
-	should_fail => 1,
-	rpcuser => 'stranger@pve!noprivsep',
-	params => {
-	    userid => 'stranger@pve',
-	},
+        description => 'get stranger\'s perms from stranger-owned non-priv-sep\'d token',
+        should_fail => 1,
+        rpcuser => 'stranger@pve!noprivsep',
+        params => {
+            userid => 'stranger@pve',
+        },
     },
     {
-	description => 'get stranger-owned priv-sep\'d token\'s perms '
-	    . 'from stranger-owned non-priv-sep\'d token',
-	should_fail => 1,
-	rpcuser => 'stranger@pve!noprivsep',
-	params => {
-	    userid => 'stranger@pve!privsep',
-	},
+        description => 'get stranger-owned priv-sep\'d token\'s perms '
+            . 'from stranger-owned non-priv-sep\'d token',
+        should_fail => 1,
+        rpcuser => 'stranger@pve!noprivsep',
+        params => {
+            userid => 'stranger@pve!privsep',
+        },
     },
     {
-	description => 'get auditor-owned token\'s perms from stranger-owned non-priv-sep\'d token',
-	should_fail => 1,
-	rpcuser => 'stranger@pve!noprivsep',
-	params => {
-	    userid => 'auditor@pam!noprivsep',
-	}
+        description =>
+            'get auditor-owned token\'s perms from stranger-owned non-priv-sep\'d token',
+        should_fail => 1,
+        rpcuser => 'stranger@pve!noprivsep',
+        params => {
+            userid => 'auditor@pam!noprivsep',
+        },
     },
 ];
 
 my $stranger_privsep_tests = [
     {
-	description => 'get stranger-owned priv-sep\'d token\'s perms without passing the token',
-	rpcuser => 'stranger@pve!privsep',
-	params => {},
-	result => $stranger_privsep_perms,
+        description =>
+            'get stranger-owned priv-sep\'d token\'s perms without passing the token',
+        rpcuser => 'stranger@pve!privsep',
+        params => {},
+        result => $stranger_privsep_perms,
     },
     {
-	description => 'get stranger-owned priv-sep\'d token\'s perms with passing the token',
-	rpcuser => 'stranger@pve!privsep',
-	params => {
-	    userid => 'stranger@pve!privsep',
-	},
-	result => $stranger_privsep_perms,
+        description => 'get stranger-owned priv-sep\'d token\'s perms with passing the token',
+        rpcuser => 'stranger@pve!privsep',
+        params => {
+            userid => 'stranger@pve!privsep',
+        },
+        result => $stranger_privsep_perms,
     },
     {
-	description => 'get stranger\'s perms from stranger-owned priv-sep\'d token',
-	should_fail => 1,
-	rpcuser => 'stranger@pve!privsep',
-	params => {
-	    userid => 'stranger@pve',
-	},
+        description => 'get stranger\'s perms from stranger-owned priv-sep\'d token',
+        should_fail => 1,
+        rpcuser => 'stranger@pve!privsep',
+        params => {
+            userid => 'stranger@pve',
+        },
     },
     {
-	description => 'get stranger-owned non-priv-sep\'d token\'s perms '
-	    . 'from stranger-owned priv-sep\'d token',
-	should_fail => 1,
-	rpcuser => 'stranger@pve!privsep',
-	params => {
-	    userid => 'stranger@pve!noprivsep',
-	},
+        description => 'get stranger-owned non-priv-sep\'d token\'s perms '
+            . 'from stranger-owned priv-sep\'d token',
+        should_fail => 1,
+        rpcuser => 'stranger@pve!privsep',
+        params => {
+            userid => 'stranger@pve!noprivsep',
+        },
     },
     {
-	description => 'get auditor-owned token\'s perms from stranger-owned priv-sep\'d token',
-	should_fail => 1,
-	rpcuser => 'stranger@pve!privsep',
-	params => {
-	    userid => 'auditor@pam!noprivsep',
-	}
+        description => 'get auditor-owned token\'s perms from stranger-owned priv-sep\'d token',
+        should_fail => 1,
+        rpcuser => 'stranger@pve!privsep',
+        params => {
+            userid => 'auditor@pam!noprivsep',
+        },
     },
 ];
 
@@ -167,134 +171,137 @@ my $auditor_privsep_perms = $rpcenv->get_effective_permissions('auditor@pam!priv
 
 my $auditor_user_tests = [
     {
-	description => 'get auditor\'s perms without passing the user\'s userid',
-	rpcuser => 'auditor@pam',
-	params => {},
-	result => $auditor_perms,
+        description => 'get auditor\'s perms without passing the user\'s userid',
+        rpcuser => 'auditor@pam',
+        params => {},
+        result => $auditor_perms,
     },
     {
-	description => 'get auditor\'s perms with passing the user\'s userid',
-	rpcuser => 'auditor@pam',
-	params => {
-	    userid => 'auditor@pam',
-	},
-	result => $auditor_perms,
+        description => 'get auditor\'s perms with passing the user\'s userid',
+        rpcuser => 'auditor@pam',
+        params => {
+            userid => 'auditor@pam',
+        },
+        result => $auditor_perms,
     },
     {
-	description => 'get auditor-owned non-priv-sep\'d token\'s perms from auditor user',
-	rpcuser => 'auditor@pam',
-	params => {
-	    userid => 'auditor@pam!noprivsep',
-	},
-	result => $auditor_perms,
+        description => 'get auditor-owned non-priv-sep\'d token\'s perms from auditor user',
+        rpcuser => 'auditor@pam',
+        params => {
+            userid => 'auditor@pam!noprivsep',
+        },
+        result => $auditor_perms,
     },
     {
-	description => 'get auditor-owned priv-sep\'d token\'s perms from auditor user',
-	rpcuser => 'auditor@pam',
-	params => {
-	    userid => 'auditor@pam!privsep',
-	},
-	result => $auditor_privsep_perms,
+        description => 'get auditor-owned priv-sep\'d token\'s perms from auditor user',
+        rpcuser => 'auditor@pam',
+        params => {
+            userid => 'auditor@pam!privsep',
+        },
+        result => $auditor_privsep_perms,
     },
     {
-	description => 'get stranger\'s perms from auditor user',
-	rpcuser => 'auditor@pam',
-	params => {
-	    userid => 'stranger@pve',
-	},
-	result => $stranger_perms,
+        description => 'get stranger\'s perms from auditor user',
+        rpcuser => 'auditor@pam',
+        params => {
+            userid => 'stranger@pve',
+        },
+        result => $stranger_perms,
     },
     {
-	description => 'get stranger-owned token\'s perms from auditor user',
-	rpcuser => 'auditor@pam',
-	params => {
-	    userid => 'stranger@pve!noprivsep',
-	},
-	result => $stranger_perms,
+        description => 'get stranger-owned token\'s perms from auditor user',
+        rpcuser => 'auditor@pam',
+        params => {
+            userid => 'stranger@pve!noprivsep',
+        },
+        result => $stranger_perms,
     },
 ];
 
 my $auditor_nonprivsep_tests = [
     {
-	description => 'get auditor-owned non-priv-sep\'d token\'s perms without passing the token',
-	rpcuser => 'auditor@pam!noprivsep',
-	params => {},
-	result => $auditor_perms,
+        description =>
+            'get auditor-owned non-priv-sep\'d token\'s perms without passing the token',
+        rpcuser => 'auditor@pam!noprivsep',
+        params => {},
+        result => $auditor_perms,
     },
     {
-	description => 'get auditor-owned non-priv-sep\'d token\'s perms with passing the token',
-	rpcuser => 'auditor@pam!noprivsep',
-	params => {
-	    userid => 'auditor@pam!noprivsep',
-	},
-	result => $auditor_perms,
+        description =>
+            'get auditor-owned non-priv-sep\'d token\'s perms with passing the token',
+        rpcuser => 'auditor@pam!noprivsep',
+        params => {
+            userid => 'auditor@pam!noprivsep',
+        },
+        result => $auditor_perms,
     },
     {
-	description => 'get auditor\'s perms from auditor-owned non-priv-sep\'d token',
-	rpcuser => 'auditor@pam!noprivsep',
-	params => {
-	    userid => 'auditor@pam',
-	},
-	result => $auditor_perms,
+        description => 'get auditor\'s perms from auditor-owned non-priv-sep\'d token',
+        rpcuser => 'auditor@pam!noprivsep',
+        params => {
+            userid => 'auditor@pam',
+        },
+        result => $auditor_perms,
     },
     {
-	description => 'get auditor-owned priv-sep\'d token\'s perms '
-	    . 'from auditor-owned non-priv-sep\'d token',
-	rpcuser => 'auditor@pam!noprivsep',
-	params => {
-	    userid => 'auditor@pam!privsep',
-	},
-	result => $auditor_privsep_perms,
+        description => 'get auditor-owned priv-sep\'d token\'s perms '
+            . 'from auditor-owned non-priv-sep\'d token',
+        rpcuser => 'auditor@pam!noprivsep',
+        params => {
+            userid => 'auditor@pam!privsep',
+        },
+        result => $auditor_privsep_perms,
     },
     {
-	description => 'get stranger-owned token\'s perms from auditor-owned non-priv-sep\'d token',
-	rpcuser => 'auditor@pam!noprivsep',
-	params => {
-	    userid => 'stranger@pve!noprivsep',
-	},
-	result => $stranger_perms,
+        description =>
+            'get stranger-owned token\'s perms from auditor-owned non-priv-sep\'d token',
+        rpcuser => 'auditor@pam!noprivsep',
+        params => {
+            userid => 'stranger@pve!noprivsep',
+        },
+        result => $stranger_perms,
     },
 ];
 
 my $auditor_privsep_tests = [
     {
-	description => 'get auditor-owned priv-sep\'d token\'s perms without passing the token',
-	rpcuser => 'auditor@pam!privsep',
-	params => {},
-	result => $auditor_privsep_perms,
+        description => 'get auditor-owned priv-sep\'d token\'s perms without passing the token',
+        rpcuser => 'auditor@pam!privsep',
+        params => {},
+        result => $auditor_privsep_perms,
     },
     {
-	description => 'get auditor-owned priv-sep\'d token\'s perms with passing the token',
-	rpcuser => 'auditor@pam!privsep',
-	params => {
-	    userid => 'auditor@pam!privsep',
-	},
-	result => $auditor_privsep_perms,
+        description => 'get auditor-owned priv-sep\'d token\'s perms with passing the token',
+        rpcuser => 'auditor@pam!privsep',
+        params => {
+            userid => 'auditor@pam!privsep',
+        },
+        result => $auditor_privsep_perms,
     },
     {
-	description => 'get auditor\'s perms from auditor-owned priv-sep\'d token',
-	should_fail => 1,
-	rpcuser => 'auditor@pam!privsep',
-	params => {
-	    userid => 'auditor@pam',
-	},
+        description => 'get auditor\'s perms from auditor-owned priv-sep\'d token',
+        should_fail => 1,
+        rpcuser => 'auditor@pam!privsep',
+        params => {
+            userid => 'auditor@pam',
+        },
     },
     {
-	description => 'get auditor-owned non-priv-sep\'d token\'s perms '
-	    . 'from auditor-owned priv-sep\'d token',
-	should_fail => 1,
-	rpcuser => 'auditor@pam!privsep',
-	params => {
-	    userid => 'auditor@pam!noprivsep',
-	},
+        description => 'get auditor-owned non-priv-sep\'d token\'s perms '
+            . 'from auditor-owned priv-sep\'d token',
+        should_fail => 1,
+        rpcuser => 'auditor@pam!privsep',
+        params => {
+            userid => 'auditor@pam!noprivsep',
+        },
     },
     {
-	description => 'get stranger-owned token\'s perms from auditor-owned priv-sep\'d token',
-	should_fail => 1,
-	rpcuser => 'auditor@pam!privsep',
-	params => {
-	    userid => 'stranger@pve!noprivsep',
-	},
+        description => 'get stranger-owned token\'s perms from auditor-owned priv-sep\'d token',
+        should_fail => 1,
+        rpcuser => 'auditor@pam!privsep',
+        params => {
+            userid => 'stranger@pve!noprivsep',
+        },
     },
 ];
 
@@ -315,10 +322,10 @@ for my $case ($tests->@*) {
     my $result = eval { $handler->handle($handler_info, $case->{params}) };
 
     if ($@) {
-	my $should_fail = exists($case->{should_fail}) ? $case->{should_fail} : 0;
-	is(defined($@), $should_fail, "should fail: $case->{description}") || diag explain $@;
+        my $should_fail = exists($case->{should_fail}) ? $case->{should_fail} : 0;
+        is(defined($@), $should_fail, "should fail: $case->{description}") || diag explain $@;
     } else {
-	is_deeply($result, $case->{result}, $case->{description});
+        is_deeply($result, $case->{result}, $case->{description});
     }
 }
 

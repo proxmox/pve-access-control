@@ -15,9 +15,9 @@ sub type {
 
 sub options {
     return {
-	default => { optional => 1 },
-	comment => { optional => 1 },
-	tfa => { optional => 1 },
+        default => { optional => 1 },
+        comment => { optional => 1 },
+        tfa => { optional => 1 },
     };
 }
 
@@ -27,45 +27,48 @@ sub authenticate_user {
     # user (www-data) need to be able to read /etc/passwd /etc/shadow
     die "no password\n" if !$password;
 
-    my $pamh = Authen::PAM->new('proxmox-ve-auth', $username, sub {
-	my @res;
-	while(@_) {
-	    my $msg_type = shift;
-	    my $msg = shift;
-	    push @res, (0, $password);
-	}
-	push @res, 0;
-	return @res;
-    });
+    my $pamh = Authen::PAM->new(
+        'proxmox-ve-auth',
+        $username,
+        sub {
+            my @res;
+            while (@_) {
+                my $msg_type = shift;
+                my $msg = shift;
+                push @res, (0, $password);
+            }
+            push @res, 0;
+            return @res;
+        },
+    );
 
-    if (!ref ($pamh)) {
-	my $err = $pamh->pam_strerror($pamh);
-	die "error during PAM init: $err";
+    if (!ref($pamh)) {
+        my $err = $pamh->pam_strerror($pamh);
+        die "error during PAM init: $err";
     }
 
     if (my $rpcenv = PVE::RPCEnvironment::get()) {
-	if (my $ip = $rpcenv->get_client_ip()) {
-	    $pamh->pam_set_item(PAM_RHOST(), $ip);
-	}
+        if (my $ip = $rpcenv->get_client_ip()) {
+            $pamh->pam_set_item(PAM_RHOST(), $ip);
+        }
     }
 
     my $res;
 
     if (($res = $pamh->pam_authenticate(0)) != PAM_SUCCESS) {
-	my $err = $pamh->pam_strerror($res);
-	die "$err\n";
+        my $err = $pamh->pam_strerror($res);
+        die "$err\n";
     }
 
-    if (($res = $pamh->pam_acct_mgmt (0)) != PAM_SUCCESS) {
-	my $err = $pamh->pam_strerror($res);
-	die "$err\n";
+    if (($res = $pamh->pam_acct_mgmt(0)) != PAM_SUCCESS) {
+        my $err = $pamh->pam_strerror($res);
+        die "$err\n";
     }
 
     $pamh = 0; # call destructor
 
     return 1;
 }
-
 
 sub store_password {
     my ($class, $config, $realm, $username, $password) = @_;

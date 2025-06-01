@@ -22,7 +22,7 @@ sub check_roles {
     my $res = join(',', sort keys %$roles);
 
     die "unexpected result\nneed '${expected_result}'\ngot '$res'\n"
-	if $res ne $expected_result;
+        if $res ne $expected_result;
 
     print "ROLES:$path:$user:$res\n";
 }
@@ -34,12 +34,12 @@ sub check_permission {
     my $res = join(',', sort keys %$perm);
 
     die "unexpected result\nneed '${expected_result}'\ngot '$res'\n"
-	if $res ne $expected_result;
+        if $res ne $expected_result;
 
     $perm = $rpcenv->permissions($user, $path);
     $res = join(',', sort keys %$perm);
     die "unexpected result (compiled)\nneed '${expected_result}'\ngot '$res'\n"
-	if $res ne $expected_result;
+        if $res ne $expected_result;
 
     print "PERM:$path:$user:$res\n";
 }
@@ -63,27 +63,27 @@ check_permission(
     'alex@pve',
     '/vms/300',
     '' # sorted, comma-separated expected privilege string
-    . 'VM.Allocate,VM.Audit,VM.Backup,VM.Clone,VM.Config.CDROM,VM.Config.CPU,VM.Config.Cloudinit,'
-    . 'VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,'
-    . 'VM.Console,VM.Migrate,VM.Monitor,VM.PowerMgmt,VM.Snapshot,VM.Snapshot.Rollback'
+        . 'VM.Allocate,VM.Audit,VM.Backup,VM.Clone,VM.Config.CDROM,VM.Config.CPU,VM.Config.Cloudinit,'
+        . 'VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,'
+        . 'VM.Console,VM.Migrate,VM.Monitor,VM.PowerMgmt,VM.Snapshot,VM.Snapshot.Rollback',
 );
 # Administrator -> Permissions.Modify!
 check_permission(
     'alex@pve',
     '/vms/400',
     '' # sorted, comma-separated expected privilege string, loosely grouped by prefix
-    . 'Datastore.Allocate,Datastore.AllocateSpace,Datastore.AllocateTemplate,Datastore.Audit,'
-    . 'Group.Allocate,'
-    . 'Mapping.Audit,Mapping.Modify,Mapping.Use,'
-    . 'Permissions.Modify,'
-    . 'Pool.Allocate,Pool.Audit,'
-    . 'Realm.Allocate,Realm.AllocateUser,'
-    . 'SDN.Allocate,SDN.Audit,SDN.Use,'
-    . 'Sys.AccessNetwork,Sys.Audit,Sys.Console,Sys.Incoming,Sys.Modify,Sys.PowerMgmt,Sys.Syslog,'
-    . 'User.Modify,'
-    . 'VM.Allocate,VM.Audit,VM.Backup,VM.Clone,VM.Config.CDROM,VM.Config.CPU,VM.Config.Cloudinit,'
-    . 'VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,'
-    . 'VM.Console,VM.Migrate,VM.Monitor,VM.PowerMgmt,VM.Snapshot,VM.Snapshot.Rollback',
+        . 'Datastore.Allocate,Datastore.AllocateSpace,Datastore.AllocateTemplate,Datastore.Audit,'
+        . 'Group.Allocate,'
+        . 'Mapping.Audit,Mapping.Modify,Mapping.Use,'
+        . 'Permissions.Modify,'
+        . 'Pool.Allocate,Pool.Audit,'
+        . 'Realm.Allocate,Realm.AllocateUser,'
+        . 'SDN.Allocate,SDN.Audit,SDN.Use,'
+        . 'Sys.AccessNetwork,Sys.Audit,Sys.Console,Sys.Incoming,Sys.Modify,Sys.PowerMgmt,Sys.Syslog,'
+        . 'User.Modify,'
+        . 'VM.Allocate,VM.Audit,VM.Backup,VM.Clone,VM.Config.CDROM,VM.Config.CPU,VM.Config.Cloudinit,'
+        . 'VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,'
+        . 'VM.Console,VM.Migrate,VM.Monitor,VM.PowerMgmt,VM.Snapshot,VM.Snapshot.Rollback',
 );
 
 check_roles('max@pve', '/vms/200', 'storage_manager');
@@ -92,4 +92,4 @@ check_roles('sue@pve', '/vms/200', 'NoAccess');
 
 print "all tests passed\n";
 
-exit (0);
+exit(0);

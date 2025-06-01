@@ -22,7 +22,7 @@ sub check_roles {
     my $res = join(',', sort keys %$roles);
 
     die "unexpected result\nneed '${expected_result}'\ngot '$res'\n"
-	if $res ne $expected_result;
+        if $res ne $expected_result;
 
     print "ROLES:$path:$user:$res\n";
 }
@@ -35,4 +35,4 @@ check_roles('User1@pve', '/vms/200', 'Role2');
 
 print "all tests passed\n";
 
-exit (0);
+exit(0);

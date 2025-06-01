@@ -8,20 +8,20 @@ use Getopt::Long;
 
 use PVE::RPCEnvironment;
 
-# example: 
+# example:
 # dump-perm.pl -f myuser.cfg root /
 
 my $opt_file;
-if (!GetOptions ("file=s"   => \$opt_file)) {
-    exit (-1);
+if (!GetOptions("file=s" => \$opt_file)) {
+    exit(-1);
 }
 
 my $username = shift;
 my $path = shift;
- 
+
 if (!($username && $path)) {
     print "usage: $0 <username> <path>\n";
-    exit (-1);
+    exit(-1);
 }
 
 my $cfg;
@@ -38,4 +38,4 @@ my $perm = $rpcenv->permissions($username, $path);
 print "permission for user '$username' on '$path':\n";
 print join(',', keys %$perm) . "\n";
 
-exit (0);
+exit(0);

@@ -20,7 +20,7 @@ sub check_roles {
     my $res = join(',', sort keys %$roles);
 
     die "unexpected result\nneed '${expected_result}'\ngot '$res'\n"
-	if $res ne $expected_result;
+        if $res ne $expected_result;
 
     print "ROLES:$path:$user:$res\n";
 }
@@ -32,12 +32,12 @@ sub check_permission {
     my $res = join(',', sort keys %$perm);
 
     die "unexpected result\nneed '${expected_result}'\ngot '$res'\n"
-	if $res ne $expected_result;
+        if $res ne $expected_result;
 
     $perm = $rpcenv->permissions($user, $path);
     $res = join(',', sort keys %$perm);
     die "unexpected result (compiled)\nneed '${expected_result}'\ngot '$res'\n"
-	if $res ne $expected_result;
+        if $res ne $expected_result;
 
     print "PERM:$path:$user:$res\n";
 }
@@ -70,5 +70,5 @@ check_permission('max@pve!token2', '/vms/300', 'VM.Allocate,VM.Audit,VM.Console,
 
 print "all tests passed\n";
 
-exit (0);
+exit(0);
 

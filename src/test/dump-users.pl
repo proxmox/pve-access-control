@@ -13,4 +13,4 @@ $cfg = PVE::AccessControl::load_user_config();
 
 print Dumper($cfg) . "\n";
 
-exit (0);
+exit(0);
