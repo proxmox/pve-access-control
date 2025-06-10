@@ -24,12 +24,6 @@ use PVE::API2::TFA;
 use PVE::Auth::Plugin;
 use PVE::OTP;
 
-my $u2f_available = 0;
-eval {
-    require PVE::U2F;
-    $u2f_available = 1;
-};
-
 use base qw(PVE::RESTHandler);
 
 __PACKAGE__->register_method({
@@ -399,43 +393,6 @@ __PACKAGE__->register_method({
         return undef;
     },
 });
-
-sub get_u2f_config() {
-    die "u2f support not available\n" if !$u2f_available;
-
-    my $dc = cfs_read_file('datacenter.cfg');
-    my $u2f = $dc->{u2f};
-    die "u2f not configured in datacenter.cfg\n" if !$u2f;
-    return $u2f;
-}
-
-sub get_u2f_instance {
-    my ($rpcenv, $publicKey, $keyHandle) = @_;
-
-    # We store the public key base64 encoded (as the api provides it in binary)
-    $publicKey = decode_base64($publicKey) if defined($publicKey);
-
-    my $u2fconfig = get_u2f_config();
-    my $u2f = PVE::U2F->new();
-
-    # via the 'Host' header (in case a node has multiple hosts available).
-    my $origin = $u2fconfig->{origin};
-    if (!defined($origin)) {
-        $origin = $rpcenv->get_request_host(1);
-        if ($origin) {
-            $origin = "https://$origin";
-        } else {
-            die "failed to figure out u2f origin\n";
-        }
-    }
-
-    my $appid = $u2fconfig->{appid} // $origin;
-    $u2f->set_appid($appid);
-    $u2f->set_origin($origin);
-    $u2f->set_publicKey($publicKey) if defined($publicKey);
-    $u2f->set_keyHandle($keyHandle) if defined($keyHandle);
-    return $u2f;
-}
 
 sub verify_user_tfa_config {
     my ($type, $tfa_cfg, $value) = @_;
