@@ -12,8 +12,6 @@ use PVE::JSONSchema qw(get_standard_option);
 use PVE::RPCEnvironment;
 use PVE::SafeSyslog;
 
-use PVE::API2::AccessControl; # for old login api get_u2f_instance method
-
 use PVE::RESTHandler;
 
 use base qw(PVE::RESTHandler);
