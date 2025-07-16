@@ -1,3 +1,12 @@
+libpve-access-control (9.0.1) trixie; urgency=medium
+
+  * drop unused old u2f code, it was replaced by the more generic WebAuthn
+    implementation.
+
+  * permissions: add ACL paths for SDN fabrics.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 16 Jul 2025 23:28:51 +0200
+
 libpve-access-control (9.0.0) trixie; urgency=medium
 
   * re-build for Debian 13 "Trixie" based Proxmox releases.
