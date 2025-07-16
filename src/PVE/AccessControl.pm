@@ -1285,6 +1285,8 @@ sub check_path {
 	|/sdn/controllers/[[:alnum:]\_\-]+
 	|/sdn/dns
 	|/sdn/dns/[[:alnum:]]+
+	|/sdn/fabrics
+	|/sdn/fabrics/[[:alnum:]]+
 	|/sdn/ipams
 	|/sdn/ipams/[[:alnum:]]+
 	|/sdn/zones
