@@ -1061,7 +1061,6 @@ my $privgroups = {
             'VM.Clone',
             'VM.GuestAgent.Unrestricted',
             'VM.Migrate',
-            'VM.Monitor',
             'VM.Snapshot',
             'VM.Snapshot.Rollback',
         ],
