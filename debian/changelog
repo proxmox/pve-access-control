@@ -1,3 +1,10 @@
+libpve-access-control (9.0.2) trixie; urgency=medium
+
+  * privileges: drop VM.Monitor in favor of more granular VM.GuestAgent.*
+    privileges
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 17 Jul 2025 22:05:18 +0200
+
 libpve-access-control (9.0.1) trixie; urgency=medium
 
   * drop unused old u2f code, it was replaced by the more generic WebAuthn
