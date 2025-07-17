@@ -65,7 +65,9 @@ check_permission(
     '' # sorted, comma-separated expected privilege string
         . 'VM.Allocate,VM.Audit,VM.Backup,VM.Clone,VM.Config.CDROM,VM.Config.CPU,VM.Config.Cloudinit,'
         . 'VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,'
-        . 'VM.Console,VM.Migrate,VM.Monitor,VM.PowerMgmt,VM.Snapshot,VM.Snapshot.Rollback',
+        . 'VM.Console,VM.GuestAgent.Audit,VM.GuestAgent.FileRead,VM.GuestAgent.FileSystemMgmt,'
+        . 'VM.GuestAgent.FileWrite,VM.GuestAgent.Unrestricted,VM.Migrate,VM.Monitor,VM.PowerMgmt,'
+        . 'VM.Snapshot,VM.Snapshot.Rollback',
 );
 # Administrator -> Permissions.Modify!
 check_permission(
@@ -83,7 +85,9 @@ check_permission(
         . 'User.Modify,'
         . 'VM.Allocate,VM.Audit,VM.Backup,VM.Clone,VM.Config.CDROM,VM.Config.CPU,VM.Config.Cloudinit,'
         . 'VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,VM.Config.Options,'
-        . 'VM.Console,VM.Migrate,VM.Monitor,VM.PowerMgmt,VM.Snapshot,VM.Snapshot.Rollback',
+        . 'VM.Console,VM.GuestAgent.Audit,VM.GuestAgent.FileRead,VM.GuestAgent.FileSystemMgmt,'
+        . 'VM.GuestAgent.FileWrite,VM.GuestAgent.Unrestricted,VM.Migrate,VM.Monitor,VM.PowerMgmt,'
+        . 'VM.Snapshot,VM.Snapshot.Rollback',
 );
 
 check_roles('max@pve', '/vms/200', 'storage_manager');

@@ -1059,6 +1059,7 @@ my $privgroups = {
             'VM.Config.Options', # covers all other things
             'VM.Allocate',
             'VM.Clone',
+            'VM.GuestAgent.Unrestricted',
             'VM.Migrate',
             'VM.Monitor',
             'VM.Snapshot',
@@ -1069,10 +1070,13 @@ my $privgroups = {
             'VM.Config.Cloudinit',
             'VM.Console',
             'VM.Backup',
+            'VM.GuestAgent.FileRead',
+            'VM.GuestAgent.FileSystemMgmt',
+            'VM.GuestAgent.FileWrite',
             'VM.PowerMgmt',
         ],
         audit => [
-            'VM.Audit',
+            'VM.Audit', 'VM.GuestAgent.Audit',
         ],
     },
     Sys => {
