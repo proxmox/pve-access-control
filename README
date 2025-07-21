@@ -76,39 +76,60 @@ privileges:
 	defines rights required to execute actions or read
 	information.
 
-	Datastore.Allocate: create/remove/modify a data store.
-	Datastore.AllocateSpace: allocate space on a datastore
-	Datastore.AllocateTemplate: allocate/upload templates and iso images 
-	Datastore.Audit: view/browse a datastore
 
+	Node / System related privileges:
+
+	Group.Allocate: create/modify/remove groups
+	Mapping.Audit: view resource mappings
+	Mapping.Modify: manage resource mappings
+	Mapping.Use: use resource mappings
 	Permissions.Modify: modify access permissions
-
-	Pool.Allocate: create/remove/modify a pool.
+	Pool.Allocate: create/modify/remove a pool
 	Pool.Audit: view a pool
+	Realm.AllocateUser: assign user to a realm
+	Realm.Allocate: create/modify/remove authentication realms
+	SDN.Allocate: manage SDN configuration
+	SDN.Audit: view SDN configuration
+	Sys.Audit: view node status/config, Corosync cluster config, and HA config
+	Sys.Console: console access to node
+	Sys.Incoming: allow incoming data streams from other clusters (experimental)
+	Sys.Modify: create/modify/remove node network parameters
+	Sys.PowerMgmt: node power management (start, stop, reset, shutdown, ...)
+	Sys.Syslog: view syslog
+	User.Modify: create/modify/remove user access and details.
 
-	Sys.Audit: view node status/config
-	Sys.Console: console access to Node
-	Sys.PowerMgmt: Node power management (start, stop, reset, shutdown, ...)
-	Sys.Syslog: view Syslog
+	Virtual machine related privileges::
 
-	VM.Allocate: create/remove new VM to server inventory
+	SDN.Use: access SDN vnets and local network bridges
+	VM.Allocate: create/remove VM on a server
 	VM.Audit: view VM config
 	VM.Backup: backup/restore VMs
-	VM.Clone: Clone VM or VM template
+	VM.Clone: clone/copy a VM
+	VM.Config.CDROM: eject/change CD-ROM
+	VM.Config.CPU: modify CPU settings
+	VM.Config.Cloudinit: modify Cloud-init parameters
+	VM.Config.Disk: add/modify/remove disks
+	VM.Config.HWType: modify emulated hardware types
+	VM.Config.Memory: modify memory settings
+	VM.Config.Network: add/modify/remove network devices
+	VM.Config.Options: modify any other VM configuration
 	VM.Console: console access to VM
+	VM.GuestAgent.Audit: issue informational QEMU guest agent commands
+	VM.GuestAgent.FileRead: read files from the guest via QEMU guest agent
+	VM.GuestAgent.FileSystemMgmt: freeze/thaw/trim file systems via QEMU guest gent
+	VM.GuestAgent.FileWrite: write files in the guest via QEMU guest agent
+	VM.GuestAgent.Unrestricted: issue arbitrary QEMU guest agent commands
 	VM.Migrate: migrate VM to alternate server on cluster
-	VM.Monitor: access to VM monitor (kvm)
 	VM.PowerMgmt: power management (start, stop, reset, shutdown, ...)
+	VM.Snapshot.Rollback: rollback VM to one of its snapshots
+	VM.Snapshot: create/delete VM snapshots
 
-	VM.Config.XXX: modify VM config
+	Storage related privileges::
 
-	  VM.Config.CDROM: eject/change CDROM
-	  VM.Config.CPU: modify CPU settings
-	  VM.Config.Disk: add/modify/delete Disks
-	  VM.Config.HWType: modify emulated HW type
-	  VM.Config.Memory: modify Memory settings
-	  VM.Config.Network: add/modify/delete Network devices
-	  VM.Config.Options: modify any other VM configuration
+	Datastore.Allocate: create/modify/remove a datastore and delete volumes
+	Datastore.AllocateSpace: allocate space on a datastore
+	Datastore.AllocateTemplate: allocate/upload templates and ISO images
+	Datastore.Audit: view/browse a datastore
 
 
 	We may need to refine those in future - the following privs
