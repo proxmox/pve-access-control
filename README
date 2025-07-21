@@ -76,28 +76,6 @@ privileges:
 	defines rights required to execute actions or read
 	information.
 
-	VM.Allocate: create/remove new VM to server inventory
-	VM.Migrate: migrate VM to alternate server on cluster
-   	VM.PowerMgmt: power management (start, stop, reset, shutdown, ...)
-	VM.Console: console access to VM
-	VM.Monitor: access to VM monitor (kvm)
-	VM.Backup: backup/restore VMs
-	VM.Clone: Clone VM or VM template
-	VM.Audit: view VM config
-
-	VM.Config.XXX: modify VM config
-
-	  VM.Config.Disk: add/modify/delete Disks 
-	  VM.Config.CDROM: eject/change CDROM
-	  VM.Config.CPU: modify CPU settings
-	  VM.Config.Memory: modify Memory settings
-	  VM.Config.Network: add/modify/delete Network devices
-	  VM.Config.HWType: modify emulated HW type
-	  VM.Config.Options: modify any other VM configuration 
-
-	Pool.Allocate: create/remove/modify a pool.
-	Pool.Audit: view a pool
-
 	Datastore.Allocate: create/remove/modify a data store.
 	Datastore.AllocateSpace: allocate space on a datastore
 	Datastore.AllocateTemplate: allocate/upload templates and iso images 
@@ -105,10 +83,32 @@ privileges:
 
 	Permissions.Modify: modify access permissions
 
-	Sys.PowerMgmt: Node power management (start, stop, reset, shutdown, ...)
-	Sys.Console: console access to Node
-	Sys.Syslog: view Syslog
+	Pool.Allocate: create/remove/modify a pool.
+	Pool.Audit: view a pool
+
 	Sys.Audit: view node status/config
+	Sys.Console: console access to Node
+	Sys.PowerMgmt: Node power management (start, stop, reset, shutdown, ...)
+	Sys.Syslog: view Syslog
+
+	VM.Allocate: create/remove new VM to server inventory
+	VM.Audit: view VM config
+	VM.Backup: backup/restore VMs
+	VM.Clone: Clone VM or VM template
+	VM.Console: console access to VM
+	VM.Migrate: migrate VM to alternate server on cluster
+	VM.Monitor: access to VM monitor (kvm)
+	VM.PowerMgmt: power management (start, stop, reset, shutdown, ...)
+
+	VM.Config.XXX: modify VM config
+
+	  VM.Config.CDROM: eject/change CDROM
+	  VM.Config.CPU: modify CPU settings
+	  VM.Config.Disk: add/modify/delete Disks
+	  VM.Config.HWType: modify emulated HW type
+	  VM.Config.Memory: modify Memory settings
+	  VM.Config.Network: add/modify/delete Network devices
+	  VM.Config.Options: modify any other VM configuration
 
 
 	We may need to refine those in future - the following privs
