@@ -141,13 +141,25 @@ __PACKAGE__->register_method({
 
         my $userid = extract_param($param, "userid");
         my $tfa_id = extract_param($param, "id");
+        my $update_user_config;
 
         PVE::AccessControl::lock_tfa_config(sub {
             my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
             if (defined($tfa_id)) {
-                $tfa_cfg->api_delete_tfa($userid, $tfa_id);
+                my $has_entries_left = $tfa_cfg->api_delete_tfa($userid, $tfa_id);
+                $update_user_config = !$has_entries_left;
             } else {
                 $tfa_cfg->remove_user($userid);
+                $update_user_config = 1;
+            }
+
+            if ($update_user_config) {
+                PVE::AccessControl::lock_user_config(sub {
+                    my $user_cfg = cfs_read_file('user.cfg');
+                    my $user = $user_cfg->{users}->{$userid};
+                    $user->{keys} = undef;
+                    cfs_write_file('user.cfg', $user_cfg);
+                });
             }
             cfs_write_file('priv/tfa.cfg', $tfa_cfg);
         });
