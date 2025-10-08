@@ -870,7 +870,8 @@ __PACKAGE__->register_method({
 
                 $token->{privsep} = $param->{privsep} if defined($param->{privsep});
                 $token->{expire} = $param->{expire} if defined($param->{expire});
-                $token->{comment} = $param->{comment} if $param->{comment};
+                $token->{comment} = $param->{comment} if defined($param->{comment});
+                delete $token->{comment} if (!length $token->{comment});
 
                 $usercfg->{users}->{$userid}->{tokens}->{$tokenid} = $token;
                 cfs_write_file("user.cfg", $usercfg);
