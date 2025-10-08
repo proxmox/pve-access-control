@@ -848,6 +848,12 @@ __PACKAGE__->register_method({
             expire => get_standard_option('token-expire'),
             privsep => get_standard_option('token-privsep'),
             comment => get_standard_option('token-comment'),
+            delete => {
+                type => 'string',
+                format => 'pve-configid-list',
+                description => "A list of settings you want to delete.",
+                optional => 1,
+            },
         },
     },
     returns =>
@@ -861,6 +867,9 @@ __PACKAGE__->register_method({
         my $usercfg = cfs_read_file("user.cfg");
         my $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
 
+        my $delete = extract_param($param, 'delete');
+        $delete = { map { $_ => 1 } PVE::Tools::split_list($delete) } if $delete;
+
         PVE::AccessControl::lock_user_config(
             sub {
                 $usercfg = cfs_read_file("user.cfg");
@@ -872,6 +881,18 @@ __PACKAGE__->register_method({
                 $token->{expire} = $param->{expire} if defined($param->{expire});
                 $token->{comment} = $param->{comment} if defined($param->{comment});
                 delete $token->{comment} if (!length $token->{comment});
+
+                my $deletable = {
+                    comment => 1,
+                };
+
+                for my $k (keys $delete->%*) {
+                    if (!$deletable->{$k}) {
+                        raise_param_exc({ delete => "unknown option '$k'" });
+                    }
+
+                    delete $token->{$k};
+                }
 
                 $usercfg->{users}->{$userid}->{tokens}->{$tokenid} = $token;
                 cfs_write_file("user.cfg", $usercfg);
