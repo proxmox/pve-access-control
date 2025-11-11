@@ -323,6 +323,66 @@ __PACKAGE__->register_method({
 });
 
 __PACKAGE__->register_method({
+    name => 'verify_vnc_ticket',
+    path => 'vncticket',
+    method => 'POST',
+    permissions => {
+        description => "You need to pass valid credientials.",
+        user => 'world',
+    },
+    protected => 1, # else we can't access authkey files
+    description => "verify VNC authentication ticket.",
+    parameters => {
+        additionalProperties => 0,
+        properties => {
+            authid => {
+                description => "UserId or token",
+                type => 'string',
+                maxLength => 64,
+            },
+            vncticket => {
+                description => "The VNC ticket.",
+                type => 'string',
+            },
+            path => {
+                description => "Verify ticket, and check if user have access 'privs' on 'path'",
+                type => 'string',
+                maxLength => 64,
+            },
+            privs => {
+                description => "Verify ticket, and check if user have access 'privs' on 'path'",
+                type => 'string',
+                format => 'pve-priv-list',
+                maxLength => 64,
+            },
+        },
+    },
+    returns => { type => "null" },
+    code => sub {
+        my ($param) = @_;
+
+        my $auth_id = $param->{authid};
+
+        my $rpcenv = PVE::RPCEnvironment::get();
+
+        my $res = eval {
+            my $normpath = PVE::AccessControl::normalize_path($param->{path});
+            PVE::AccessControl::verify_vnc_ticket($param->{vncticket}, $auth_id, $normpath);
+        };
+        if (my $err = $@) {
+            my $clientip = $rpcenv->get_client_ip() || '';
+            syslog('err', "authentication failure; rhost=$clientip user=$auth_id msg=$err");
+            # do not return any info to prevent user enumeration attacks
+            die PVE::Exception->new("authentication failure\n", code => 401);
+        }
+
+        PVE::Cluster::log_msg('info', 'root@pam', "successful auth for user '$auth_id'");
+
+        return undef;
+    },
+});
+
+__PACKAGE__->register_method({
     name => 'change_password',
     path => 'password',
     method => 'PUT',
