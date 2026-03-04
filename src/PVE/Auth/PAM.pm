@@ -27,45 +27,55 @@ sub authenticate_user {
     # user (www-data) need to be able to read /etc/passwd /etc/shadow
     die "no password\n" if !$password;
 
-    my $pamh = Authen::PAM->new(
-        'proxmox-ve-auth',
-        $username,
-        sub {
-            my @res;
-            while (@_) {
-                my $msg_type = shift;
-                my $msg = shift;
-                push @res, (0, $password);
-            }
-            push @res, 0;
-            return @res;
-        },
-    );
-
-    if (!ref($pamh)) {
-        my $err = $pamh->pam_strerror($pamh);
-        die "error during PAM init: $err";
-    }
-
+    # PAM modules may temporarily override $SIG{CHLD}, causing SIGCHLDs from
+    # RESTEnvironment workers to be lost. Running the PAM interaction in a fork
+    # isolates any such handler manipulation from the parent process.
+    my $client_ip;
     if (my $rpcenv = PVE::RPCEnvironment::get()) {
-        if (my $ip = $rpcenv->get_client_ip()) {
-            $pamh->pam_set_item(PAM_RHOST(), $ip);
+        $client_ip = $rpcenv->get_client_ip();
+    }
+
+    PVE::Tools::run_fork(sub {
+        my $pamh = Authen::PAM->new(
+            'proxmox-ve-auth',
+            $username,
+            sub {
+                my @res;
+                while (@_) {
+                    my $msg_type = shift;
+                    my $msg = shift;
+                    push @res, (0, $password);
+                }
+                push @res, 0;
+                return @res;
+            },
+        );
+
+        if (!ref($pamh)) {
+            my $err = $pamh->pam_strerror($pamh);
+            die "error during PAM init: $err";
         }
-    }
 
-    my $res;
+        if ($client_ip) {
+            $pamh->pam_set_item(PAM_RHOST(), $client_ip);
+        }
 
-    if (($res = $pamh->pam_authenticate(0)) != PAM_SUCCESS) {
-        my $err = $pamh->pam_strerror($res);
-        die "$err\n";
-    }
+        my $res;
 
-    if (($res = $pamh->pam_acct_mgmt(0)) != PAM_SUCCESS) {
-        my $err = $pamh->pam_strerror($res);
-        die "$err\n";
-    }
+        if (($res = $pamh->pam_authenticate(0)) != PAM_SUCCESS) {
+            my $err = $pamh->pam_strerror($res);
+            die "$err\n";
+        }
 
-    $pamh = 0; # call destructor
+        if (($res = $pamh->pam_acct_mgmt(0)) != PAM_SUCCESS) {
+            my $err = $pamh->pam_strerror($res);
+            die "$err\n";
+        }
+
+        $pamh = 0; # call destructor
+
+        return 1;
+    });
 
     return 1;
 }
