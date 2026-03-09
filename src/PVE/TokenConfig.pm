@@ -86,3 +86,5 @@ sub delete_token {
 
     die "$@\n" if defined($@);
 }
+
+1;
