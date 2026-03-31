@@ -1,3 +1,11 @@
+libpve-access-control (9.0.6) trixie; urgency=medium
+
+  * pam: fork for PAM authentication to isolate SIGCHLD handler to avoid
+    side-effects causing SIGCHLDs from RESTEnvironment (task) worker processes
+    to be lost.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 01 Apr 2026 01:23:19 +0200
+
 libpve-access-control (9.0.5) trixie; urgency=medium
 
   * fix #7102: fix group name validation.
