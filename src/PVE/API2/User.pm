@@ -833,7 +833,8 @@ __PACKAGE__->register_method({
     name => 'update_token_info',
     path => '{userid}/token/{tokenid}',
     method => 'PUT',
-    description => "Update API token for a specific user.",
+    description => "Update API token for a specific user. NOTE: when 'regenerate' is set,"
+        . " the returned token value needs to be stored as it cannot be retrieved afterwards!",
     protected => 1,
     permissions => {
         check => [
@@ -848,6 +849,13 @@ __PACKAGE__->register_method({
             expire => get_standard_option('token-expire'),
             privsep => get_standard_option('token-privsep'),
             comment => get_standard_option('token-comment'),
+            regenerate => {
+                description => "Regenerate the token's secret value. All users of the"
+                    . " previous secret will lose access after this operation.",
+                type => 'boolean',
+                optional => 1,
+                default => 0,
+            },
             delete => {
                 type => 'string',
                 format => 'pve-configid-list',
@@ -856,13 +864,26 @@ __PACKAGE__->register_method({
             },
         },
     },
-    returns =>
-        get_standard_option('token-info', { description => "Updated token information." }),
+    returns => $token_info_extend->({
+        value => {
+            type => 'string',
+            description => "API token value used for authentication."
+                . " Only set when 'regenerate' was set.",
+            optional => 1,
+        },
+        'full-tokenid' => {
+            type => 'string',
+            format_description => '<userid>!<tokenid>',
+            description => "The full token id. Only set when 'regenerate' was set.",
+            optional => 1,
+        },
+    }),
     code => sub {
         my ($param) = @_;
 
         my $userid = PVE::AccessControl::verify_username(extract_param($param, 'userid'));
         my $tokenid = extract_param($param, 'tokenid');
+        my $regenerate = extract_param($param, 'regenerate');
 
         my $usercfg = cfs_read_file("user.cfg");
         my $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
@@ -870,12 +891,13 @@ __PACKAGE__->register_method({
         my $delete = extract_param($param, 'delete');
         $delete = { map { $_ => 1 } PVE::Tools::split_list($delete) } if $delete;
 
+        my $full_tokenid = PVE::AccessControl::join_tokenid($userid, $tokenid);
+        my $value;
+
         PVE::AccessControl::lock_user_config(
             sub {
                 $usercfg = cfs_read_file("user.cfg");
                 $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
-
-                my $full_tokenid = PVE::AccessControl::join_tokenid($userid, $tokenid);
 
                 $token->{privsep} = $param->{privsep} if defined($param->{privsep});
                 $token->{expire} = $param->{expire} if defined($param->{expire});
@@ -894,13 +916,20 @@ __PACKAGE__->register_method({
                     delete $token->{$k};
                 }
 
+                $value = PVE::TokenConfig::generate_token($full_tokenid) if $regenerate;
+
                 $usercfg->{users}->{$userid}->{tokens}->{$tokenid} = $token;
                 cfs_write_file("user.cfg", $usercfg);
             },
             'updating token info failed',
         );
 
-        return $token;
+        my $res = {%$token};
+        if ($regenerate) {
+            $res->{value} = $value;
+            $res->{'full-tokenid'} = $full_tokenid;
+        }
+        return $res;
     },
 });
 
