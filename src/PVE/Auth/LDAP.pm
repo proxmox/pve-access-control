@@ -3,6 +3,8 @@ package PVE::Auth::LDAP;
 use strict;
 use warnings;
 
+use Encode;
+
 use PVE::Auth::Plugin;
 use PVE::JSONSchema;
 use PVE::LDAP;
@@ -330,6 +332,10 @@ sub get_users {
         foreach my $attr (keys %$user_attributes) {
             if (my $ours = $ldap_attribute_map->{$attr}) {
                 my $value = $user_attributes->{$attr}->[0];
+                # Net::LDAP returns octets; DirectoryString-syntax attributes (sn, givenName, mail,
+                # description, ...) are UTF-8 on the wire, so mark them as such before we hand them
+                # off to the rest of the stack, which assumes character strings.
+                $value = Encode::decode('UTF-8', $value) if defined($value);
                 eval { verify_sync_attribute_value($ours, $value) };
                 if (my $err = $@) {
                     warn "skipping attribute mapping '$attr'->'$ours' for user '$username' - $err";
