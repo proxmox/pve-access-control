@@ -516,7 +516,7 @@ sub verify_token {
 }
 
 my $assemble_short_lived_ticket = sub {
-    my ($prefix, $username, $path) = @_;
+    my ($prefix, $username, $path, $additional_secret) = @_;
 
     my $rsa_priv = get_privkey();
 
@@ -525,18 +525,20 @@ my $assemble_short_lived_ticket = sub {
     die "invalid ticket path\n" if !defined($path);
 
     my $secret_data = "$username:$path";
+    $secret_data .= ":$additional_secret" if defined($additional_secret);
 
     return PVE::Ticket::assemble_rsa_ticket($rsa_priv, $prefix, undef, $secret_data);
 };
 
 my $verify_short_lived_ticket = sub {
-    my ($ticket, $prefix, $username, $path, $noerr) = @_;
+    my ($ticket, $prefix, $username, $path, $additional_secret, $noerr) = @_;
 
     $path = normalize_path($path);
 
     die "invalid ticket path\n" if !defined($path);
 
     my $secret_data = "$username:$path";
+    $secret_data .= ":$additional_secret" if defined($additional_secret);
 
     my ($rsa_pub, $rsa_mtime) = get_pubkey();
     if (!$rsa_pub || (time() - $rsa_mtime > $authkey_lifetime && $authkey_lifetime > 0)) {
@@ -558,13 +560,13 @@ my $verify_short_lived_ticket = sub {
 sub assemble_vnc_ticket {
     my ($username, $path) = @_;
 
-    return $assemble_short_lived_ticket->('PVEVNC', $username, $path);
+    return $assemble_short_lived_ticket->('PVEVNC', $username, $path, undef);
 }
 
 sub verify_vnc_ticket {
     my ($ticket, $username, $path, $noerr) = @_;
 
-    return $verify_short_lived_ticket->($ticket, 'PVEVNC', $username, $path, $noerr);
+    return $verify_short_lived_ticket->($ticket, 'PVEVNC', $username, $path, undef, $noerr);
 }
 
 # Tunnel tickets
@@ -573,13 +575,13 @@ sub verify_vnc_ticket {
 sub assemble_tunnel_ticket {
     my ($username, $path) = @_;
 
-    return $assemble_short_lived_ticket->('PVETUNNEL', $username, $path);
+    return $assemble_short_lived_ticket->('PVETUNNEL', $username, $path, undef);
 }
 
 sub verify_tunnel_ticket {
     my ($ticket, $username, $path, $noerr) = @_;
 
-    return $verify_short_lived_ticket->($ticket, 'PVETUNNEL', $username, $path, $noerr);
+    return $verify_short_lived_ticket->($ticket, 'PVETUNNEL', $username, $path, undef, $noerr);
 }
 
 sub assemble_spice_ticket {
