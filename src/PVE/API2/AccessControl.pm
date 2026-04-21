@@ -368,6 +368,15 @@ __PACKAGE__->register_method({
         my $res = eval {
             my $normpath = PVE::AccessControl::normalize_path($param->{path});
             PVE::AccessControl::verify_vnc_ticket($param->{vncticket}, $auth_id, $normpath);
+
+            my $privlist = [PVE::Tools::split_list($param->{privs})];
+            if (!(
+                $normpath
+                && scalar(@$privlist)
+                && $rpcenv->check($auth_id, $normpath, $privlist)
+            )) {
+                die "no permission ($param->{path}, $param->{privs})\n";
+            }
         };
         if (my $err = $@) {
             my $clientip = $rpcenv->get_client_ip() || '';
