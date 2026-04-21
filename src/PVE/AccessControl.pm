@@ -566,6 +566,11 @@ sub assemble_vnc_ticket {
 sub verify_vnc_ticket {
     my ($ticket, $username, $path, $port, $noerr) = @_;
 
+    # FIXME: MAJOR VERSION: Drop this, requiring using explicit 'password' return value for VNC API
+    if ($ticket =~ /^.{8}:(PVEVNC:.*)$/) {
+        $ticket = $1;
+    }
+
     return $verify_short_lived_ticket->($ticket, 'PVEVNC', $username, $path, $port, $noerr);
 }
 
