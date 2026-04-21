@@ -1,3 +1,24 @@
+libpve-access-control (8.2.3) bookworm; urgency=medium
+
+  * vncticket: complete privileges check on path, while this did not matter in
+    practice on current use sites we still want to hedge against that changing
+    on some new use site in the future.
+
+  * short lived ticket: support specifying additional secret.
+
+  * spice and vnc ticket: allow encoding and verifying port for hardening and
+    as a defense-in-depth measure.
+
+  * vnc ticket: allow tickets with a password prefix for backward
+    compatibility as alternative to the newer explicit 'password' return
+    property.
+
+  * fix #7102: improve group name validation.
+
+  * api: ticket: allow token-owned VNC ticket verification.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 21 Apr 2026 21:50:42 +0200
+
 libpve-access-control (8.2.2) bookworm; urgency=medium
 
   * oidc: fix overly strict groups-claim regex enforced by API schema.
