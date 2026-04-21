@@ -556,17 +556,17 @@ my $verify_short_lived_ticket = sub {
 
 # VNC tickets
 # - they do not contain the username in plain text
-# - they are restricted to a specific resource path (example: '/vms/100')
+# - they are restricted to a specific resource path (example: '/vms/100') and port
 sub assemble_vnc_ticket {
-    my ($username, $path) = @_;
+    my ($username, $path, $port) = @_;
 
-    return $assemble_short_lived_ticket->('PVEVNC', $username, $path, undef);
+    return $assemble_short_lived_ticket->('PVEVNC', $username, $path, $port);
 }
 
 sub verify_vnc_ticket {
-    my ($ticket, $username, $path, $noerr) = @_;
+    my ($ticket, $username, $path, $port, $noerr) = @_;
 
-    return $verify_short_lived_ticket->($ticket, 'PVEVNC', $username, $path, undef, $noerr);
+    return $verify_short_lived_ticket->($ticket, 'PVEVNC', $username, $path, $port, $noerr);
 }
 
 # Tunnel tickets

@@ -123,8 +123,10 @@ my sub verify_auth : prototype($$$$$$) {
         && ($ticketuser eq $username)
     ) {
         # valid ticket
-    } elsif (PVE::AccessControl::verify_vnc_ticket($pw_or_ticket, $username, $normpath, 1)) {
-        # valid vnc ticket
+    } elsif (PVE::AccessControl::verify_vnc_ticket($pw_or_ticket, $username, $normpath, undef, 1)) {
+        # FIXME: MAJOR VERSION: Drop this check, require always using 'vncticket' endpoint
+        # valid old-stlye vnc ticket without port - for tickets with port, use the 'vncticket'
+        # endpoint
     } else {
         $username = PVE::AccessControl::authenticate_user(
             $username, $pw_or_ticket, $otp,
@@ -361,6 +363,11 @@ __PACKAGE__->register_method({
                 format => 'pve-priv-list',
                 maxLength => 64,
             },
+            port => {
+                description => "Verify that the ticket is valid for this port.",
+                type => 'integer',
+                optional => 1,
+            },
         },
     },
     returns => { type => "null" },
@@ -373,7 +380,9 @@ __PACKAGE__->register_method({
 
         my $res = eval {
             my $normpath = PVE::AccessControl::normalize_path($param->{path});
-            PVE::AccessControl::verify_vnc_ticket($param->{vncticket}, $auth_id, $normpath);
+            PVE::AccessControl::verify_vnc_ticket(
+                $param->{vncticket}, $auth_id, $normpath, $param->{port},
+            );
 
             my $privlist = [PVE::Tools::split_list($param->{privs})];
             if (!(
