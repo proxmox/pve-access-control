@@ -590,11 +590,11 @@ sub verify_tunnel_ticket {
 }
 
 sub assemble_spice_ticket {
-    my ($username, $vmid, $node) = @_;
+    my ($username, $vmid, $node, $port) = @_;
 
     my $secret = &$get_csrfr_secret();
 
-    return PVE::Ticket::assemble_spice_ticket($secret, $username, $vmid, $node);
+    return PVE::Ticket::assemble_spice_ticket($secret, $username, $vmid, $node, $port);
 }
 
 sub verify_spice_connect_url {
@@ -640,7 +640,7 @@ sub remote_viewer_config {
         $proxy = $host;
     }
 
-    my ($ticket, $proxyticket) = assemble_spice_ticket($authuser, $vmid, $node);
+    my ($ticket, $proxyticket) = assemble_spice_ticket($authuser, $vmid, $node, $port);
 
     my $filename = "/etc/pve/local/pve-ssl.pem";
     my $subject = read_x509_subject_spice($filename);
