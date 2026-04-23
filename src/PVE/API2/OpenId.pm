@@ -46,6 +46,10 @@ my $lookup_openid_auth = sub {
         $openid_config->{acr_values} = [PVE::Tools::split_list($acr)];
     }
 
+    if (defined(my $audiences = $config->{'audiences'})) {
+        $openid_config->{audiences} = [PVE::Tools::split_list($audiences)];
+    }
+
     my $openid = PVE::RS::OpenId->discover($openid_config, $redirect_url);
     return ($config, $openid);
 };

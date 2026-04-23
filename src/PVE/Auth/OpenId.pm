@@ -92,6 +92,14 @@ sub properties {
             default => 1,
             optional => 1,
         },
+        'audiences' => {
+            description =>
+                "A list of audiences that the OpenID Issuer may include that are accepted in "
+                . "addition to 'client-id'.",
+            type => 'string',
+            pattern => '^[^\x00-\x1F\x7F <>#"]*$', # Prohibit characters not allowed in URI RFC 2396.
+            optional => 1,
+        },
     };
 }
 
@@ -108,6 +116,7 @@ sub options {
         prompt => { optional => 1 },
         scopes => { optional => 1 },
         "acr-values" => { optional => 1 },
+        audiences => { optional => 1 },
         default => { optional => 1 },
         comment => { optional => 1 },
         "query-userinfo" => { optional => 1 },
