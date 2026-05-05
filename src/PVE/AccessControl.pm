@@ -1300,6 +1300,10 @@ sub check_path {
 	|/sdn/fabrics/[[:alnum:]]+
 	|/sdn/ipams
 	|/sdn/ipams/[[:alnum:]]+
+	|/sdn/prefix-lists
+	|/sdn/prefix-lists/[[:alnum:]]+
+	|/sdn/route-maps
+	|/sdn/route-maps/[[:alnum:]]+
 	|/sdn/zones
 	|/sdn/zones/[[:alnum:]\.\-\_]+
 	|/sdn/zones/[[:alnum:]\.\-\_]+/[[:alnum:]\.\-\_]+
