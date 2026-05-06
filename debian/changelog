@@ -1,3 +1,18 @@
+libpve-access-control (9.1.0) trixie; urgency=medium
+
+  * permissions: add ACL paths for SDN prefix-lists and route-maps, to allow
+    granular access control for the new routing-related SDN objects.
+
+  * ldap sync: fix double-encoding of non-ASCII characters in synced attribute
+    values like first name, last name, email and comment, which previously got
+    garbled in the GUI and CLI.
+
+  * api: token: support regenerating the secret on update, allowing in-place
+    rotation of leaked or compromised tokens without dropping the associated
+    ACL entries that referenced the old token id.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 06 May 2026 02:05:21 +0200
+
 libpve-access-control (9.0.7) trixie; urgency=medium
 
   * vncticket: complete privileges check on path, while this did not matter in
