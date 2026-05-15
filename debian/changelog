@@ -1,3 +1,9 @@
+libpve-access-control (9.1.1) trixie; urgency=medium
+
+  * fix #5076: auth: open id: add an optional "audiences" field to realm config
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 15 May 2026 16:30:05 +0200
+
 libpve-access-control (9.1.0) trixie; urgency=medium
 
   * permissions: add ACL paths for SDN prefix-lists and route-maps, to allow
