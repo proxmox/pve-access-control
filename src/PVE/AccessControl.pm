@@ -1283,6 +1283,7 @@ sub check_path {
 	|/access/realm/[[:alnum:]\.\-\_]+
 	|/nodes
 	|/nodes/[[:alnum:]\.\-\_]+
+	|/nodes/[[:alnum:]\.\-\_]+/certificates
 	|/pool
 	|/pool/[A-Za-z0-9\.\-_]+(?:/[A-Za-z0-9\.\-_]+){0,2}
 	|/sdn
