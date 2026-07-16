@@ -17,7 +17,14 @@ use PVE::RPCEnvironment;
 my $user_cfg_raw;
 
 my $access_control_module = Test::MockModule->new('PVE::AccessControl');
-$access_control_module->mock(lock_user_config => sub { $_[0]->() });
+$access_control_module->mock(
+    lock_user_config => sub { $_[0]->() },
+    # token create and update look up the datacenter token policy, run them without one
+    cfs_read_file => sub($file) {
+        die "unexpected cfs_read_file('$file') call\n" if $file ne 'datacenter.cfg';
+        return {};
+    },
+);
 
 my $api_user_module = Test::MockModule->new('PVE::API2::User');
 $api_user_module->mock(

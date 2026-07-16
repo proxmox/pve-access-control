@@ -831,13 +831,19 @@ __PACKAGE__->register_method({
             die "Token already exists.\n"
                 if defined(PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid, 1));
 
-            $full_tokenid = PVE::AccessControl::join_tokenid($userid, $tokenid);
-            $value = PVE::TokenConfig::generate_token($full_tokenid);
-
             $token = {};
             $token->{privsep} = $privsep;
             $token->{expire} = $param->{expire} if defined($param->{expire});
             $token->{comment} = $param->{comment} if $param->{comment};
+
+            # check policy before generating the secret to avoid leaving an orphan in token.cfg
+            PVE::AccessControl::assert_token_policy({
+                expire => $token->{expire} // 0,
+                'privilege-separation' => $token->{privsep},
+            });
+
+            $full_tokenid = PVE::AccessControl::join_tokenid($userid, $tokenid);
+            $value = PVE::TokenConfig::generate_token($full_tokenid);
 
             $usercfg->{users}->{$userid}->{tokens}->{$tokenid} = $token;
             cfs_write_file("user.cfg", $usercfg);
@@ -941,10 +947,29 @@ __PACKAGE__->register_method({
                 $usercfg = cfs_read_file("user.cfg");
                 $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
 
+                my $old_expire = $token->{expire} // 0;
+                my $old_privilege_separation = $token->{privsep} // 0;
+
                 $token->{privsep} = $param->{privsep} if defined($param->{privsep});
                 $token->{expire} = $param->{expire} if defined($param->{expire});
                 $token->{comment} = $param->{comment} if defined($param->{comment});
                 delete $token->{comment} if (!length $token->{comment});
+
+                my $new_expire = $token->{expire} // 0;
+                my $new_privilege_separation = $token->{privsep} // 0;
+
+                # only check what this update changes, so that tokens that predate the policy
+                # stay editable
+                my $expire_change = $new_expire != $old_expire ? $new_expire : undef;
+                my $privilege_separation_change =
+                    $new_privilege_separation != $old_privilege_separation
+                    ? $new_privilege_separation
+                    : undef;
+                PVE::AccessControl::assert_token_policy({
+                    expire => $expire_change,
+                    'privilege-separation' => $privilege_separation_change,
+                    'current-expire' => $old_expire,
+                });
 
                 my $deletable = {
                     comment => 1,

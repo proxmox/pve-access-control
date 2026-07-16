@@ -16,6 +16,8 @@ check:
 	perl -I.. realm_sync_test.pl
 	perl -I.. pve-realm-password-hash-test.pl
 	perl -I.. pool-name-0-test.pl
+	perl -I.. token-policy-test.pl
+	perl -I.. token-policy-api-test.pl
 	perl -I.. user-api-groups-test.pl
 	perl -I.. acl-api-members-test.pl
 	perl -I.. acl-api-permissions-test.pl

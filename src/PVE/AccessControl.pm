@@ -21,6 +21,7 @@ use PVE::OTP;
 use PVE::Ticket;
 use PVE::Tools qw(run_command lock_file file_get_contents split_list safe_print);
 use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_write_file cfs_lock_file);
+use PVE::DataCenterConfig; # ensure the 'datacenter.cfg' cfs parser is registered
 use PVE::JSONSchema qw(register_standard_option get_standard_option);
 
 use PVE::RS::TFA;
@@ -661,6 +662,67 @@ sub check_user_enabled {
     }
 
     return 1; # enabled and not expired
+}
+
+# Assert that a token's expiration date and privilege separation setting conform to the
+# datacenter token policy. Dies with a descriptive message on violation.
+#
+# Takes a hash reference with the following keys:
+# - expire: the expiration date to check (epoch seconds, 0 for none); undef skips the expiration
+#   date checks
+# - privilege-separation: the privilege separation flag to check; undef skips that check
+# - current-expire: the expiration date of an existing token before the update, 0 for none
+# - ctime, policy: override the reference time for the maximum lifetime and the policy from the
+#   datacenter config, for testing
+#
+# Callers pass only the values an operation sets or changes, so that unrelated updates do not
+# reject tokens that predate the policy.
+sub assert_token_policy {
+    my ($param) = @_;
+
+    # integer API parameters keep their submitted spelling, and zero spellings like '00' or '-0'
+    # are true in Perl, so numify to not mistake them for a set expiration date
+    my $expire = defined($param->{expire}) ? int($param->{expire}) : undef;
+    my $privilege_separation = $param->{'privilege-separation'};
+
+    return if !defined($expire) && !defined($privilege_separation);
+
+    my $policy = $param->{policy} // cfs_read_file('datacenter.cfg')->{'token-policy'};
+    return if !$policy;
+
+    if (defined($expire)) {
+        # removing the expiration date or moving it later extends the token
+        my $current_expire = $param->{'current-expire'};
+        if (
+            $policy->{'disallow-expiry-extension'}
+            && $current_expire
+            && (!$expire || $expire > $current_expire)
+        ) {
+            die "the datacenter token policy does not allow extending the expiration date of an"
+                . " existing token\n";
+        }
+
+        my $ctime = $param->{ctime} // time();
+        my $max_lifetime = $policy->{'max-lifetime'};
+        # a token that never expires exceeds any maximum lifetime
+        my $require_expiry = $policy->{'require-expiry'} || $max_lifetime;
+
+        die "the datacenter token policy requires an expiration date\n"
+            if $require_expiry && !$expire;
+
+        if ($max_lifetime && $expire && $expire > $ctime + $max_lifetime) {
+            die "the expiration date exceeds the maximum token lifetime of $max_lifetime seconds"
+                . " set by the datacenter token policy\n";
+        }
+    }
+
+    if (
+        defined($privilege_separation)
+        && $policy->{'require-privilege-separation'}
+        && !$privilege_separation
+    ) {
+        die "the datacenter token policy requires privilege separation\n";
+    }
 }
 
 sub check_token_exist {
