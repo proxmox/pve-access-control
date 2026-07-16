@@ -971,6 +971,25 @@ sub iterate_acl_tree {
     }
 }
 
+# recursively checks a node and all its children for active permissions
+sub acl_tree_has_permissions {
+    my ($node) = @_;
+
+    for my $key (keys %$node) {
+        if ($key ne 'children') {
+            return 1;
+        }
+    }
+
+    for my $child_key (keys $node->{children}->%*) {
+        if (acl_tree_has_permissions($node->{children}->{$child_key})) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 # find ACL node corresponding to normalized $path under $root
 sub find_acl_tree_node {
     my ($root, $path) = @_;
