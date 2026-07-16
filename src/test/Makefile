@@ -15,3 +15,5 @@ check:
 	perl -I.. realm_sync_test.pl
 	perl -I.. api-tests.pl
 	perl -I.. sdn_acl_pruning_test.pl
+	perl -I.. sdn_acl_migration_test.pl
+
