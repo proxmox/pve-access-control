@@ -994,6 +994,37 @@ sub find_acl_tree_node {
     return $node;
 }
 
+=head3 find_acl_tree_node_parent($root, $path)
+
+Finds an ACL node by path C<$path> starting from the root node
+C<$root>, without autovivifying (creating) missing nodes.
+Returns a list containing the parent node, the final path
+segment, and the target node itself.
+
+=cut
+
+sub find_acl_tree_node_parent {
+    my ($root, $path) = @_;
+
+    my $current = $root;
+    my $parent = undef;
+    my $last_key = undef;
+
+    my @split_path = split('/', $path);
+
+    for my $segment (@split_path) {
+        if (defined($current->{children}) && defined($current->{children}->{$segment})) {
+            $parent = $current;
+            $last_key = $segment;
+            $current = $current->{children}->{$segment};
+        } else {
+            return (undef, undef, undef);
+        }
+    }
+
+    return ($parent, $last_key, $current);
+}
+
 sub add_user_group {
     my ($username, $usercfg, $group) = @_;
 
