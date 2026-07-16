@@ -2000,6 +2000,33 @@ sub remove_vm_from_pool {
     lock_user_config($delVMfromPoolFn, "pool cleanup for VM $vmid failed");
 }
 
+sub remove_sdn_resource_access {
+    my ($paths) = @_; # [ 'zones/<zone>', 'zones/<zone>/<vnet>' ]
+
+    my $delete_resource_fn = sub {
+        my $usercfg = cfs_read_file("user.cfg");
+        my $modified = 0;
+
+        for my $path (@$paths) {
+            my $full_path = "sdn/$path";
+
+            my $current = $usercfg->{acl_root};
+            my ($parent, $last_key) = find_acl_tree_node_parent($current, $full_path);
+
+            if ($parent && $last_key) {
+                delete $parent->{children}->{$last_key};
+                $modified = 1;
+            }
+        }
+
+        if ($modified) {
+            cfs_write_file("user.cfg", $usercfg);
+        }
+    };
+
+    lock_user_config($delete_resource_fn, "SDN ACL cleanup failed");
+}
+
 my $USER_CONTROLLED_TFA_TYPES = {
     u2f => 1,
     oath => 1,
