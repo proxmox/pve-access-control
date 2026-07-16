@@ -14,3 +14,4 @@ check:
 	perl -I.. perm-test8.pl
 	perl -I.. realm_sync_test.pl
 	perl -I.. api-tests.pl
+	perl -I.. sdn_acl_pruning_test.pl
