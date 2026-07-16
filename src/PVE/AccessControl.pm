@@ -2046,6 +2046,88 @@ sub remove_sdn_resource_access {
     lock_user_config($delete_resource_fn, "SDN ACL cleanup failed");
 }
 
+sub migrate_sdn_resource_access {
+    my ($migrations) = @_;
+    # [ { src_path => 'zones/<zoney>/<vnet>', dest_path => 'zones/<zonex>/<vnet>' } ]
+
+    return if !$migrations;
+
+    my $migrate_fn = sub {
+        my $usercfg = cfs_read_file("user.cfg");
+
+        my @prepared_moves = ();
+        for my $migration (@$migrations) {
+
+            my $invalid_key = 0;
+
+            for my $key (qw(src_path dest_path)) {
+                if (!defined($migration->{$key})) {
+                    warn "Missing '$key' in migration entry.\n";
+                    $invalid_key = 1;
+                    last;
+                }
+            }
+
+            next if $invalid_key;
+
+            my $src_path = "sdn/$migration->{src_path}";
+            my $dest_path = "sdn/$migration->{dest_path}";
+
+            my ($src_parent, $src_last_key, $acl_node) =
+                find_acl_tree_node_parent($usercfg->{acl_root}, $src_path);
+
+            if (defined($src_parent) && defined($src_last_key) && defined($acl_node)) {
+                # probe dest for conflicts
+                my (undef, undef, $existing_dest_node) =
+                    find_acl_tree_node_parent($usercfg->{acl_root}, $dest_path);
+
+                if (acl_tree_has_permissions($existing_dest_node)) {
+                    my $conflict_path = "/$dest_path";
+                    my $source_path = "/$src_path";
+                    die
+                        "Destination '$conflict_path' already has permissions configured (Source:"
+                        . " '$source_path'). Please remove the target ACLs manually before"
+                        . " retrying.\n";
+                }
+
+                # stage move
+                push(
+                    @prepared_moves,
+                    {
+                        src_parent => $src_parent,
+                        src_last_key => $src_last_key,
+                        dest_path => $dest_path,
+                        node => $acl_node,
+                    },
+                );
+            }
+        }
+
+        return if !@prepared_moves;
+
+        for my $move (@prepared_moves) {
+            delete $move->{src_parent}->{children}->{ $move->{src_last_key} };
+
+            my $current = $usercfg->{acl_root};
+            my @dest_segments = split('/', $move->{dest_path});
+            my $dest_last_key = pop @dest_segments;
+
+            for my $segment (@dest_segments) {
+                $current->{children}->{$segment} = {}
+                    if !defined($current->{children}->{$segment});
+
+                $current = $current->{children}->{$segment};
+            }
+            $current->{children}->{$dest_last_key} = $move->{node};
+
+        }
+
+        cfs_write_file("user.cfg", $usercfg);
+    };
+
+    lock_user_config($migrate_fn, "ACL migration failed");
+}
+
 my $USER_CONTROLLED_TFA_TYPES = {
     u2f => 1,
     oath => 1,
