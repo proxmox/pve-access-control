@@ -1604,7 +1604,7 @@ sub parse_user_config {
                 warn "user config - ignore invalid path in acl '$pathtxt'\n";
             }
         } elsif ($et eq 'pool') {
-            my ($pool, $comment, $vmlist, $storelist) = @data;
+            my ($pool, $comment, $vmlist, $storelist, $networklist) = @data;
 
             if (!verify_poolname($pool, 1)) {
                 warn "user config - ignore pool '$pool' - invalid characters in pool name\n";
@@ -1612,7 +1612,7 @@ sub parse_user_config {
             }
 
             # make sure to add the pool (even if there are no members)
-            $cfg->{pools}->{$pool} = { vms => {}, storage => {}, pools => {} }
+            $cfg->{pools}->{$pool} = { vms => {}, storage => {}, pools => {}, network => {} }
                 if !$cfg->{pools}->{$pool};
 
             if ($pool =~ m!/!) {
@@ -1621,8 +1621,12 @@ sub parse_user_config {
                     # ensure nested pool info is correctly recorded
                     my $parent = $1;
                     $cfg->{pools}->{$curr}->{parent} = $parent;
-                    $cfg->{pools}->{$parent} = { vms => {}, storage => {}, pools => {} }
-                        if !$cfg->{pools}->{$parent};
+
+                    if (!$cfg->{pools}->{$parent}) {
+                        $cfg->{pools}->{$parent} =
+                            { vms => {}, storage => {}, pools => {}, network => {} };
+                    }
+
                     $cfg->{pools}->{$parent}->{pools}->{$curr} = 1;
                     $curr = $parent;
                 }
@@ -1654,7 +1658,19 @@ sub parse_user_config {
                     next;
                 }
                 $cfg->{pools}->{$pool}->{storage}->{$storeid} = 1;
+
             }
+            for my $network (split_list($networklist)) {
+
+                if ($network !~ m/^[a-z0-9][a-z0-9\-_]*(?:\/[a-z0-9][a-z0-9\-_]*)*(?:\/\*)?$/i) {
+                    warn "user config - ignore invalid sdn resource entry '$network' in pool"
+                        . " '$pool'\n";
+                    next;
+                }
+
+                $cfg->{pools}->{$pool}->{network}->{$network} = 1;
+            }
+
         } elsif ($et eq 'token') {
             my ($tokenid, $expire, $privsep, $comment) = @data;
 
@@ -1736,8 +1752,9 @@ sub write_user_config {
         my $d = $cfg->{pools}->{$pool};
         my $vmlist = join(',', sort keys %{ $d->{vms} });
         my $storelist = join(',', sort keys %{ $d->{storage} });
+        my $networklist = join(',', sort keys %{ $d->{network} });
         my $comment = $d->{comment} ? PVE::Tools::encode_text($d->{comment}) : '';
-        $data .= "pool:$pool:$comment:$vmlist:$storelist:\n";
+        $data .= "pool:$pool:$comment:$vmlist:$storelist:$networklist:\n";
     }
 
     $data .= "\n";

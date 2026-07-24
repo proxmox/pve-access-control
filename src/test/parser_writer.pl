@@ -238,24 +238,35 @@ my $default_cfg = {
         vms => {},
         storage => {},
         pools => {},
+        network => {},
     },
     test_pool_members => {
         'id' => 'testpool',
         vms => { 123 => 1, 1234 => 1 },
         storage => { 'local' => 1, 'local-zfs' => 1 },
         pools => {},
+        network => { "vnet/zone1/vnet1" => 1, 'vnet/zone2/vnet2' => 1 },
     },
     test_pool_duplicate_vms => {
         'id' => 'test_duplicate_vms',
         vms => {},
         storage => {},
         pools => {},
+        network => {},
     },
     test_pool_duplicate_storages => {
         'id' => 'test_duplicate_storages',
         vms => {},
         storage => { 'local' => 1, 'local-zfs' => 1 },
         pools => {},
+        network => {},
+    },
+    test_pool_duplicate_networks => {
+        'id' => 'test_duplicate_networks',
+        vms => {},
+        storage => {},
+        pools => {},
+        network => { "vnet/zone1/vnet1" => 1, "vnet/zone2/vnet2" => 1 },
     },
     acl_simple_user => {
         'path' => '/',
@@ -431,12 +442,15 @@ my $default_raw = {
         'test_role_privs_invalid' => 'role:testrole:VM.Invalid,Datastore.Audit,VM.Allocate:',
     },
     pools => {
-        'test_pool_empty' => 'pool:testpool::::',
-        'test_pool_invalid' => 'pool:testpool::non-numeric:inval!d:',
-        'test_pool_members' => 'pool:testpool::123,1234:local,local-zfs:',
-        'test_pool_duplicate_vms' => 'pool:test_duplicate_vms::123,1234::',
-        'test_pool_duplicate_vms_expected' => 'pool:test_duplicate_vms::::',
-        'test_pool_duplicate_storages' => 'pool:test_duplicate_storages:::local,local-zfs:',
+        'test_pool_empty' => 'pool:testpool:::::',
+        'test_pool_invalid' => 'pool:testpool::non-numeric:inval!d::',
+        'test_pool_members' =>
+            'pool:testpool::123,1234:local,local-zfs:vnet/zone1/vnet1,vnet/zone2/vnet2:',
+        'test_pool_duplicate_vms' => 'pool:test_duplicate_vms::123,1234:::',
+        'test_pool_duplicate_vms_expected' => 'pool:test_duplicate_vms:::::',
+        'test_pool_duplicate_storages' => 'pool:test_duplicate_storages:::local,local-zfs::',
+        'test_pool_duplicate_networks' =>
+            'pool:test_duplicate_networks::::vnet/zone1/vnet1,vnet/zone2/vnet2:',
     },
     acl => {
         'acl_simple_user' => 'acl:1:/:test@pam:PVEVMAdmin:',
@@ -696,6 +710,7 @@ my $tests = [
                     $default_cfg->{test_pool_members},
                     $default_cfg->{test_pool_duplicate_vms},
                     $default_cfg->{test_pool_duplicate_storages},
+                    $default_cfg->{test_pool_duplicate_networks},
                 ],
             ),
             vms => default_pool_vms_with([$default_cfg->{test_pool_members}]),
@@ -705,13 +720,35 @@ my $tests = [
             . "\n\n\n"
             . $default_raw->{pools}->{'test_pool_members'} . "\n"
             . $default_raw->{pools}->{'test_pool_duplicate_vms'} . "\n"
-            . $default_raw->{pools}->{'test_pool_duplicate_storages'} . "\n",
+            . $default_raw->{pools}->{'test_pool_duplicate_storages'} . "\n"
+            . $default_raw->{pools}->{'test_pool_duplicate_networks'} . "\n",
         expected_raw => ""
             . $default_raw->{users}->{'root@pam'}
             . "\n\n\n"
+            . $default_raw->{pools}->{'test_pool_duplicate_networks'} . "\n"
             . $default_raw->{pools}->{'test_pool_duplicate_storages'} . "\n"
             . $default_raw->{pools}->{'test_pool_duplicate_vms_expected'} . "\n"
             . $default_raw->{pools}->{'test_pool_members'}
+            . "\n\n\n",
+    },
+    {
+        name => "pool_format_backward_compatibility",
+        config => {
+            acl_root => default_acls(),
+            users => default_users(),
+            roles => default_roles(),
+            pools => default_pools_with([$default_cfg->{test_pool_empty}]),
+        },
+        raw => ""
+            . $default_raw->{users}->{'root@pam'}
+            . "\n\n\n"
+            # old format: 5 colons
+            . "pool:testpool::::\n\n\n",
+        expected_raw => ""
+            . $default_raw->{users}->{'root@pam'}
+            . "\n\n\n"
+            # new format: 6 colons
+            . $default_raw->{pools}->{'test_pool_empty'}
             . "\n\n\n",
     },
     {
@@ -1102,7 +1139,7 @@ my $tests = [
             . 'user:test@pam:0:0::::::' . "\n"
             . 'token:test@pam!test:0:0::' . "\n\n"
             . 'group:testgroup:::' . "\n\n"
-            . 'pool:testpool::::' . "\n\n"
+            . 'pool:testpool:::::' . "\n\n"
             . 'role:testrole::' . "\n\n",
     },
 ];

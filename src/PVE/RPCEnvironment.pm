@@ -53,7 +53,46 @@ my $compile_acl_path = sub {
                     $data->{poolroles}->{"/storage/$storeid"}->{$role} = 1;
                 }
             }
+
+            for my $network_key (keys $d->{network}->%*) {
+                my ($type, @path) = split('/', $network_key);
+
+                if ($type eq 'vnet') {
+                    my ($zoneid, $vnetid, $vlan) = @path;
+
+                    my $acl_path = "/sdn/zones/$zoneid/$vnetid";
+
+                    for my $role (keys $pool_roles->%*) {
+                        if (!defined($vlan)) {
+                            # base vnet only, NICs without explicit tag or trunks
+                            $data->{poolroles}->{$acl_path}->{$role} = 1;
+                        } elsif ($vlan eq '*') {
+                            # base vnet and all of its tags
+                            $data->{poolroles}->{$acl_path}->{$role} = 1;
+                            $data->{poolroles}->{"$acl_path/*"}->{$role} = 1;
+                        } else {
+                            # specific vlan tag only
+                            $data->{poolroles}->{"$acl_path/$vlan"}->{$role} = 1;
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    my $poolroles_path = $data->{poolroles}->{$path};
+
+    # Pool ACL paths are setup without propagation, therefore checking
+    # /sdn/zones/<zone>/<vnet>/<tag> fails even if the user has permission for
+    # the base path /sdn/zones/<zone>/<vnet>.
+    # To allow opt-in propagation, the wildcard path /sdn/zones/<zone>/<vnet>/*
+    # is introduced.
+    if (!defined($poolroles_path) && $path =~ m|^/sdn/zones/[^/]+/[^/]+/[0-9]+$|) {
+        my @parts = split('/', $path);
+        my $base_vnet_path = join('/', @parts[0 .. 4]);
+
+        # inherit the permissions only if the explicit /* wildcard was used
+        $poolroles_path = $data->{poolroles}->{"$base_vnet_path/*"};
     }
 
     # get roles of current user/token on checked path - this already handles
@@ -64,14 +103,14 @@ my $compile_acl_path = sub {
     my $roles = PVE::AccessControl::roles($cfg, $user, $path);
 
     # apply roles inherited from pools
-    if ($data->{poolroles}->{$path}) {
+    if ($poolroles_path) {
         # NoAccess must not be trumped by pool ACLs
         if (!defined($roles->{NoAccess})) {
-            if ($data->{poolroles}->{$path}->{NoAccess}) {
+            if ($poolroles_path->{NoAccess}) {
                 # but pool ACL NoAccess trumps regular ACL
                 $roles = { 'NoAccess' => 0 };
             } else {
-                foreach my $role (keys %{ $data->{poolroles}->{$path} }) {
+                for my $role (keys $poolroles_path->%*) {
                     # only use role from pool ACL if regular ACL didn't already
                     # set it, and never set propagation for pool-derived ACLs
                     $roles->{$role} = 0 if !defined($roles->{$role});
@@ -274,6 +313,17 @@ sub get_effective_permissions {
         foreach my $storeid (keys %{ $d->{storage} }) {
             $paths->{"/storage/$storeid"} = 1;
         }
+
+        for my $network_key (keys $d->{network}->%*) {
+            my ($type, @path) = split('/', $network_key);
+
+            if ($type eq 'vnet') {
+                my ($zoneid, $vnetid, $vlan) = @path;
+                my $vnet_path = "/sdn/zones/$zoneid/$vnetid";
+                $vnet_path .= "/$vlan" if defined($vlan);
+                $paths->{$vnet_path} = 1;
+            }
+        }
     }
 
     my $perms = {};
@@ -350,6 +400,25 @@ sub check_sdn_bridge {
         for my $vlan (keys %$vlans) {
             my $vlanpath = "$path/$vlan";
             return 1 if $self->check_any($username, $vlanpath, $privs, 1);
+        }
+    }
+
+    # check access to VLANs via pools
+    for my $pool (keys $cfg->{pools}->%*) {
+        my $poolcfg = $cfg->{pools}->{$pool};
+        next if !$poolcfg->{network};
+
+        for my $network_key (keys $poolcfg->{network}->%*) {
+            my ($type, @path) = split('/', $network_key);
+
+            if (defined($type) && $type eq 'vnet') {
+                my ($zoneid, $vnetid, $vlan) = @path;
+
+                if ($zoneid eq $zone && $vnetid eq $bridge && defined($vlan)) {
+                    my $vlanpath = "/sdn/zones/$zoneid/$vnetid/$vlan";
+                    return 1 if $self->check_any($username, $vlanpath, $privs, 1);
+                }
+            }
         }
     }
 
