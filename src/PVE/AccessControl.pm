@@ -2036,6 +2036,110 @@ sub remove_vm_from_pool {
     lock_user_config($delVMfromPoolFn, "pool cleanup for VM $vmid failed");
 }
 
+sub remove_vnets_from_pool {
+    my ($paths) = @_;
+
+    my $del_vnet_from_pool_fn = sub {
+        my $usercfg = cfs_read_file("user.cfg");
+        my $modified = 0;
+
+        for my $pool (keys $usercfg->{pools}->%*) {
+            my $pool_cfg = $usercfg->{pools}->{$pool};
+
+            my @to_delete = ();
+
+            for my $net_key (keys $pool_cfg->{network}->%*) {
+                for my $path (@$paths) {
+                    my (undef, $zone, $vnet) = split('/', $path);
+                    my $network_key = "vnet/$zone/$vnet";
+
+                    if ($net_key =~ m!^\Q$network_key\E(?:/(?:[0-9]+|\*))?\z!) {
+                        push(@to_delete, $net_key);
+                        last; # match skip ahead
+                    }
+                }
+            }
+
+            if (@to_delete) {
+                for my $del_key (@to_delete) {
+                    delete $pool_cfg->{network}->{$del_key};
+                }
+                $modified = 1;
+            }
+
+        }
+        if ($modified) {
+            cfs_write_file("user.cfg", $usercfg);
+        }
+    };
+
+    lock_user_config($del_vnet_from_pool_fn, "pool cleanup for VNet failed");
+}
+
+sub migrate_vnet_zone_in_pool {
+    my ($move_paths) = @_;
+
+    my $update_vnet_zone_fn = sub {
+        my $usercfg = cfs_read_file("user.cfg");
+        my $modified = 0;
+
+        my %move_map = ();
+        for my $move ($move_paths->@*) {
+            my $src_key = $move->{src_path};
+            my $dest_key = $move->{dest_path};
+
+            $src_key =~ s!^zones/!vnet/!;
+            $dest_key =~ s!^zones/!vnet/!;
+
+            if ($src_key ne $dest_key) {
+                $move_map{$src_key} = $dest_key;
+            }
+
+        }
+
+        for my $pool (keys $usercfg->{pools}->%*) {
+            my $pool_cfg = $usercfg->{pools}->{$pool};
+
+            my @to_delete = ();
+            my %to_add = ();
+
+            for my $net_key (sort keys $pool_cfg->{network}->%*) {
+                if ($net_key =~ m!^(vnet/[^/]+/[^/]+)(?:/([0-9]+|\*))?\z!) {
+                    my $base_key = $1;
+                    my $vlan = $2;
+
+                    if (my $new_base = $move_map{$base_key}) {
+                        push(@to_delete, $net_key);
+
+                        my $target_key = $new_base;
+                        $target_key .= "/$vlan" if defined($vlan);
+
+                        $to_add{$target_key} = $pool_cfg->{network}->{$net_key};
+                    }
+                }
+            }
+
+            if (@to_delete || keys %to_add) {
+                for my $delete_key (@to_delete) {
+                    delete $pool_cfg->{network}->{$delete_key};
+                }
+
+                for my $add_key (sort keys %to_add) {
+                    $pool_cfg->{network}->{$add_key} = $to_add{$add_key};
+                }
+
+                $modified = 1;
+            }
+        }
+
+        if ($modified) {
+            cfs_write_file("user.cfg", $usercfg);
+        }
+    };
+
+    lock_user_config($update_vnet_zone_fn, "pool update for VNets failed");
+}
+
 sub remove_sdn_resource_access {
     my ($paths) = @_; # [ 'zones/<zone>', 'zones/<zone>/<vnet>' ]
 
