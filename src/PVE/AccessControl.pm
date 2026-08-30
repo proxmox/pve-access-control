@@ -778,6 +778,11 @@ sub authenticate_2nd_new_do : prototype($$$$) {
     # whether the user has *any* entries here instead whe it is available in
     # pve-rs
     if (!defined($tfa_cfg)) {
+        # Fail closed: a challenge response cannot be verified without a TFA
+        # config, and a realm requiring TFA must never silently get none.
+        die "no TFA configuration available for user '$username'\n"
+            if defined($tfa_challenge) || defined($tfa_response) || $realm_tfa;
+
         return undef;
     }
 
