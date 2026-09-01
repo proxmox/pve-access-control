@@ -110,6 +110,10 @@ sub get_users {
 sub authenticate_user {
     my ($class, $config, $realm, $username, $password) = @_;
 
+    # an empty password would merely trigger an anonymous bind on some directory
+    # servers, never let it pose as the user
+    die "no password\n" if !$password;
+
     my $servers = [$config->{server1}];
     push @$servers, $config->{server2} if $config->{server2};
 

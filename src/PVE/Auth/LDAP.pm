@@ -401,6 +401,10 @@ sub get_groups {
 sub authenticate_user {
     my ($class, $config, $realm, $username, $password) = @_;
 
+    # an empty password would merely trigger an anonymous bind on some LDAP
+    # servers, never let it pose as the user
+    die "no password\n" if !$password;
+
     my $ldap = $class->connect_and_bind($config, $realm);
 
     my $user_dn =
