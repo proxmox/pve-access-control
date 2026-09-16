@@ -40,7 +40,7 @@ PVE::JSONSchema::register_format('pve-realm', \&pve_verify_realm);
 sub pve_verify_realm {
     my ($realm, $noerr) = @_;
 
-    if ($realm !~ m/^${realm_regex}$/) {
+    if ($realm !~ m/^${realm_regex}\z/) {
         return undef if $noerr;
         die "value does not look like a valid realm\n";
     }
@@ -137,7 +137,7 @@ sub verify_username {
     # colon separated lists)!
     # slash is not allowed because it is used as pve API delimiter
     # also see "man useradd"
-    if ($username =~ m!^(${user_regex})\@(${realm_regex})$!) {
+    if ($username =~ m!^(${user_regex})\@(${realm_regex})\z!) {
         return wantarray ? ($username, $1, $2) : $username;
     }
 

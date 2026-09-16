@@ -106,7 +106,7 @@ my sub set_user_tfa_enabled : prototype($$$) {
             # When enabling, we convert old-old keys,
             # When disabling, we shouldn't actually have old keys anymore, so if they are there,
             # they'll be removed.
-            if ($tfa_cfg && $keys && $keys !~ /^x(?:!.*)?$/) {
+            if ($tfa_cfg && $keys && $keys !~ /^x(?:!.*)?\z/) {
                 my $domain_cfg = cfs_read_file('domains.cfg');
                 my $realm_cfg = $domain_cfg->{ids}->{$realm};
                 die "auth domain '$realm' does not exist\n" if !$realm_cfg;

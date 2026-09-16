@@ -386,7 +386,7 @@ my $update_users = sub {
 
     print "deleting outdated existing users first\n" if $to_remove->{entry};
     foreach my $userid (sort keys %$users) {
-        next if $userid !~ m/\@$realm$/;
+        next if $userid !~ m/\@$realm\z/;
         next if defined($synced_users->{$userid});
 
         if ($to_remove->{entry}) {
@@ -441,7 +441,7 @@ my $update_groups = sub {
 
     print "deleting outdated existing groups first\n" if $to_remove->{entry};
     foreach my $groupid (sort keys %$groups) {
-        next if $groupid !~ m/\-$realm$/;
+        next if $groupid !~ m/\-$realm\z/;
         next if defined($synced_groups->{$groupid});
 
         if ($to_remove->{entry}) {

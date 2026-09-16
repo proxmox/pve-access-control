@@ -258,7 +258,7 @@ __PACKAGE__->register_method({
                     [map { { tokenid => $_, %{ $tokens->{$_} } } } sort keys %$tokens];
             }
 
-            if ($user =~ /($PVE::Auth::Plugin::realm_regex)$/) {
+            if ($user =~ /($PVE::Auth::Plugin::realm_regex)\z/) {
                 my $realm = $1;
                 $entry->{'realm-type'} = $domainids->{$realm}->{type}
                     if exists $domainids->{$realm};

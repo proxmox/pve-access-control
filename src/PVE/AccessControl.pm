@@ -284,12 +284,12 @@ our $token_full_regex =
     qr/((${PVE::Auth::Plugin::user_regex})\@(${PVE::Auth::Plugin::realm_regex}))!(${token_subid_regex})/;
 
 our $userid_or_token_regex =
-    qr/^$PVE::Auth::Plugin::user_regex\@$PVE::Auth::Plugin::realm_regex(?:!$token_subid_regex)?$/;
+    qr/^$PVE::Auth::Plugin::user_regex\@$PVE::Auth::Plugin::realm_regex(?:!$token_subid_regex)?\z/;
 
 sub split_tokenid {
     my ($tokenid, $noerr) = @_;
 
-    if ($tokenid =~ /^${token_full_regex}$/) {
+    if ($tokenid =~ /^${token_full_regex}\z/) {
         return ($1, $4);
     }
 
@@ -312,7 +312,7 @@ PVE::JSONSchema::register_format('pve-tokenid', \&pve_verify_tokenid);
 sub pve_verify_tokenid {
     my ($tokenid, $noerr) = @_;
 
-    if ($tokenid =~ /^${token_full_regex}$/) {
+    if ($tokenid =~ /^${token_full_regex}\z/) {
         return wantarray ? ($tokenid, $2, $3, $4) : $tokenid;
     }
 
@@ -346,7 +346,7 @@ sub verify_csrf_prevention_token {
     my $secret = $get_csrfr_secret->();
 
     # FIXME: remove with PVE 7 and/or refactor all into PVE::Ticket ?
-    if ($token =~ m/^([A-Z0-9]{8}):(\S+)$/) {
+    if ($token =~ m/^([A-Z0-9]{8}):(\S+)\z/) {
         my $sig = $2;
         if (length($sig) == 27) {
             # the legacy secret got populated by above get_csrfr_secret call
@@ -441,20 +441,20 @@ sub verify_ticket : prototype($;$$) {
 
     if ($tfa_ticket_aad) {
         # We're validating a ticket-call's 'tfa-challenge' parameter, so just return its data.
-        if ($data =~ /^!tfa!(.*)$/) {
+        if ($data =~ /^!tfa!(.*)\z/) {
             return $1;
         }
         die "bad ticket\n";
     }
 
     my ($username, $tfa_info);
-    if ($data =~ /^!tfa!(.*)$/) {
+    if ($data =~ /^!tfa!(.*)\z/) {
         # PBS style half-authenticated ticket, contains a json string form of a `TfaChallenge`
         # object.
         # This type of ticket does not contain the user name.
         return { type => 'new', data => $1 };
     }
-    if ($data =~ m{^u2f!([^!]+)!([0-9a-zA-Z/.=_\-+]+)$}) {
+    if ($data =~ m{^u2f!([^!]+)!([0-9a-zA-Z/.=_\-+]+)\z}) {
         # Ticket for u2f-users:
         ($username, my $challenge) = ($1, $2);
         if ($challenge eq 'verified') {
@@ -469,7 +469,7 @@ sub verify_ticket : prototype($;$$) {
             type => 'u2f',
             challenge => $challenge,
         };
-    } elsif ($data =~ /^tfa!(.*)$/) {
+    } elsif ($data =~ /^tfa!(.*)\z/) {
         # TOTP and Yubico don't require a challenge so this is the generic
         # 'missing 2nd factor ticket'
         $username = $1;
@@ -490,7 +490,7 @@ sub verify_token {
     die "no API token specified\n" if !$api_token;
 
     my ($tokenid, $value);
-    if ($api_token =~ /^(.*)=(.*)$/) {
+    if ($api_token =~ /^(.*)=(.*)\z/) {
         $tokenid = $1;
         $value = $2;
     } else {
@@ -567,7 +567,7 @@ sub verify_vnc_ticket {
     my ($ticket, $username, $path, $port, $noerr) = @_;
 
     # FIXME: MAJOR VERSION: Drop this, requiring using explicit 'password' return value for VNC API
-    if ($ticket =~ /^.{8}:(PVEVNC:.*)$/) {
+    if ($ticket =~ /^.{8}:(PVEVNC:.*)\z/) {
         $ticket = $1;
     }
 
@@ -796,7 +796,7 @@ sub authenticate_2nd_new_do : prototype($$$$) {
                 return to_json($challenge);
             }
 
-            if ($tfa_response =~ /^yubico:(.*)$/) {
+            if ($tfa_response =~ /^yubico:(.*)\z/) {
                 $tfa_response = $1;
                 # Defer to after unlocking the TFA config:
                 return sub {
@@ -1240,7 +1240,7 @@ sub add_role_privs {
 sub lookup_username {
     my ($username, $noerr) = @_;
 
-    $username =~ m!^(${PVE::Auth::Plugin::user_regex})\@(${PVE::Auth::Plugin::realm_regex})$!;
+    $username =~ m!^(${PVE::Auth::Plugin::user_regex})\@(${PVE::Auth::Plugin::realm_regex})\z!;
 
     my $realm = $2;
     my $domain_cfg = cfs_read_file("domains.cfg");
@@ -1315,7 +1315,7 @@ sub check_path {
 	|/mapping
 	|/mapping/[[:alnum:]\.\-\_]+
 	|/mapping/[[:alnum:]\.\-\_]+/[[:alnum:]\.\-\_]+
-    )$!xs;
+    )\z!xs;
 }
 
 PVE::JSONSchema::register_format('pve-groupid', \&verify_groupname);
@@ -1323,7 +1323,7 @@ PVE::JSONSchema::register_format('pve-groupid', \&verify_groupname);
 sub verify_groupname {
     my ($groupname, $noerr) = @_;
 
-    if ($groupname !~ m/^$PVE::Auth::Plugin::groupname_regex$/) {
+    if ($groupname !~ m/^$PVE::Auth::Plugin::groupname_regex\z/) {
 
         die "group name '$groupname' contains invalid characters\n" if !$noerr;
 
@@ -1338,7 +1338,7 @@ PVE::JSONSchema::register_format('pve-roleid', \&verify_rolename);
 sub verify_rolename {
     my ($rolename, $noerr) = @_;
 
-    if ($rolename !~ m/^[A-Za-z0-9\.\-_]+$/) {
+    if ($rolename !~ m/^[A-Za-z0-9\.\-_]+\z/) {
 
         die "role name '$rolename' contains invalid characters\n" if !$noerr;
 
@@ -1360,7 +1360,7 @@ sub verify_poolname {
     }
 
     # also adapt check_path above if changed!
-    if ($poolname !~ m!^[A-Za-z0-9\.\-_]+(?:/[A-Za-z0-9\.\-_]+){0,2}$!) {
+    if ($poolname !~ m!^[A-Za-z0-9\.\-_]+(?:/[A-Za-z0-9\.\-_]+){0,2}\z!) {
         die "pool name '$poolname' contains invalid characters\n" if !$noerr;
 
         return undef;
@@ -2003,15 +2003,15 @@ my sub normalize_totp_secret : prototype($) {
 
     my $binkey;
     # See PVE::OTP::oath_verify_otp:
-    if ($key =~ /^v2-0x([0-9a-fA-F]+)$/) {
+    if ($key =~ /^v2-0x([0-9a-fA-F]+)\z/) {
         # v2, hex
         $binkey = pack('H*', $1);
-    } elsif ($key =~ /^v2-([A-Z2-7=]+)$/) {
+    } elsif ($key =~ /^v2-([A-Z2-7=]+)\z/) {
         # v2, base32
         $binkey = MIME::Base32::decode_rfc3548($1);
-    } elsif ($key =~ /^[A-Z2-7=]{16}$/) {
+    } elsif ($key =~ /^[A-Z2-7=]{16}\z/) {
         $binkey = MIME::Base32::decode_rfc3548($key);
-    } elsif ($key =~ /^[A-Fa-f0-9]{40}$/) {
+    } elsif ($key =~ /^[A-Fa-f0-9]{40}\z/) {
         $binkey = pack('H*', $key);
     } else {
         return undef;
@@ -2077,7 +2077,7 @@ sub user_get_tfa : prototype($$$) {
         if $realm_tfa;
 
     my $tfa_cfg = cfs_read_file('priv/tfa.cfg');
-    if (defined($keys) && $keys !~ /^x(?:!.*)$/) {
+    if (defined($keys) && $keys !~ /^x(?:!.*)\z/) {
         add_old_keys_to_realm_tfa($username, $tfa_cfg, $realm_tfa, $keys);
     }
 
