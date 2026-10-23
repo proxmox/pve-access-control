@@ -111,11 +111,8 @@ my sub verify_auth : prototype($$$$$$) {
     my $normpath = PVE::AccessControl::normalize_path($path);
     die "invalid path - $path\n" if defined($path) && !defined($normpath);
 
-    my $ticketuser;
-    if (
-        ($ticketuser = PVE::AccessControl::verify_ticket($pw_or_ticket, 1))
-        && ($ticketuser eq $username)
-    ) {
+    my $ticketuser = PVE::AccessControl::verify_ticket($pw_or_ticket, 1);
+    if (defined($ticketuser) && !ref($ticketuser) && ($ticketuser eq $username)) {
         # valid ticket
     } elsif (PVE::AccessControl::verify_vnc_ticket($pw_or_ticket, $username, $normpath, undef, 1)) {
         # FIXME: MAJOR VERSION: Drop this check, require always using 'vncticket' endpoint
@@ -149,7 +146,11 @@ my sub create_ticket_do : prototype($$$$$) {
         ($ticketuser, undef, $tfa_info) = PVE::AccessControl::verify_ticket($pw_or_ticket, 1);
     }
 
-    if (defined($ticketuser) && ($ticketuser eq 'root@pam' || $ticketuser eq $username)) {
+    if (
+        defined($ticketuser)
+        && !ref($ticketuser)
+        && ($ticketuser eq 'root@pam' || $ticketuser eq $username)
+    ) {
         if (defined($tfa_info)) {
             die "incomplete ticket\n";
         }
