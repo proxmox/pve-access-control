@@ -705,26 +705,6 @@ sub check_token_exist {
     return undef;
 }
 
-# deprecated
-sub verify_one_time_pw {
-    my ($type, $username, $keys, $tfa_cfg, $otp) = @_;
-
-    die "missing one time password for two-factor authentication '$type'\n" if !$otp;
-
-    # fixme: proxy support?
-    my $proxy;
-
-    if ($type eq 'yubico') {
-        PVE::OTP::yubico_verify_otp(
-            $otp, $keys, $tfa_cfg->{url}, $tfa_cfg->{id}, $tfa_cfg->{key}, $proxy,
-        );
-    } elsif ($type eq 'oath') {
-        PVE::OTP::oath_verify_otp($otp, $keys, $tfa_cfg->{step}, $tfa_cfg->{digits});
-    } else {
-        die "unknown tfa type '$type'\n";
-    }
-}
-
 # password should be utf8 encoded
 # Note: some plugins delay/sleep if auth fails
 sub authenticate_user : prototype($$$;$) {
