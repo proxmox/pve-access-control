@@ -85,7 +85,7 @@ sub store_password {
 
     my $cmd = ['usermod'];
 
-    my $epw = PVE::Tools::encrypt_pw($password);
+    my $epw = PVE::Tools::encrypt_pw($password, 'y');
 
     push @$cmd, '-p', $epw, $username;
 

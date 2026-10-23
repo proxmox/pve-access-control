@@ -37,7 +37,8 @@ LDAP: example.com
 
 There are 2 special authentication domains name 'pve' and 'pam':
 
- * pve: stores passwords to "/etc/pve/priv/shadow.cfg" (SHA256 crypt); 
+ * pve: stores passwords to "/etc/pve/priv/shadow.cfg" (yescrypt, older hashes
+   get upgraded on login);
 
  * pam: use unix 'pam'
 

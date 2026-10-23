@@ -11,6 +11,7 @@ use PVE::Cluster qw(cfs_register_file cfs_read_file cfs_write_file cfs_lock_file
 use base qw(PVE::Auth::Plugin);
 
 my $shadowconfigfile = "priv/shadow.cfg";
+my $hash_prefix = "y";
 
 cfs_register_file($shadowconfigfile, \&parse_shadow_passwd, \&write_shadow_config);
 
@@ -81,6 +82,12 @@ sub authenticate_user {
         my $encpw =
             crypt(Encode::encode('utf8', $password), $shadow_cfg->{users}->{$username}->{shadow});
         die "invalid credentials\n" if ($encpw ne $shadow_cfg->{users}->{$username}->{shadow});
+
+        # If the password was stored with a different hash function than the currently configured
+        # one, update it here.
+        if ($shadow_cfg->{users}->{$username}->{shadow} !~ m/^\$${hash_prefix}\$/) {
+            store_password($class, $config, $realm, $username, $password);
+        }
     } else {
         die "no password set\n";
     }
@@ -93,7 +100,7 @@ sub store_password {
 
     lock_shadow_config(sub {
         my $shadow_cfg = cfs_read_file($shadowconfigfile);
-        my $epw = PVE::Tools::encrypt_pw($password);
+        my $epw = PVE::Tools::encrypt_pw($password, $hash_prefix);
         $shadow_cfg->{users}->{$username}->{shadow} = $epw;
         cfs_write_file($shadowconfigfile, $shadow_cfg);
     });
