@@ -431,7 +431,7 @@ sub verify_ticket : prototype($;$$) {
     if ($tfa_ticket_aad) {
         # We're validating a ticket-call's 'tfa-challenge' parameter, so just return its data.
         if ($data =~ /^!tfa!(.*)\z/) {
-            return $1;
+            return wantarray ? ($1, $age) : $1;
         }
         die "bad ticket\n";
     }
@@ -441,7 +441,8 @@ sub verify_ticket : prototype($;$$) {
         # PBS style half-authenticated ticket, contains a json string form of a `TfaChallenge`
         # object.
         # This type of ticket does not contain the user name.
-        return { type => 'new', data => $1 };
+        my $tfa = { type => 'new', data => $1 };
+        return wantarray ? ($tfa, $age) : $tfa;
     }
     if ($data =~ m{^u2f!([^!]+)!([0-9a-zA-Z/.=_\-+]+)\z}) {
         # Ticket for u2f-users:
