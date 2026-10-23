@@ -138,22 +138,20 @@ my sub create_ticket_do : prototype($$$$$) {
     die "TFA response should be in 'password', not 'otp' when 'tfa-challenge' is set\n"
         if defined($otp) && defined($tfa_challenge);
 
-    my ($ticketuser, undef, $tfa_info);
+    my $ticketuser;
     if (!defined($tfa_challenge)) {
         # We only verify this ticket if we're not responding to a TFA challenge, as in that case
         # it is a TFA-data ticket and will be verified by `authenticate_user`.
 
-        ($ticketuser, undef, $tfa_info) = PVE::AccessControl::verify_ticket($pw_or_ticket, 1);
+        $ticketuser = PVE::AccessControl::verify_ticket($pw_or_ticket, 1);
     }
 
+    my $tfa_info;
     if (
         defined($ticketuser)
         && !ref($ticketuser)
         && ($ticketuser eq 'root@pam' || $ticketuser eq $username)
     ) {
-        if (defined($tfa_info)) {
-            die "incomplete ticket\n";
-        }
         # valid ticket. Note: root@pam can create tickets for other users
     } else {
         ($username, $tfa_info) = PVE::AccessControl::authenticate_user(

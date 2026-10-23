@@ -385,13 +385,17 @@ sub assemble_ticket : prototype($;$) {
     return PVE::Ticket::assemble_rsa_ticket($rsa_priv, 'PVE', $data, $aad);
 }
 
-# Returns the username, "age" and tfa info.
+# For full tickets, returns the username.
 #
-# Note that for the new-style outh, tfa info is never set, as it only uses the `/ticket` api call
-# via the new 'tfa-challenge' parameter, so this part can go with PVE-8.
+# If `$tfa_ticket_aad` is set, the TFA challenge's JSON string is returned.
 #
-# New-style auth still uses this function, but sets `$tfa_ticket` to true when validating the tfa
-# ticket.
+# If the ticket still requires TFA authentication, a hash ref is returned:
+#     {
+#         type => "new",
+#         data => <tfa challenge json string>
+#     }
+#
+# In list context, all (successful) cases also return the ticket's age.
 sub verify_ticket : prototype($;$$) {
     my ($ticket, $noerr, $tfa_ticket_aad) = @_;
 
@@ -436,7 +440,6 @@ sub verify_ticket : prototype($;$$) {
         die "bad ticket\n";
     }
 
-    my ($username, $tfa_info);
     if ($data =~ /^!tfa!(.*)\z/) {
         # PBS style half-authenticated ticket, contains a json string form of a `TfaChallenge`
         # object.
@@ -444,34 +447,13 @@ sub verify_ticket : prototype($;$$) {
         my $tfa = { type => 'new', data => $1 };
         return wantarray ? ($tfa, $age) : $tfa;
     }
-    if ($data =~ m{^u2f!([^!]+)!([0-9a-zA-Z/.=_\-+]+)\z}) {
-        # Ticket for u2f-users:
-        ($username, my $challenge) = ($1, $2);
-        if ($challenge eq 'verified') {
-            # u2f challenge was completed
-            $challenge = undef;
-        } elsif (!wantarray) {
-            # The caller is not aware there could be an ongoing challenge,
-            # so we treat this ticket as invalid:
-            return $auth_failure->();
-        }
-        $tfa_info = {
-            type => 'u2f',
-            challenge => $challenge,
-        };
-    } elsif ($data =~ /^tfa!(.*)\z/) {
-        # TOTP and Yubico don't require a challenge so this is the generic
-        # 'missing 2nd factor ticket'
-        $username = $1;
-        $tfa_info = { type => 'tfa' };
-    } else {
-        # Regular ticket (full access)
-        $username = $data;
-    }
+
+    # Regular ticket (full access)
+    my $username = $data;
 
     return undef if !PVE::Auth::Plugin::verify_username($username, $noerr);
 
-    return wantarray ? ($username, $age, $tfa_info) : $username;
+    return wantarray ? ($username, $age) : $username;
 }
 
 sub verify_token {
