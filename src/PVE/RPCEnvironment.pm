@@ -87,12 +87,13 @@ my $compile_acl_path = sub {
     # the base path /sdn/zones/<zone>/<vnet>.
     # To allow opt-in propagation, the wildcard path /sdn/zones/<zone>/<vnet>/*
     # is introduced.
-    if (!defined($poolroles_path) && $path =~ m|^/sdn/zones/[^/]+/[^/]+/[0-9]+$|) {
-        my @parts = split('/', $path);
-        my $base_vnet_path = join('/', @parts[0 .. 4]);
-
+    # Roles from the wildcard get combined with those of pools containing the specific tag, like
+    # roles of multiple pools containing the same member.
+    if ($path =~ m|^(/sdn/zones/[^/]+/[^/]+)/[0-9]+\z|) {
         # inherit the permissions only if the explicit /* wildcard was used
-        $poolroles_path = $data->{poolroles}->{"$base_vnet_path/*"};
+        if (my $wildcard_roles = $data->{poolroles}->{"$1/*"}) {
+            $poolroles_path = { ($poolroles_path // {})->%*, $wildcard_roles->%* };
+        }
     }
 
     # get roles of current user/token on checked path - this already handles
