@@ -64,7 +64,8 @@ my $compile_acl_path = sub {
 
                     for my $role (keys $pool_roles->%*) {
                         if (!defined($vlan)) {
-                            # base vnet only, NICs without explicit tag or trunks
+                            # base vnet only, NICs without explicit tag or trunks, which can still
+                            # use all tags of a VLAN-aware vnet from within the guest
                             $data->{poolroles}->{$acl_path}->{$role} = 1;
                         } elsif ($vlan eq '*') {
                             # base vnet and all of its tags

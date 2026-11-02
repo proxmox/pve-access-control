@@ -72,7 +72,9 @@ pool:
 	vm_list: list of VMs associated with the pool
 	storage_list: list of storage IDs associated with the pool
 	network_list: list of network resources associated with the pool:
-		vnet/<zone>/<vnet>: the VNet, for NICs without tag or trunks
+		vnet/<zone>/<vnet>: the VNet, for NICs without tag or trunks. On a
+		    VLAN-aware VNet, such NICs can use all VLAN tags from within the
+		    guest, like with a direct ACL on the VNet.
 		vnet/<zone>/<vnet>/<tag>: a single VLAN tag of the VNet
 		vnet/<zone>/<vnet>/*: the VNet and all of its VLAN tags
 
