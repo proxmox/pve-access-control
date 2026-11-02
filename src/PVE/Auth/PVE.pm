@@ -71,6 +71,28 @@ sub options {
     };
 }
 
+# Re-hash an already verified password with the current hash function. This is best-effort, as
+# failing here, for example without quorum, must not reject valid credentials. Only the verified
+# hash gets replaced, as a concurrent password change or user removal could have changed it since.
+my sub upgrade_password_hash {
+    my ($realm, $username, $password, $verified_hash) = @_;
+
+    # avoid waiting for the lock timeout on every such login while the cluster is not quorate
+    return if !PVE::Cluster::check_cfs_quorum(1);
+
+    eval {
+        lock_shadow_config(sub {
+            my $shadow_cfg = cfs_read_file($shadowconfigfile);
+            my $entry = $shadow_cfg->{users}->{$username};
+            return if !defined($entry) || $entry->{shadow} ne $verified_hash;
+
+            $entry->{shadow} = PVE::Tools::encrypt_pw($password, $hash_prefix);
+            cfs_write_file($shadowconfigfile, $shadow_cfg);
+        });
+    };
+    warn "failed to upgrade password hash of user '$username\@$realm' - $@" if $@;
+}
+
 sub authenticate_user {
     my ($class, $config, $realm, $username, $password) = @_;
 
@@ -79,14 +101,12 @@ sub authenticate_user {
     my $shadow_cfg = cfs_read_file($shadowconfigfile);
 
     if ($shadow_cfg->{users}->{$username}) {
-        my $encpw =
-            crypt(Encode::encode('utf8', $password), $shadow_cfg->{users}->{$username}->{shadow});
-        die "invalid credentials\n" if ($encpw ne $shadow_cfg->{users}->{$username}->{shadow});
+        my $stored_hash = $shadow_cfg->{users}->{$username}->{shadow};
+        my $encpw = crypt(Encode::encode('utf8', $password), $stored_hash);
+        die "invalid credentials\n" if ($encpw ne $stored_hash);
 
-        # If the password was stored with a different hash function than the currently configured
-        # one, update it here.
-        if ($shadow_cfg->{users}->{$username}->{shadow} !~ m/^\$${hash_prefix}\$/) {
-            store_password($class, $config, $realm, $username, $password);
+        if ($stored_hash !~ m/^\$${hash_prefix}\$/) {
+            upgrade_password_hash($realm, $username, $password, $stored_hash);
         }
     } else {
         die "no password set\n";
