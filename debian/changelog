@@ -1,3 +1,45 @@
+libpve-access-control (9.2.0) trixie; urgency=medium
+
+  * auth: tfa: fail closed if the TFA configuration cannot be loaded, instead
+    of accepting an unverified second factor or ignoring a realm's TFA
+    requirement.
+
+  * auth: ldap, ad: reject empty passwords. Directory servers allowing
+    anonymous binds accept a bind with an empty password, which let anyone
+    knowing a valid user name pass the password check.
+
+  * auth: pam, pve: hash new passwords with yescrypt, the Debian default,
+    instead of SHA-256 crypt, whose default cost is too low for modern
+    hardware. PVE realm passwords stored with an older hash get upgraded on
+    login, as long as the cluster is quorate.
+
+  * fix #7513: permissions: allow ACLs on '/nodes/<node>/certificates', so
+    that certificate management can be delegated without granting privileges
+    on the whole node.
+
+  * fix #7520: sdn: support dropping the ACLs of deleted SDN resources and
+    moving VNet ACLs along when a VNet moves to another zone. This prevents
+    stale permissions from applying to a resource that gets re-created with
+    the same name.
+
+  * fix #7294: pools: allow SDN VNets as pool members, either the VNet itself,
+    a specific VLAN tag, or the VNet including all its tags. This allows
+    granting access to networks through pool permissions, like for guests and
+    storages. Also provide helpers to drop or update such members when their
+    VNet gets deleted or moves to another zone.
+
+  * acl: fix ACLs on paths with a '0' segment, like '/sdn/fabrics/0', being
+    applied to the parent path instead, which with propagation also covers
+    all its other children. ACLs that got already written back with the
+    parent path stay there and should be checked.
+
+  * user config: keep groups, roles and pools named '0', which got dropped on
+    the next write of the user config, along with their members and ACLs.
+    Also handle such groups in the user and ACL API, and when syncing them
+    from LDAP, AD or OpenID Connect realms.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 02 Nov 2026 23:30:49 +0100
+
 libpve-access-control (9.1.2) trixie; urgency=medium
 
   * improve newline handling in various regular expressions
