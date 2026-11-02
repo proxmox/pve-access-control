@@ -152,7 +152,7 @@ __PACKAGE__->register_method({
     code => sub {
         my ($param) = @_;
 
-        if (!($param->{users} || $param->{groups} || $param->{tokens})) {
+        if (!grep { length($param->{$_} // '') } qw(users groups tokens)) {
             raise_param_exc({
                 map { $_ => "either 'users', 'groups' or 'tokens' is required." }
                     qw(users groups tokens)

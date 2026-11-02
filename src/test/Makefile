@@ -17,6 +17,7 @@ check:
 	perl -I.. pve-realm-password-hash-test.pl
 	perl -I.. pool-name-0-test.pl
 	perl -I.. user-api-groups-test.pl
+	perl -I.. acl-api-members-test.pl
 	perl -I.. api-tests.pl
 	perl -I.. sdn_acl_pruning_test.pl
 	perl -I.. sdn_acl_migration_test.pl
