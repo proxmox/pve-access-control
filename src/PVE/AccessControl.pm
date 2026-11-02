@@ -1002,7 +1002,7 @@ sub find_acl_tree_node {
 
     my $node = $root;
     for my $p (@$split_path) {
-        next if !$p;
+        next if $p eq '';
 
         $node->{children} = {} if !$node->{children};
         $node->{children}->{$p} = {} if !$node->{children}->{$p};
@@ -2163,7 +2163,7 @@ sub remove_sdn_resource_access {
             my $current = $usercfg->{acl_root};
             my ($parent, $last_key) = find_acl_tree_node_parent($current, $full_path);
 
-            if ($parent && $last_key) {
+            if (defined($last_key)) {
                 delete $parent->{children}->{$last_key};
                 $modified = 1;
             }

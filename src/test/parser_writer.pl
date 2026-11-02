@@ -124,7 +124,7 @@ sub default_acls_with {
         my $split_path = [split("/", $path)];
         my $node = $acls;
         for my $p (@$split_path) {
-            next if !$p;
+            next if $p eq '';
             $node->{children} = {} if !$node->{children};
             $node->{children}->{$p} = {} if !$node->{children}->{$p};
             $node = $node->{children}->{$p};
@@ -282,6 +282,14 @@ my $default_cfg = {
     },
     acl_simple_user => {
         'path' => '/',
+        users => {
+            'test@pam' => {
+                'PVEVMAdmin' => 1,
+            },
+        },
+    },
+    acl_zero_path_segment => {
+        'path' => '/sdn/fabrics/0',
         users => {
             'test@pam' => {
                 'PVEVMAdmin' => 1,
@@ -472,6 +480,7 @@ my $default_raw = {
     },
     acl => {
         'acl_simple_user' => 'acl:1:/:test@pam:PVEVMAdmin:',
+        'acl_zero_path_segment' => 'acl:1:/sdn/fabrics/0:test@pam:PVEVMAdmin:',
         'acl_complex_users_1' => 'acl:1:/storage:test@pam:PVEDatastoreAdmin:',
         'acl_complex_users_2' => 'acl:1:/storage:test2@pam:PVEDatastoreUser:',
         'acl_simple_token' => 'acl:1:/:test@pam!full:PVEVMAdmin:',
@@ -800,6 +809,19 @@ my $tests = [
             . $default_raw->{users}->{'test_pam'}
             . "\n\n\n\n\n"
             . $default_raw->{acl}->{'acl_simple_user'} . "\n",
+    },
+    {
+        name => "acl_zero_path_segment",
+        config => {
+            users => default_users_with([$default_cfg->{test_pam}]),
+            roles => default_roles(),
+            acl_root => default_acls_with([$default_cfg->{acl_zero_path_segment}]),
+        },
+        raw => ""
+            . $default_raw->{users}->{'root@pam'} . "\n"
+            . $default_raw->{users}->{'test_pam'}
+            . "\n\n\n\n\n"
+            . $default_raw->{acl}->{'acl_zero_path_segment'} . "\n",
     },
     {
         name => "acl_complex_users",

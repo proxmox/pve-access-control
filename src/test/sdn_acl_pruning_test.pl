@@ -62,6 +62,26 @@ my $tests = [
             ['user2@pve', '/sdn/fabrics/fabric', ''],
         ],
     },
+    {
+        description => 'pruning of sdn resources with ID 0',
+        raw => <<~EOF,
+        user:user1\@pve:1:0::::::
+        user:user2\@pve:1:0::::::
+        role:SDNAdmin:SDN.Allocate,SDN.Audit
+        role:SDNAudit:SDN.Audit
+        acl:1:/sdn/prefix-lists:user1\@pve:SDNAudit:
+        acl:1:/sdn/prefix-lists/0:user2\@pve:SDNAdmin:
+        acl:1:/sdn/fabrics/0:user2\@pve:SDNAdmin:
+        EOF
+        prune_paths => ['prefix-lists/0', 'fabrics/0'],
+        expected_roles => [
+            ['user1@pve', '/sdn/prefix-lists', 'SDNAudit'],
+            ['user2@pve', '/sdn/prefix-lists', ''],
+            ['user2@pve', '/sdn/prefix-lists/0', ''],
+            ['user2@pve', '/sdn/fabrics', ''],
+            ['user2@pve', '/sdn/fabrics/0', ''],
+        ],
+    },
 ];
 
 # mocking
