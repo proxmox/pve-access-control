@@ -1509,7 +1509,7 @@ sub parse_user_config {
         } elsif ($et eq 'group') {
             my ($group, $userlist, $comment) = @data;
 
-            if (!verify_groupname($group, 1)) {
+            if (!defined(verify_groupname($group, 1))) {
                 warn "user config - ignore group '$group' - invalid characters in group name\n";
                 next;
             }
@@ -1537,7 +1537,7 @@ sub parse_user_config {
         } elsif ($et eq 'role') {
             my ($role, $privlist) = @data;
 
-            if (!verify_rolename($role, 1)) {
+            if (!defined(verify_rolename($role, 1))) {
                 warn "user config - ignore role '$role' - invalid characters in role name\n";
                 next;
             }
@@ -1562,7 +1562,7 @@ sub parse_user_config {
                 my $acl_node;
                 foreach my $role (split_list($rolelist)) {
 
-                    if (!verify_rolename($role, 1)) {
+                    if (!defined(verify_rolename($role, 1))) {
                         warn "user config - ignore invalid role name '$role' in acl\n";
                         next;
                     }
@@ -1575,7 +1575,7 @@ sub parse_user_config {
                     foreach my $ug (split_list($uglist)) {
                         my ($group) = $ug =~ m/^@(\S+)$/;
 
-                        if ($group && verify_groupname($group, 1)) {
+                        if (defined($group) && defined(verify_groupname($group, 1))) {
                             if (!$cfg->{groups}->{$group}) { # group does not exist
                                 warn "user config - ignore invalid acl group '$group'\n";
                             }
@@ -1606,7 +1606,7 @@ sub parse_user_config {
         } elsif ($et eq 'pool') {
             my ($pool, $comment, $vmlist, $storelist, $networklist) = @data;
 
-            if (!verify_poolname($pool, 1)) {
+            if (!defined(verify_poolname($pool, 1))) {
                 warn "user config - ignore pool '$pool' - invalid characters in pool name\n";
                 next;
             }
@@ -1641,7 +1641,7 @@ sub parse_user_config {
                 }
                 $vmid = int($vmid);
 
-                if ($cfg->{vms}->{$vmid}) {
+                if (defined($cfg->{vms}->{$vmid})) {
                     warn "user config - ignore duplicate vmid '$vmid' in pool '$pool'\n";
                     next;
                 }
@@ -1790,15 +1790,15 @@ sub write_user_config {
             foreach my $role (sort keys %{ $acl_members->{$member} }) {
                 my $propagate = $acl_members->{$member}->{$role};
                 if ($propagate) {
-                    $l1 .= ',' if $l1;
+                    $l1 .= ',' if length($l1);
                     $l1 .= $role;
                 } else {
-                    $l0 .= ',' if $l0;
+                    $l0 .= ',' if length($l0);
                     $l0 .= $role;
                 }
             }
-            $result->{0}->{$l0}->{"${prefix}${member}"} = 1 if $l0;
-            $result->{1}->{$l1}->{"${prefix}${member}"} = 1 if $l1;
+            $result->{0}->{$l0}->{"${prefix}${member}"} = 1 if length($l0);
+            $result->{1}->{$l1}->{"${prefix}${member}"} = 1 if length($l1);
         }
     };
 
@@ -1977,7 +1977,7 @@ sub remove_vm_access {
             delete $usercfg->{acl_root}->{children}->{vms}->{children}->{$vmid};
             $modified = 1;
         }
-        if (my $pool = $usercfg->{vms}->{$vmid}) {
+        if (defined(my $pool = $usercfg->{vms}->{$vmid})) {
             if (my $data = $usercfg->{pools}->{$pool}) {
                 delete $data->{vms}->{$vmid};
                 delete $usercfg->{vms}->{$vmid};
@@ -2034,7 +2034,7 @@ sub remove_vm_from_pool {
 
     my $delVMfromPoolFn = sub {
         my $usercfg = cfs_read_file("user.cfg");
-        if (my $pool = $usercfg->{vms}->{$vmid}) {
+        if (defined(my $pool = $usercfg->{vms}->{$vmid})) {
             if (my $data = $usercfg->{pools}->{$pool}) {
                 delete $data->{vms}->{$vmid};
                 delete $usercfg->{vms}->{$vmid};

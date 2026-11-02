@@ -1201,6 +1201,22 @@ my $tests = [
             . 'pool:testpool:::::' . "\n\n"
             . 'role:testrole::' . "\n\n",
     },
+    {
+        name => "names_0",
+        raw => ""
+            . "user:eve\@pve:1:0::::::\n\n"
+            . "group:0:eve\@pve::\n\n"
+            . "pool:0::100:::\n\n"
+            . "role:0:VM.Audit:\n\n"
+            . "acl:1:/pool/0:\@0:0:\n",
+        expected_raw => ""
+            . "user:eve\@pve:1:0::::::\n"
+            . $default_raw->{users}->{'root@pam'} . "\n\n"
+            . "group:0:eve\@pve::\n\n"
+            . "pool:0::100:::\n\n"
+            . "role:0:VM.Audit:\n\n"
+            . "acl:1:/pool/0:\@0:0:\n",
+    },
 ];
 
 my $number_of_tests_run = 0;

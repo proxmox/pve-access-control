@@ -15,6 +15,7 @@ check:
 	perl -I.. perm-test9.pl
 	perl -I.. realm_sync_test.pl
 	perl -I.. pve-realm-password-hash-test.pl
+	perl -I.. pool-name-0-test.pl
 	perl -I.. api-tests.pl
 	perl -I.. sdn_acl_pruning_test.pl
 	perl -I.. sdn_acl_migration_test.pl

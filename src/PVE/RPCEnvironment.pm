@@ -464,7 +464,7 @@ sub check_vm_perm {
 
     my $cfg = $self->{user_cfg};
 
-    if ($pool) {
+    if (defined($pool) && $pool ne '') {
         return if $self->check_full($user, "/pool/$pool", $privs, $any, 1);
     }
     return $self->check_full($user, "/vms/$vmid", $privs, $any, $noerr);
