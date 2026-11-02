@@ -373,10 +373,10 @@ sub get_groups {
 
     foreach my $group (@$groups) {
         my $name = $group->{name};
-        if (!$name && $group->{dn} =~ m/^[^=]+=([^,]+),/) {
+        if (!length($name // '') && $group->{dn} =~ m/^[^=]+=([^,]+),/) {
             $name = PVE::Tools::trim($1);
         }
-        if ($name) {
+        if (length($name // '')) {
             $name .= "-$realm";
 
             # we cannot sync groups that do not meet our criteria

@@ -245,7 +245,8 @@ __PACKAGE__->register_method({
 
                                 my $oidc_groups;
                                 for my $group (@$groups_list) {
-                                    if (PVE::AccessControl::verify_groupname($group, 1)) {
+                                    if
+                                        (defined(PVE::AccessControl::verify_groupname($group, 1))) {
                                         # add realm name as suffix to group
                                         $oidc_groups->{"$group-$realm"} = 1;
                                     } else {
