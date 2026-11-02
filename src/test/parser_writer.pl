@@ -247,6 +247,18 @@ my $default_cfg = {
         pools => {},
         network => { "vnet/zone1/vnet1" => 1, 'vnet/zone2/vnet2' => 1 },
     },
+    test_pool_invalid_networks => {
+        'id' => 'testpool',
+        vms => {},
+        storage => {},
+        pools => {},
+        network => {
+            'vnet/zone1/vnet1' => 1,
+            'vnet/zone1/vnet1/*' => 1,
+            'vnet/zone1/vnet1/42' => 1,
+            'future-type/some-id' => 1,
+        },
+    },
     test_pool_duplicate_vms => {
         'id' => 'test_duplicate_vms',
         vms => {},
@@ -444,6 +456,12 @@ my $default_raw = {
     pools => {
         'test_pool_empty' => 'pool:testpool:::::',
         'test_pool_invalid' => 'pool:testpool::non-numeric:inval!d::',
+        'test_pool_invalid_networks' => 'pool:testpool::::'
+            . 'vnet/zone1/vnet1,vnet/zone1/vnet1/*,vnet/zone1/vnet1/42,future-type/some-id,'
+            . 'vnet,vnet/zone1,vnet/zone1/vnet1/0,vnet/zone1/vnet1/abc,vnet/zone1/vnet1/10/extra,'
+            . 'vnet/zone1/vnet1/*/1,vnet//vnet1:',
+        'test_pool_invalid_networks_expected' => 'pool:testpool::::'
+            . 'future-type/some-id,vnet/zone1/vnet1,vnet/zone1/vnet1/*,vnet/zone1/vnet1/42:',
         'test_pool_members' =>
             'pool:testpool::123,1234:local,local-zfs:vnet/zone1/vnet1,vnet/zone2/vnet2:',
         'test_pool_duplicate_vms' => 'pool:test_duplicate_vms::123,1234:::',
@@ -682,6 +700,25 @@ my $tests = [
             . $default_raw->{users}->{'root@pam'}
             . "\n\n\n"
             . $default_raw->{pools}->{'test_pool_empty'}
+            . "\n\n\n",
+    },
+    {
+        name => "pool_invalid_networks",
+        config => {
+            acl_root => default_acls(),
+            users => default_users(),
+            roles => default_roles(),
+            pools => default_pools_with([$default_cfg->{test_pool_invalid_networks}]),
+        },
+        raw => ""
+            . $default_raw->{users}->{'root@pam'}
+            . "\n\n\n"
+            . $default_raw->{pools}->{'test_pool_invalid_networks'}
+            . "\n\n\n",
+        expected_raw => ""
+            . $default_raw->{users}->{'root@pam'}
+            . "\n\n\n"
+            . $default_raw->{pools}->{'test_pool_invalid_networks_expected'}
             . "\n\n\n",
     },
     {

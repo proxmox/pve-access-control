@@ -1661,8 +1661,18 @@ sub parse_user_config {
 
             }
             for my $network (split_list($networklist)) {
+                my $id_re = qr/[a-z0-9][a-z0-9\-_]*/i;
+                my ($type) = split('/', $network, 2);
 
-                if ($network !~ m/^[a-z0-9][a-z0-9\-_]*(?:\/[a-z0-9][a-z0-9\-_]*)*(?:\/\*)?$/i) {
+                # VNet entries get checked strictly, as permission checks and the cleanup on VNet
+                # removal or zone change rely on their exact format. Keep entries of unknown types
+                # to avoid losing them on write.
+                my $valid =
+                    $type eq 'vnet'
+                    ? $network =~ m!^vnet/$id_re/$id_re(?:/(?:[1-9][0-9]{0,3}|\*))?\z!
+                    : $network =~ m!^$id_re(?:/$id_re)*(?:/\*)?\z!;
+
+                if (!$valid) {
                     warn "user config - ignore invalid sdn resource entry '$network' in pool"
                         . " '$pool'\n";
                     next;
