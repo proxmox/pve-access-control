@@ -259,9 +259,12 @@ sub compute_api_permission {
                     $res->{vms}->{$priv} = 1;
                 } elsif ($priv =~ m/^Datastore\./) {
                     $res->{storage}->{$priv} = 1;
+                } elsif ($priv =~ m/^SDN\./) {
+                    $res->{sdn}->{$priv} = 1;
                 } elsif ($priv eq 'Permissions.Modify') {
                     $res->{storage}->{$priv} = 1;
                     $res->{vms}->{$priv} = 1;
+                    $res->{sdn}->{$priv} = 1;
                 }
             }
         } else {

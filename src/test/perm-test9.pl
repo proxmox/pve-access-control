@@ -47,4 +47,10 @@ is_deeply(
     'effective permissions list the VNet of a wildcard member',
 );
 
+is_deeply(
+    $rpcenv->compute_api_permission('bob@pve')->{sdn},
+    { 'SDN.Use' => 1 },
+    'API capabilities include SDN privileges from pools',
+);
+
 done_testing();
