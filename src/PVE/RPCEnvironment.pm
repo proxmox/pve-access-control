@@ -321,8 +321,9 @@ sub get_effective_permissions {
             if ($type eq 'vnet') {
                 my ($zoneid, $vnetid, $vlan) = @path;
                 my $vnet_path = "/sdn/zones/$zoneid/$vnetid";
-                $vnet_path .= "/$vlan" if defined($vlan);
-                $paths->{$vnet_path} = 1;
+                # a wildcard member grants access to the VNet itself too
+                $paths->{$vnet_path} = 1 if !defined($vlan) || $vlan eq '*';
+                $paths->{"$vnet_path/$vlan"} = 1 if defined($vlan);
             }
         }
     }

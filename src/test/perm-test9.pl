@@ -34,4 +34,17 @@ check_permissions('alice@pve', '/sdn/zones/zone1/vnet1/44', 'SDN.Use', 'wildcard
 check_permissions('carol@pve', '/sdn/zones/zone1/vnet1/43', '', 'tag NoAccess trumps wildcard');
 check_permissions('carol@pve', '/sdn/zones/zone1/vnet1/44', 'SDN.Use', 'wildcard covers tag');
 
+my $effective = $rpcenv->get_effective_permissions('bob@pve');
+is_deeply(
+    [sort grep { m!^/sdn/! } keys $effective->%*],
+    [
+        '/sdn/zones/zone1/vnet1',
+        '/sdn/zones/zone1/vnet1/*',
+        '/sdn/zones/zone1/vnet1/42',
+        '/sdn/zones/zone1/vnet1/43',
+        '/sdn/zones/zone1/vnet2',
+    ],
+    'effective permissions list the VNet of a wildcard member',
+);
+
 done_testing();
