@@ -339,7 +339,7 @@ __PACKAGE__->register_method({
                 $usercfg->{users}->{$username} = { enable => $enable };
                 $usercfg->{users}->{$username}->{expire} = $param->{expire} if $param->{expire};
 
-                if ($param->{groups}) {
+                if (defined($param->{groups})) {
                     foreach my $group (split_list($param->{groups})) {
                         if ($usercfg->{groups}->{$group}) {
                             PVE::AccessControl::add_user_group($username, $usercfg, $group);
@@ -468,7 +468,7 @@ __PACKAGE__->register_method({
                 PVE::AccessControl::delete_user_group($username, $usercfg)
                     if (!$param->{append} && defined($param->{groups}));
 
-                if ($param->{groups}) {
+                if (defined($param->{groups})) {
                     foreach my $group (split_list($param->{groups})) {
                         if ($usercfg->{groups}->{$group}) {
                             PVE::AccessControl::add_user_group($username, $usercfg, $group);
