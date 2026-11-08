@@ -23,6 +23,7 @@ check:
 	perl -I.. ticket-verify-test.pl
 	perl -I.. realm-group-name-0-test.pl
 	perl -I.. api-tests.pl
+	perl -I.. api-realm-read-test.pl
 	perl -I.. sdn_acl_pruning_test.pl
 	perl -I.. sdn_acl_migration_test.pl
 

@@ -298,6 +298,8 @@ __PACKAGE__->register_method({
     method => 'GET',
     description => "Get auth server configuration.",
     permissions => {
+        description => "The OpenID client key and the Yubico API key are only returned to users"
+            . " with 'Realm.Allocate'.",
         check => ['perm', '/access/realm', ['Realm.Allocate', 'Sys.Audit'], any => 1],
     },
     parameters => {
@@ -316,6 +318,20 @@ __PACKAGE__->register_method({
 
         my $data = $cfg->{ids}->{$realm};
         die "domain '$realm' does not exist\n" if !$data;
+
+        my $rpcenv = PVE::RPCEnvironment::get();
+        if (!$rpcenv->check($rpcenv->get_user(), '/access/realm', ['Realm.Allocate'], 1)) {
+            delete $data->{'client-key'};
+            if (my $tfa = $data->{tfa}) {
+                my $tfa_cfg = eval { PVE::Auth::Plugin::parse_tfa_config($tfa) };
+                if (!$tfa_cfg) {
+                    delete $data->{tfa}; # an invalid value can still contain the key
+                } elsif (defined(delete $tfa_cfg->{key})) {
+                    $data->{tfa} =
+                        PVE::JSONSchema::print_property_string($tfa_cfg, 'pve-tfa-config');
+                }
+            }
+        }
 
         my $type = $data->{type};
         if ($type eq 'ad' || $type eq 'ldap') {
