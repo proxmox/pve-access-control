@@ -41,6 +41,7 @@ sub properties {
             description =>
                 "LDAP bind password. Will be stored in '/etc/pve/priv/realm/<REALM>.pw'.",
             type => 'string',
+            sensitive => 1,
             optional => 1,
         },
         verify => {

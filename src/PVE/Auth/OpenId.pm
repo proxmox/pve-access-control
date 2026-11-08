@@ -31,6 +31,7 @@ sub properties {
         "client-key" => {
             description => "OpenID Client Key",
             type => 'string',
+            sensitive => 1,
             optional => 1,
             maxLength => 256,
         },

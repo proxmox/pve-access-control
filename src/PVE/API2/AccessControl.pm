@@ -225,6 +225,7 @@ __PACKAGE__->register_method({
             password => {
                 description => "The secret password. This can also be a valid ticket.",
                 type => 'string',
+                sensitive => 1,
             },
             otp => {
                 description => "One-time password for Two-factor authentication.",
@@ -429,6 +430,7 @@ __PACKAGE__->register_method({
             password => {
                 description => "The new password.",
                 type => 'string',
+                sensitive => 1,
                 minLength => 8,
                 maxLength => 64,
             },

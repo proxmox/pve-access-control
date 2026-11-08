@@ -19,6 +19,7 @@ use base qw(PVE::RESTHandler);
 our $OPTIONAL_PASSWORD_SCHEMA = {
     description => "The current password of the user performing the change.",
     type => 'string',
+    sensitive => 1,
     optional => 1, # Only required if not root@pam
     minLength => 5,
     maxLength => 64,
@@ -340,6 +341,7 @@ __PACKAGE__->register_method({
             },
             totp => {
                 type => 'string',
+                sensitive => 1,
                 description => "A totp URI.",
                 optional => 1,
             },

@@ -173,6 +173,7 @@ my $tfa_format = {
         description => "Yubico API Key.",
         format_description => 'KEY',
         type => 'string',
+        sensitive => 1,
         optional => 1,
     },
     url => {
