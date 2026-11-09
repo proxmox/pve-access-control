@@ -134,6 +134,17 @@ my $token_info_extend = sub {
     return $obj;
 };
 
+# A token of another user can carry privileges the caller lacks: the full privileges of its owner
+# without privilege separation, or its own ACLs once the caller knows a regenerated secret. Require
+# what modifying any user of the owner's realm and any ACL needs. Modifying an ACL needs
+# 'Permissions.Modify' on its path, and only '/' allows granting privileges on all paths.
+my $check_foreign_token_privs = sub {
+    my ($rpcenv, $authuser, $realm) = @_;
+
+    $rpcenv->check($authuser, "/access/realm/$realm", ['Realm.AllocateUser']);
+    $rpcenv->check($authuser, '/', ['Permissions.Modify']);
+};
+
 my $extract_user_data = sub {
     my ($data, $full) = @_;
 
@@ -756,6 +767,10 @@ __PACKAGE__->register_method({
         "Generate a new API token for a specific user. NOTE: returns API token value, which needs to be stored as it cannot be retrieved afterwards!",
     protected => 1,
     permissions => {
+        description =>
+            "Creating a token without privilege separation for another user also requires"
+            . " 'Realm.AllocateUser' on '/access/realm/<realm>' of that user and"
+            . " 'Permissions.Modify' on '/'. An API token does not count as its owning user.",
         check => [
             'or', ['userid-param', 'self'], ['userid-group', ['User.Modify']],
         ],
@@ -789,9 +804,18 @@ __PACKAGE__->register_method({
     code => sub {
         my ($param) = @_;
 
-        my $userid = PVE::AccessControl::verify_username(extract_param($param, 'userid'));
-        my $tokenid = extract_param($param, 'tokenid');
+        my $rpcenv = PVE::RPCEnvironment::get();
+        my $authuser = $rpcenv->get_user();
 
+        my ($userid, undef, $realm) =
+            PVE::AccessControl::verify_username(extract_param($param, 'userid'));
+
+        my $privsep = $param->{privsep} // 1;
+        if (!$privsep && $authuser ne $userid) {
+            $check_foreign_token_privs->($rpcenv, $authuser, $realm);
+        }
+
+        my $tokenid = extract_param($param, 'tokenid');
         my $usercfg = cfs_read_file("user.cfg");
 
         my $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid, 1);
@@ -810,7 +834,7 @@ __PACKAGE__->register_method({
             $value = PVE::TokenConfig::generate_token($full_tokenid);
 
             $token = {};
-            $token->{privsep} = defined($param->{privsep}) ? $param->{privsep} : 1;
+            $token->{privsep} = $privsep;
             $token->{expire} = $param->{expire} if defined($param->{expire});
             $token->{comment} = $param->{comment} if $param->{comment};
 
@@ -837,6 +861,11 @@ __PACKAGE__->register_method({
         . " the returned token value needs to be stored as it cannot be retrieved afterwards!",
     protected => 1,
     permissions => {
+        description =>
+            "For a token of another user, regenerating the secret, or any update that leaves"
+            . " privilege separation disabled, also requires 'Realm.AllocateUser' on"
+            . " '/access/realm/<realm>' of that user and 'Permissions.Modify' on '/'. An API token"
+            . " does not count as its owning user.",
         check => [
             'or', ['userid-param', 'self'], ['userid-group', ['User.Modify']],
         ],
@@ -881,12 +910,24 @@ __PACKAGE__->register_method({
     code => sub {
         my ($param) = @_;
 
-        my $userid = PVE::AccessControl::verify_username(extract_param($param, 'userid'));
+        my $rpcenv = PVE::RPCEnvironment::get();
+        my $authuser = $rpcenv->get_user();
+
+        my ($userid, undef, $realm) =
+            PVE::AccessControl::verify_username(extract_param($param, 'userid'));
         my $tokenid = extract_param($param, 'tokenid');
         my $regenerate = extract_param($param, 'regenerate');
 
         my $usercfg = cfs_read_file("user.cfg");
         my $token = PVE::AccessControl::check_token_exist($usercfg, $userid, $tokenid);
+
+        # Disabling privilege separation and regenerating the secret can happen in separate calls,
+        # so check either. Any other update of a token that stays without privilege separation,
+        # like extending its expiry, needs the same privileges.
+        my $privsep = $param->{privsep} // $token->{privsep};
+        if ((!$privsep || $regenerate) && $authuser ne $userid) {
+            $check_foreign_token_privs->($rpcenv, $authuser, $realm);
+        }
 
         my $delete = extract_param($param, 'delete');
         $delete = { map { $_ => 1 } PVE::Tools::split_list($delete) } if $delete;
