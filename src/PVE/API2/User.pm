@@ -781,7 +781,14 @@ __PACKAGE__->register_method({
         properties => {
             userid => get_standard_option('userid-completed'),
             tokenid => get_standard_option('token-subid'),
-            expire => get_standard_option('token-expire'),
+            expire => get_standard_option(
+                'token-expire',
+                {
+                    description => "API token expiration date (seconds since epoch). '0' means"
+                        . " no expiration date, or the maximum lifetime if the datacenter token"
+                        . " policy sets 'default-to-max-lifetime'.",
+                },
+            ),
             privsep => get_standard_option('token-privsep'),
             comment => get_standard_option('token-comment'),
         },
@@ -835,6 +842,11 @@ __PACKAGE__->register_method({
             $token->{privsep} = $privsep;
             $token->{expire} = $param->{expire} if defined($param->{expire});
             $token->{comment} = $param->{comment} if $param->{comment};
+
+            if (!int($token->{expire} // 0)) {
+                my $default_expire = PVE::AccessControl::token_policy_default_expire();
+                $token->{expire} = $default_expire if $default_expire;
+            }
 
             # check policy before generating the secret to avoid leaving an orphan in token.cfg
             PVE::AccessControl::assert_token_policy({

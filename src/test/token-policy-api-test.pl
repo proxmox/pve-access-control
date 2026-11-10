@@ -113,4 +113,26 @@ $reset->({ 'disallow-expiry-extension' => 1 }, 0);
 ($ok, $err) = $invoke->('update_token_info', { tokenid => 'old', expire => $now + 600 });
 ok($ok, 'setting an expiry on a token without one stays allowed') or diag($err);
 
+# default-to-max-lifetime gives tokens created without an expiration date the maximum lifetime
+my $defaulting = { 'max-lifetime' => 86400, 'default-to-max-lifetime' => 1 };
+for my $case (['absent', {}], ['zero', { expire => 0 }], ['zero spelling', { expire => '00' }]) {
+    my ($desc, $param) = $case->@*;
+    $reset->($defaulting);
+    my $before = time();
+    ($ok, $err) = $invoke->('generate_token', { tokenid => 'new', %$param });
+    ok($ok, "create with $desc expiry is accepted under default-to-max-lifetime") or diag($err);
+    my ($expire) = $user_cfg_raw =~ /^token:test\@pve!new:(\d+):/m;
+    ok(
+        defined($expire) && $expire >= $before + 86400 && $expire <= time() + 86400,
+        "create with $desc expiry stores the maximum lifetime as expiration date",
+    ) or diag("stored expire: " . ($expire // 'none'));
+}
+$reset->($defaulting);
+($ok, $err) = $invoke->('generate_token', { tokenid => 'new', expire => $now + 600 });
+ok($ok, 'an explicit expiry is kept under default-to-max-lifetime') or diag($err);
+like($user_cfg_raw, qr/^token:test\@pve!new:${\($now + 600)}:/m, 'the explicit expiry is stored');
+$reset->({ 'default-to-max-lifetime' => 1, 'require-expiry' => 1 });
+($ok, $err) = $invoke->('generate_token', { tokenid => 'new' });
+ok(!$ok && $err =~ /requires an expiration date/, 'no default without a maximum lifetime');
+
 done_testing();

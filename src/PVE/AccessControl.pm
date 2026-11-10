@@ -725,6 +725,18 @@ sub assert_token_policy {
     }
 }
 
+# Returns the expiration date the datacenter token policy assigns to a new token created without
+# one, or undef if the policy does not default it. 'ctime' and 'policy' can be overridden like
+# for assert_token_policy.
+sub token_policy_default_expire {
+    my ($param) = @_;
+
+    my $policy = $param->{policy} // cfs_read_file('datacenter.cfg')->{'token-policy'};
+    return undef if !$policy || !$policy->{'default-to-max-lifetime'} || !$policy->{'max-lifetime'};
+
+    return ($param->{ctime} // time()) + $policy->{'max-lifetime'};
+}
+
 sub check_token_exist {
     my ($usercfg, $username, $tokenid, $noerr) = @_;
 

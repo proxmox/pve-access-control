@@ -240,4 +240,20 @@ check(
     0,
 );
 
+# default-to-max-lifetime only yields a default with a maximum lifetime to derive it from
+my $default_expire = sub($policy) {
+    return PVE::AccessControl::token_policy_default_expire({
+        ctime => $now,
+        policy => $policy,
+    });
+};
+is(
+    $default_expire->({ 'max-lifetime' => $max, 'default-to-max-lifetime' => 1 }),
+    $now + $max,
+    'default-to-max-lifetime yields now plus the maximum lifetime',
+);
+is($default_expire->({ 'max-lifetime' => $max }), undef, 'no default without opting in');
+is($default_expire->({ 'default-to-max-lifetime' => 1 }), undef, 'no default without a maximum');
+is($default_expire->(undef), undef, 'no default without a policy');
+
 done_testing();
