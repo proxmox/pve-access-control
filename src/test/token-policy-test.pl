@@ -178,6 +178,51 @@ check(
     0,
 );
 
+# allow-extension-on-regenerate lifts the extension ban only together with a secret regeneration
+my $rotation = { 'disallow-expiry-extension' => 1, 'allow-extension-on-regenerate' => 1 };
+check(
+    'allow-extension-on-regenerate, extension with regeneration',
+    $rotation,
+    { expire => $now + 200, 'current-expire' => $now + 100, regenerate => 1 },
+    0,
+);
+check(
+    'allow-extension-on-regenerate, removal with regeneration',
+    $rotation,
+    { expire => 0, 'current-expire' => $now + 100, regenerate => 1 },
+    0,
+);
+check(
+    'allow-extension-on-regenerate, extension without regeneration',
+    $rotation,
+    { expire => $now + 200, 'current-expire' => $now + 100 },
+    1,
+);
+check(
+    'allow-extension-on-regenerate, extension with regenerate=0',
+    $rotation,
+    { expire => $now + 200, 'current-expire' => $now + 100, regenerate => 0 },
+    1,
+);
+check(
+    'disallow-expiry-extension alone ignores regeneration',
+    $no_extension,
+    { expire => $now + 200, 'current-expire' => $now + 100, regenerate => 1 },
+    1,
+);
+check(
+    'allow-extension-on-regenerate, max-lifetime still bounds the extension',
+    { $rotation->%*, 'max-lifetime' => $max },
+    { expire => $now + $max + 1, 'current-expire' => $now + 100, regenerate => 1 },
+    1,
+);
+check(
+    'allow-extension-on-regenerate, extension within max-lifetime with regeneration',
+    { $rotation->%*, 'max-lifetime' => $max },
+    { expire => $now + $max, 'current-expire' => $now + 100, regenerate => 1 },
+    0,
+);
+
 # require-privilege-separation
 my $require_privilege_separation = { 'require-privilege-separation' => 1 };
 check(

@@ -981,6 +981,7 @@ __PACKAGE__->register_method({
                     expire => $expire_change,
                     'privilege-separation' => $privilege_separation_change,
                     'current-expire' => $old_expire,
+                    regenerate => $regenerate,
                 });
 
                 my $deletable = {

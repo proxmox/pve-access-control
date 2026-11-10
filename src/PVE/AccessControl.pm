@@ -672,6 +672,8 @@ sub check_user_enabled {
 #   date checks
 # - privilege-separation: the privilege separation flag to check; undef skips that check
 # - current-expire: the expiration date of an existing token before the update, 0 for none
+# - regenerate: whether the update also regenerates the secret, see
+#   'allow-extension-on-regenerate'
 # - ctime, policy: override the reference time for the maximum lifetime and the policy from the
 #   datacenter config, for testing
 #
@@ -691,10 +693,14 @@ sub assert_token_policy {
     return if !$policy;
 
     if (defined($expire)) {
-        # removing the expiration date or moving it later extends the token
+        # removing the expiration date or moving it later extends the token; regenerating the
+        # secret along with it is like recreating the token, which the policy may allow
         my $current_expire = $param->{'current-expire'};
+        my $regenerate_allows_extension =
+            $param->{regenerate} && $policy->{'allow-extension-on-regenerate'};
         if (
             $policy->{'disallow-expiry-extension'}
+            && !$regenerate_allows_extension
             && $current_expire
             && (!$expire || $expire > $current_expire)
         ) {

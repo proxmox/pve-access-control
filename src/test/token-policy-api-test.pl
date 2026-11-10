@@ -135,4 +135,15 @@ $reset->({ 'default-to-max-lifetime' => 1, 'require-expiry' => 1 });
 ($ok, $err) = $invoke->('generate_token', { tokenid => 'new' });
 ok(!$ok && $err =~ /requires an expiration date/, 'no default without a maximum lifetime');
 
+# allow-extension-on-regenerate: extending needs the secret regenerated in the same request
+$reset->({ 'disallow-expiry-extension' => 1, 'allow-extension-on-regenerate' => 1 }, $now + 600);
+($ok, $err) = $invoke->('update_token_info', { tokenid => 'old', expire => $now + 1200 });
+ok(!$ok && $err =~ /does not allow extending/, 'extending without regeneration is rejected');
+is($secret_calls, 0, 'the rejected update does not touch the secret');
+($ok, $err) =
+    $invoke->('update_token_info', { tokenid => 'old', expire => $now + 1200, regenerate => 1 });
+ok($ok, 'extending together with regeneration is accepted') or diag($err);
+is($secret_calls, 1, 'the accepted update regenerates the secret');
+like($user_cfg_raw, qr/^token:test\@pve!old:${\($now + 1200)}:/m, 'the extended expiry is stored');
+
 done_testing();
