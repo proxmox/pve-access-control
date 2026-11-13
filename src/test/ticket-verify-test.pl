@@ -59,4 +59,11 @@ ok(
     'full ticket is not a TFA challenge',
 );
 
+$ticket = PVE::AccessControl::assemble_ticket('!tfa!alice@pve');
+is(
+    scalar(PVE::AccessControl::verify_ticket($ticket)),
+    '!tfa!alice@pve',
+    "a user name starting with '!tfa!' is not taken as TFA challenge",
+);
+
 done_testing();

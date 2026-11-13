@@ -385,17 +385,13 @@ sub assemble_ticket : prototype($;$) {
     return PVE::Ticket::assemble_rsa_ticket($rsa_priv, 'PVE', $data, $aad);
 }
 
-# For full tickets, returns the username.
+# Returns the user name of a full ticket.
 #
-# If `$tfa_ticket_aad` is set, the TFA challenge's JSON string is returned.
+# If `$tfa_ticket_aad` is set, verifies a TFA challenge ticket of that user instead and returns the
+# challenge's JSON string. TFA challenge tickets carry their user as additional authenticated data,
+# so they fail verification as full tickets.
 #
-# If the ticket still requires TFA authentication, a hash ref is returned:
-#     {
-#         type => "new",
-#         data => <tfa challenge json string>
-#     }
-#
-# In list context, all (successful) cases also return the ticket's age.
+# In list context, all successful cases also return the ticket's age.
 sub verify_ticket : prototype($;$$) {
     my ($ticket, $noerr, $tfa_ticket_aad) = @_;
 
@@ -440,15 +436,8 @@ sub verify_ticket : prototype($;$$) {
         die "bad ticket\n";
     }
 
-    if ($data =~ /^!tfa!(.*)\z/) {
-        # PBS style half-authenticated ticket, contains a json string form of a `TfaChallenge`
-        # object.
-        # This type of ticket does not contain the user name.
-        my $tfa = { type => 'new', data => $1 };
-        return wantarray ? ($tfa, $age) : $tfa;
-    }
-
-    # Regular ticket (full access)
+    # Regular ticket (full access). Its data is only ever a user name, which can also start with
+    # '!tfa!'.
     my $username = $data;
 
     return undef if !PVE::Auth::Plugin::verify_username($username, $noerr);
