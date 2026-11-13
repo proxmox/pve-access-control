@@ -1,3 +1,21 @@
+libpve-access-control (9.2.1) trixie; urgency=medium
+
+  * api: tokens: creating an API token without privilege separation for
+    another user, regenerating the secret of another user's token, or any
+    update that leaves another user's token without privilege separation now
+    requires 'Realm.AllocateUser' on that user's realm and
+    'Permissions.Modify' on '/'. Before, 'User.Modify' on one of the user's
+    groups was enough, which could hand out a token with more privileges than
+    the caller had. API tokens never count as their owning user here.
+
+  * auth: drop support for the legacy TFA ticket format, replaced since
+    Proxmox VE 7. Its 'tfa!' prefix is also valid at the start of a user name,
+    so a full ticket of such a user could be mistaken for a half-authenticated
+    ticket of another user. Also let users whose name starts with '!tfa!' use
+    their tickets, which got mistaken for a pending TFA challenge.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 13 Nov 2026 22:16:42 +0100
+
 libpve-access-control (9.2.0) trixie; urgency=medium
 
   * auth: tfa: fail closed if the TFA configuration cannot be loaded, instead
