@@ -18,6 +18,7 @@ check:
 	perl -I.. pool-name-0-test.pl
 	perl -I.. user-api-groups-test.pl
 	perl -I.. acl-api-members-test.pl
+	perl -I.. acl-api-permissions-test.pl
 	perl -I.. realm-group-name-0-test.pl
 	perl -I.. api-tests.pl
 	perl -I.. sdn_acl_pruning_test.pl
