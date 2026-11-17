@@ -473,40 +473,6 @@ __PACKAGE__->register_method({
     },
 });
 
-sub verify_user_tfa_config {
-    my ($type, $tfa_cfg, $value) = @_;
-
-    if (!defined($type)) {
-        die "missing tfa 'type'\n";
-    }
-
-    if ($type ne 'oath') {
-        die "invalid type for custom tfa authentication\n";
-    }
-
-    my $secret = $tfa_cfg->{keys}
-        or die "missing TOTP secret\n";
-    $tfa_cfg = $tfa_cfg->{config};
-    # Copy the hash to verify that we have no unexpected keys without modifying the original hash.
-    $tfa_cfg = {%$tfa_cfg};
-
-    # We can only verify 1 secret but oath_verify_otp allows multiple:
-    if (scalar(PVE::Tools::split_list($secret)) != 1) {
-        die "only exactly one secret key allowed\n";
-    }
-
-    my $digits = delete($tfa_cfg->{digits}) // 6;
-    my $step = delete($tfa_cfg->{step}) // 30;
-    # Maybe also this?
-    #     my $algorithm = delete($tfa_cfg->{algorithm}) // 'sha1';
-
-    if (length(my $more = join(', ', keys %$tfa_cfg))) {
-        die "unexpected tfa config keys: $more\n";
-    }
-
-    PVE::OTP::oath_verify_otp($value, $secret, $step, $digits);
-}
-
 __PACKAGE__->register_method({
     name => 'permissions',
     path => 'permissions',
