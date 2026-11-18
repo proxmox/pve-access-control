@@ -183,8 +183,7 @@ __PACKAGE__->register_method({
                 my $node = PVE::AccessControl::find_acl_tree_node($cfg->{acl_root}, $path);
 
                 foreach my $role (split_list($param->{roles})) {
-                    die "role '$role' does not exist\n"
-                        if !$cfg->{roles}->{$role};
+                    die "role '$role' does not exist\n" if !$cfg->{roles}->{$role};
 
                     # permissions() returns set privs as key, and propagate bit as value!
                     if (!defined($auth_user_privs->{'Permissions.Modify'})) {
@@ -193,38 +192,37 @@ __PACKAGE__->register_method({
                         my $role_privs = $cfg->{roles}->{$role};
                         my $verb = $param->{delete} ? 'remove' : 'add';
                         foreach my $priv (keys $role_privs->%*) {
-                            raise_param_exc(
-                                {
+                            if (!defined($auth_user_privs->{$priv})) {
+                                raise_param_exc({
                                     role =>
                                         "Cannot $verb role '$role' - requires 'Permissions.Modify' or superset of privileges.",
-                                },
-                            ) if !defined($auth_user_privs->{$priv});
+                                });
+                            }
 
                             # propagation is only potentially problematic for adding ACLs, not removing..
-                            raise_param_exc(
-                                {
-                                    role =>
-                                        "Cannot $verb role '$role' with propagation - requires 'Permissions.Modify' or propagated superset of privileges.",
-                                },
-                                )
-                                if $propagate
+                            if (
+                                !$param->{delete}
+                                && $propagate
                                 && $auth_user_privs->{$priv} != $propagate
-                                && !$param->{delete};
+                            ) {
+                                raise_param_exc({
+                                    role =>
+                                        "Cannot add role '$role' with propagation - requires 'Permissions.Modify' or propagated superset of privileges.",
+                                });
+                            }
                         }
 
                         # NoAccess has no privs, needs an explicit check
-                        raise_param_exc(
-                            {
+                        if ($role eq 'NoAccess') {
+                            raise_param_exc({
                                 role =>
                                     "Cannot $verb role '$role' - requires 'Permissions.Modify'",
-                            },
-                        ) if $role eq 'NoAccess';
+                            });
+                        }
                     }
 
                     foreach my $group (split_list($param->{groups})) {
-
-                        die "group '$group' does not exist\n"
-                            if !$cfg->{groups}->{$group};
+                        die "group '$group' does not exist\n" if !$cfg->{groups}->{$group};
 
                         if ($param->{delete}) {
                             delete($node->{groups}->{$group}->{$role});
@@ -236,8 +234,7 @@ __PACKAGE__->register_method({
                     foreach my $userid (split_list($param->{users})) {
                         my $username = PVE::AccessControl::verify_username($userid);
 
-                        die "user '$username' does not exist\n"
-                            if !$cfg->{users}->{$username};
+                        die "user '$username' does not exist\n" if !$cfg->{users}->{$username};
 
                         if ($param->{delete}) {
                             delete($node->{users}->{$username}->{$role});
