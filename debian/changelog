@@ -1,3 +1,21 @@
+libpve-access-control (9.2.2) trixie; urgency=medium
+
+  * api: realms: only return the client key of OpenID realms and the API key
+    of a realm's Yubico two-factor config to users with 'Realm.Allocate'.
+    Reading a realm config only requires 'Sys.Audit', which the PVEAuditor
+    role grants as well.
+
+  * fix #7805: api: tokens: enforce the new datacenter token policy on token
+    creation and update. Only changed settings get checked, so tokens that
+    predate the policy stay valid and unrelated edits keep working. With
+    'default-to-max-lifetime', tokens created without an expiration date, for
+    example by the remote wizard of Proxmox Datacenter Manager, get the
+    maximum lifetime instead of being rejected. With
+    'allow-extension-on-regenerate', an update that regenerates the secret
+    may also extend the expiration date despite 'disallow-expiry-extension'.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 18 Nov 2026 02:08:07 +0100
+
 libpve-access-control (9.2.1) trixie; urgency=medium
 
   * api: tokens: creating an API token without privilege separation for
