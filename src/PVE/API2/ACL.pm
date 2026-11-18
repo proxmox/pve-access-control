@@ -104,6 +104,38 @@ __PACKAGE__->register_method({
     },
 });
 
+# The 'perm-modify' check also lets users without 'Permissions.Modify' update ACLs, for example with
+# 'VM.Allocate' on /vms/*. Only allow such users to add or remove roles whose privileges they hold
+# themselves, and to add roles with propagation only if they hold those privileges propagated.
+#
+# $auth_user_privs is the result of permissions(), with set privs as key and propagate bit as value.
+my sub check_role_delegation : prototype($$$$$) {
+    my ($auth_user_privs, $role, $role_privs, $propagate, $delete) = @_;
+
+    my $verb = $delete ? 'remove' : 'add';
+    foreach my $priv (keys $role_privs->%*) {
+        if (!defined($auth_user_privs->{$priv})) {
+            raise_param_exc({
+                role =>
+                    "Cannot $verb role '$role' - requires 'Permissions.Modify' or superset of privileges.",
+            });
+        }
+
+        # propagation is only potentially problematic for adding ACLs, not removing..
+        if (!$delete && $propagate && $auth_user_privs->{$priv} != $propagate) {
+            raise_param_exc({
+                role =>
+                    "Cannot add role '$role' with propagation - requires 'Permissions.Modify' or propagated superset of privileges.",
+            });
+        }
+    }
+
+    # NoAccess has no privs, needs an explicit check
+    if ($role eq 'NoAccess') {
+        raise_param_exc({ role => "Cannot $verb role '$role' - requires 'Permissions.Modify'" });
+    }
+}
+
 __PACKAGE__->register_method({
     name => 'update_acl',
     protected => 1,
@@ -185,40 +217,14 @@ __PACKAGE__->register_method({
                 foreach my $role (split_list($param->{roles})) {
                     die "role '$role' does not exist\n" if !$cfg->{roles}->{$role};
 
-                    # permissions() returns set privs as key, and propagate bit as value!
                     if (!defined($auth_user_privs->{'Permissions.Modify'})) {
-                        # 'perm-modify' allows /vms/* with VM.Allocate and similar restricted use cases
-                        # filter those to only allow handing out a subset of currently active privs
-                        my $role_privs = $cfg->{roles}->{$role};
-                        my $verb = $param->{delete} ? 'remove' : 'add';
-                        foreach my $priv (keys $role_privs->%*) {
-                            if (!defined($auth_user_privs->{$priv})) {
-                                raise_param_exc({
-                                    role =>
-                                        "Cannot $verb role '$role' - requires 'Permissions.Modify' or superset of privileges.",
-                                });
-                            }
-
-                            # propagation is only potentially problematic for adding ACLs, not removing..
-                            if (
-                                !$param->{delete}
-                                && $propagate
-                                && $auth_user_privs->{$priv} != $propagate
-                            ) {
-                                raise_param_exc({
-                                    role =>
-                                        "Cannot add role '$role' with propagation - requires 'Permissions.Modify' or propagated superset of privileges.",
-                                });
-                            }
-                        }
-
-                        # NoAccess has no privs, needs an explicit check
-                        if ($role eq 'NoAccess') {
-                            raise_param_exc({
-                                role =>
-                                    "Cannot $verb role '$role' - requires 'Permissions.Modify'",
-                            });
-                        }
+                        check_role_delegation(
+                            $auth_user_privs,
+                            $role,
+                            $cfg->{roles}->{$role},
+                            $propagate,
+                            $param->{delete},
+                        );
                     }
 
                     foreach my $group (split_list($param->{groups})) {
