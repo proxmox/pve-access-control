@@ -524,6 +524,8 @@ sub check_perm_modify {
         push @$testperms, 'Datastore.Allocate';
     } elsif ($path =~ m|^/vms/.+$|) {
         push @$testperms, 'VM.Allocate';
+    } elsif ($path =~ m|^/sdn/.+$|) {
+        push @$testperms, 'SDN.Allocate';
     } elsif ($path =~ m|^/pool/.+$|) {
         push @$testperms, 'Pool.Allocate';
     }
