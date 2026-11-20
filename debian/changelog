@@ -1,3 +1,13 @@
+libpve-access-control (9.2.3) trixie; urgency=medium
+
+  * rpcenv: accept SDN.Allocate instead of Permissions.Modify for modifying
+    the permissions on paths below /sdn, like VM.Allocate for guests. This
+    allows users with SDN.Allocate on a VNet to add it to resource pools. They
+    can also view and change the ACLs on such paths now, but only grant or
+    revoke a subset of their own privileges, as for the other exceptions.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 20 Nov 2026 05:43:49 +0100
+
 libpve-access-control (9.2.2) trixie; urgency=medium
 
   * api: realms: only return the client key of OpenID realms and the API key
